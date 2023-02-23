@@ -1,0 +1,9 @@
+val ENGINE_VERSION: String = "1.0";
+
+@model AssemblyX {
+    @define EXIT            0x01
+    @define READ            0x03
+    @define WRITE           0x04
+    @define GET_CPU         0x159
+    @define CALL_KERNEL     0x80
+}
