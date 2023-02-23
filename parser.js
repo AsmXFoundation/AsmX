@@ -112,9 +112,57 @@ class Parser {
                 if (equal == 'rejected'){ break ParserCycle; } else tokens.push(equal);
                 continue;
             }
+
+            if (Validator.isDivStatement(line)) {
+                let div = this.parseDivStatement(line);
+                if (div == 'rejected'){ break ParserCycle; } else tokens.push(div);
+                continue;
+            }
+
+            if (Validator.isModStatement(line)) {
+                let mod = this.parseModStatement(line);
+                if (mod == 'rejected'){ break ParserCycle; } else tokens.push(mod);
+                continue;
+            }
         }
 
         return tokens;
+    }
+
+
+    /**
+     * It takes a line of code, splits it into an array of arguments, and then validates each argument
+     * @param lineCode - the line of code that is being parsed
+     * @returns A small abstract syntax tree.
+     */
+    static parseDivStatement(lineCode) {
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['div'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        if (lineCode.split(' ').length > 6) return 'rejected';
+        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
+        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        args.map(arg => ValidatorByType.validatorTypeHex(arg));
+        smallAbstractSyntaxTree['div']['args'] = args;
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code, splits it into arguments, and then validates each argument.
+     * @param lineCode - the line of code that is being parsed
+     * @returns a small abstract syntax tree.
+     */
+    static parseModStatement(lineCode) {
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['mod'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        if (lineCode.split(' ').length > 6) return 'rejected';
+        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
+        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        args.map(arg => ValidatorByType.validatorTypeHex(arg));
+        smallAbstractSyntaxTree['mod']['args'] = args;
+        return smallAbstractSyntaxTree;
     }
 
 
@@ -130,7 +178,7 @@ class Parser {
         smallAbstractSyntaxTree['equal'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(','): lineCode.split(' ');
+        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
         smallAbstractSyntaxTree['equal']['args'] = args;
         return smallAbstractSyntaxTree;
@@ -148,8 +196,9 @@ class Parser {
         smallAbstractSyntaxTree['add'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(','): lineCode.split(' ');
+        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        args.map(arg => ValidatorByType.validatorTypeHex(arg));
         smallAbstractSyntaxTree['add']['args'] = args;
         return smallAbstractSyntaxTree;
     }
@@ -185,8 +234,9 @@ class Parser {
         smallAbstractSyntaxTree['sub'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(','): lineCode.split(' ');
+        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        args.map(arg => ValidatorByType.validatorTypeHex(arg));
         smallAbstractSyntaxTree['sub']['args'] = args;
         return smallAbstractSyntaxTree;
     }

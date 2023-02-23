@@ -160,6 +160,40 @@ class Validator {
                 lineCode.startsWith('@Equ') ||
                 lineCode.startsWith('@equ');
     }
+
+
+    /**
+     * It returns true if the line of code starts with @Div, and false otherwise.
+     * @param lineCode - The line of code that is being checked.
+     * @returns a boolean value.
+     */
+    static isDivStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Div');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with @Mod, and false if it doesn't
+     * @param lineCode - The line of code that is being checked.
+     * @returns a boolean value.
+     */
+    static isModStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Mod');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with @Expression or @Expr.
+     * @param lineCode - The line of code that is being checked.
+     * @returns A boolean value.
+     */
+    static isExpressionStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        lineCode = lineCode.replace(/\s+/g, ' ');
+        return lineCode.startsWith('@Expression') || lineCode.startsWith('@Expr');
+    }
 }
 
 module.exports = Validator;

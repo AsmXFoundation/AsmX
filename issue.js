@@ -10,5 +10,7 @@ Object.defineProperty(Issues, 'STACK_EVENT', { value: '[AsmX]: Stack changed..\n
 Object.defineProperty(Issues, 'ADD_EVENT', { value: '[AsmX]: match add..\n' });
 Object.defineProperty(Issues, 'SUB_EVENT', { value: '[AsmX]: match sub..\n' });
 Object.defineProperty(Issues, 'EQUALITY_EVENT', { value: '[AsmX]: match equal..\n' });
+Object.defineProperty(Issues, 'MATCH_DIV_EVENT', { value: '[AsmX]: match..\n' });
+Object.defineProperty(Issues, 'MATCH_MOD_EVENT', { value: '[AsmX]: match..\n' });
 
 module.exports = Issues;

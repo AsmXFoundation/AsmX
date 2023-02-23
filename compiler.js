@@ -99,6 +99,18 @@ class Compiler {
                 this.compilerEquality(trace.equal);
                 continue;
             }
+
+            if (trace?.div) {
+                Switching.state && process.stdout.write(Issues.MATCH_DIV_EVENT);
+                this.compilerDivStatement(trace.div);
+                continue;
+            }
+
+            if (trace?.mod) {
+                Switching.state && process.stdout.write(Issues.MATCH_MOD_EVENT);
+                this.compilerModStatement(trace.mod);
+                continue;
+            }
         };
     }
 
@@ -152,12 +164,68 @@ class Compiler {
 
 
     /**
+     * "This function takes a statement, and then compiles it into a JavaScript function that will
+     * divide all of the arguments together and then push the result onto the stack."
+     * 
+     * The first thing that the function does is call the compilerAllArguments function. This function
+     * takes the statement, and then compiles it into a JavaScript function that will push all of the
+     * arguments onto the stack.
+     * 
+     * The next thing that the function does is set the  variable to the result of dividing all of
+     * the arguments together.
+     * 
+     * The last thing that the function does is push the result onto the stack.
+     * @param statement - The statement to be compiled.
+     */
+    compilerDivStatement(statement) {
+        this.compilerAllArguments(statement, 'Int');
+        this.$ret = this.$arg0 / this.$arg1;
+        if (this.$arg2 !== 0x00) this.$ret = this.$ret / this.$arg2;
+        if (this.$arg3 !== 0x00) this.$ret = this.$ret / this.$arg3;
+        if (this.$arg4 !== 0x00) this.$ret = this.$ret / this.$arg4;
+        if (this.$arg5 !== 0x00) this.$ret = this.$ret / this.$arg5;
+        this.$stack.push({ value: this.$ret });
+    }
+
+
+
+    /**
+     * "This function takes a statement, and compiles it into a JavaScript function that returns the
+     * remainder of the first argument divided by the second argument."
+     * 
+     * The first line of the function is a comment. It's a comment because it starts with a double
+     * slash. Comments are ignored by the compiler.
+     * 
+     * The second line of the function is a function call. It's a function call because it starts with
+     * the name of a function, followed by a pair of parentheses. The function call is to the function
+     * "compilerAllArguments". The function call passes two arguments to the function. The first
+     * argument is the statement. The second argument is the string "Int".
+     * 
+     * The third line of the function is an assignment. It's an assignment because it starts with a
+     * dollar sign, followed by an equal sign. The assignment assigns the value of the first argument
+     * to the variable "".
+     * 
+     * The fourth line of the
+     * @param statement - The statement object.
+     */
+    compilerModStatement(statement) {
+        this.compilerAllArguments(statement, 'Int');
+        this.$ret = this.$arg0 % this.$arg1;
+        if (this.$arg2 !== 0x00) this.$ret = this.$ret % this.$arg2;
+        if (this.$arg3 !== 0x00) this.$ret = this.$ret % this.$arg3;
+        if (this.$arg4 !== 0x00) this.$ret = this.$ret % this.$arg4;
+        if (this.$arg5 !== 0x00) this.$ret = this.$ret % this.$arg5;
+        this.$stack.push({ value: this.$ret });
+    }
+
+
+    /**
      * It takes a statement object, and adds the arguments together, and pushes the result to the
      * stack.
      * @param statement - The statement object that is being compiled.
      */
     compilerAddStatement(statement) {
-       this.compilerAllArguments(statement, 'Int');
+        this.compilerAllArguments(statement, 'Int');
         this.$ret = this.$arg0 + this.$arg1 + this.$arg2 + this.$arg3 + this.$arg4 + this.$arg5;
         this.$stack.push({ value: this.$ret });
     }
