@@ -7,6 +7,7 @@ class Stack {
         this.sp = 0x00;
     }
 
+
     /**
      * The push() method adds one or more elements to the end of an array and returns the new length of
      * the array

@@ -29,7 +29,7 @@ class ValidatorByType {
      * @param lineCode - The line code to validate.
      * @returns A boolean value.
      */
-    static validatorTypeInt(lineCode){
+    static validateTypeInt(lineCode){
         lineCode = lineCode.indexOf(';') !== -1 ? lineCode.trim().slice(0, lineCode.indexOf(';') - 1) : lineCode.trim();
         return /(^[+-]?\d+$)/.test(lineCode);
     }
@@ -40,7 +40,7 @@ class ValidatorByType {
      * @param lineCode - The line code to be validated.
      * @returns A boolean value.
      */
-    static validatorTypeFloat(lineCode){
+    static validateTypeFloat(lineCode){
         lineCode = lineCode.indexOf(';') !== -1 ? lineCode.trim().slice(0, lineCode.indexOf(';') - 1) : lineCode.trim();
         return /^[+-]?\d+(\.\d+)$/.test(lineCode);
     }
@@ -51,7 +51,7 @@ class ValidatorByType {
      * @param lineCode - The line of code that is being validated.
      * @returns The return value is a boolean.
      */
-    static validatorTypeBoolean(lineCode){
+    static validateTypeBoolean(lineCode){
         lineCode = lineCode.indexOf(';') !== -1 ? lineCode.trim().slice(0, lineCode.indexOf(';') - 1) : lineCode.trim();
         return ['true', 'false'].includes(lineCode);
     }
@@ -62,7 +62,7 @@ class ValidatorByType {
      * @param lineCode - The line of code that is being validated.
      * @returns A boolean value.
      */
-    static validatorTypeIdentifier(lineCode){
+    static validateTypeIdentifier(lineCode){
         lineCode = lineCode.indexOf(';') !== -1 ? lineCode.trim().slice(0, lineCode.indexOf(';') - 1) : lineCode.trim();
         return /[_a-zA-Z][_a-zA-Z0-9]{0,30}/.test(lineCode);
     }
@@ -73,7 +73,7 @@ class ValidatorByType {
      * @param lineCode - The line of code that is being validated.
      * @returns A boolean value.
      */
-    static validatorTypeHex(lineCode){
+    static validateTypeHex(lineCode){
         lineCode = lineCode.indexOf(';') !== -1 ? lineCode.trim().slice(0, lineCode.indexOf(';') - 1) : lineCode.trim();
         return /[0-9a-fA-F]+x[0-9a-fA-F]+/.test(lineCode);
     }

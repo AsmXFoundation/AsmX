@@ -34,7 +34,7 @@ class Lexer {
      * @returns the string 'rejected'
      */
     static lexerInt(lineCode, valValue){
-        if (!ValidatorByType.validatorTypeInt(valValue)) {
+        if (!ValidatorByType.validateTypeInt(valValue)) {
             new TypeError(lineCode, valValue);
             return 'rejected';
         }
@@ -67,7 +67,7 @@ class Lexer {
      * @returns the string 'rejected'
      */
     static lexerBool(lineCode, valValue){
-        if (!ValidatorByType.validatorTypeBoolean(valValue)) {
+        if (!ValidatorByType.validateTypeBoolean(valValue)) {
             new TypeError(lineCode, valValue);
             return 'rejected';
         }
@@ -99,7 +99,7 @@ class Lexer {
      * @returns the string 'rejected'
      */
     static lexerMemoryAddress(lineCode, valValue) {
-        if (!ValidatorByType.validatorTypeHex(valValue)) {
+        if (!ValidatorByType.validateTypeHex(valValue)) {
             new TypeError(lineCode, valValue);
             return 'rejected';
         }
@@ -115,7 +115,7 @@ class Lexer {
      * @returns the string 'rejected'
      */
     static lexerIdentifier(lineCode, valValue) {
-        if (!ValidatorByType.validatorTypeIdentifier(valValue)) {
+        if (!ValidatorByType.validateTypeIdentifier(valValue)) {
             new Error('Invalid identifier: ', lineCode);
             return 'rejected';
         }

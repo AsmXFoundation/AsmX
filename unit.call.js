@@ -1,5 +1,7 @@
 const { UnitError } = require("./anatomics.errors");
 const Lexer = require("./lexer");
+const Parser = require("./parser");
+//const Compiler = require('./compiler');
 
 class UnitCall {
     constructor(){
@@ -8,17 +10,15 @@ class UnitCall {
 
 
     /**
-     * The function takes a list of tokens, a list of arguments, and a list of types of arguments. It
-     * then iterates through the list of arguments and calls a function that takes a line of code, an
-     * argument, and a type of argument
-     * @param tokenList - is the object that contains the code of the program, the line of code and the
-     * type of the line of code.
-     * @param args - is the arguments of the function, separated by commas.
+     * It takes a line of code, an array of arguments, and an array of types of arguments, and then it
+     * loops through the arguments and types of arguments and calls a function that will lex the
+     * arguments based on their types.
+     * @param lineCode - The line of code that is being analyzed.
+     * @param args - is the arguments of the function
      * @param typesArgs - is an array of types of arguments, for example:
      */
-    #lexerFunctionArguments(tokenList, args, typesArgs){
+    #lexerFunctionArguments(lineCode, args, typesArgs){
         args = args.indexOf(',') ? args = args.trim().split(",").map(arg => arg.trim()) : args.trim();
-        let lineCode = tokenList.subProgram;
         
         for (let index = 0; index < args.length; index++) {
             const typeArgument = typesArgs[index];
@@ -28,48 +28,88 @@ class UnitCall {
 
 
     /**
-     * This function adds a new function to the functions array.
+     * "This function adds a new unit to the units array."
+     * 
+     * The units array is an array of objects. Each object has a name, argsRules, argsNames, and body.
+     * 
+     * The name is the name of the unit.
+     * 
+     * The argsRules is an array of rules for the arguments.
+     * 
+     * The argsNames is an array of the names of the arguments.
+     * 
+     * The body is the body of the unit.
+     * 
+     * The argsRules and argsNames are arrays of the same length.
+     * 
+     * The argsRules array is an array of strings. Each string is a rule for the argument.
+     * 
+     * The argsNames array is an array of strings. Each string is the name of the argument.
+     * 
+     * The body is a string.
+     * 
+     * The argsRules and argsNames arrays are the same length.
+     * 
+     * The argsRules
      * @param name - The name of the function.
-     * @param to - The function to call when the function is called.
-     * @param argsRules - An array of objects that contain the following properties:
+     * @param argsRules - an array of strings that represent the types of the arguments.
+     * @param body - The function body.
+     * @param argsnames - an array of strings that are the names of the arguments
      */
-    set(name, to, argsRules){
-        this.units.push({ name: name, to: to, argsRules: argsRules });
+    set(name, argsRules, body, argsnames){
+        this.units.push({ name: name, argsRules: argsRules, argsNames: argsnames, body: body });
     }
 
 
     /**
-     * If the function exists, then if the function has no arguments, then return the function, else if
-     * the function has arguments, then check if the arguments are valid, then return the function.
-     * @param tokenList - The list of tokens that the lexer has created.
+     * It takes a line of code, a function name, and the arguments of the function, and returns the
+     * function's body
+     * @param lineCode - The line of code that the function is on.
      * @param name - The name of the function
      * @param args - The arguments of the function
-     * @returns the name of the function and the arguments.
+     * @returns the result of the Parser.parse() function.
      */
-    get(tokenList, name, args){
-        let unit = this.unit=s.find(unit => unit.name === name);
+    get(lineCode, name, args){
+        let unit = this.units.find(unit => unit.name === name);
 
         if (!(unit == undefined || typeof unit === 'undefined')) {
-            if (unit.argsRules == false){
-                return `${unit.to}(${args});`;
-            } else {
-                this.#lexerFunctionArguments(tokenList, args, unit.argsRules);
-                return `${unit.to}(${args});`;
-            }
-        } else {
-            new UnitError(tokenList.subProgram, UnitError.UNIT_UNKNOWN);
+            if (unit.argsRules != false) this.#lexerFunctionArguments(lineCode, args, unit.argsRules);
+            return Parser.parse(unit.body);
         }
     }
 
 
     /**
-     * It returns an array of booleans, where each boolean is true if the function name matches the
-     * name passed in, and false otherwise
-     * @param name - The name of the function you want to check for.
-     * @returns An array of booleans.
+     * It takes a string of arguments and a unit name, and returns a hashmap of the arguments and their
+     * corresponding names.
+     * @param name - The name of the unit.
+     * @param args - The arguments that the user has entered.
+     * @returns A hashmap of the arguments and their values.
+     */
+    getArgumentsHashMap(name, args){
+        let unit = this.units.find(unit => unit.name === name);
+        let hashMap = {};
+        args = args.split(',');
+
+        if (!(unit == undefined || typeof unit === 'undefined')) {
+           for (let index = 0; index < args.length; index++) {
+            hashMap[unit.argsNames[index].trim()] = args[index].trim();
+           }
+        }
+
+        return hashMap;
+    }
+
+
+    /**
+     * If the name of the unit is the same as the name of the unit we're looking for, then return true.
+     * @param name - The name of the unit to check for.
+     * @returns a boolean value.
      */
     has(name){
-        return this.units.map(unit => unit.name === name ? true : false);
+        let res = false;
+        this.units.forEach(unit => { if (unit.name == name) res = true; });
+        return res;
     }
 }
 

@@ -1,16 +1,16 @@
 const { TypeError } = require("./anatomics.errors");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
+const Switching = require("./switching");
 const Token = require("./tokens");
 const Validator = require("./validator");
 
 class Parser {
     static parse(sourceCode) {
-        const labels = {};
-        const instructions = [];
         let lines = sourceCode.split('\n');
         let tokens = [];
         let newLines = [];
+        let isInterpreteProccess = Switching.setState(true);
 
         lines = lines.map(line => line.indexOf(';') >= 0 ? line.split(';') : line);
 
@@ -30,96 +30,115 @@ class Parser {
 
             if (line.length === 0) continue;
 
-            if (Validator.isUnitStatement(line)) {
-                // let unit = this.parseUnitStatement(line);
-                // let unitBody = [];
-                // if (unit == 'rejected'){ break ParserCycle; } else unitBody.push(unit);
-                // let fixedLine = index++;
-                // if (line.length === 0) break ParserCycle;
+            if (isInterpreteProccess.state && Validator.isUnitStatement(line)) {
+                isInterpreteProccess.setState(false);
+                let unit = this.parseUnitStatement(line);
+                let unitBody = [];
+                if (unit == 'rejected' || line.length === 0) break ParserCycle;
+                let fixedLine = index;
                 
-                // UnitCycle: for (let idx = fixedLine, len = lines.length; idx < len; idx++) {
-                //     let lineUnit = lines[idx].trim();
-                //     if (lineUnit.length === 0) break UnitCycle
-                //     else unitBody.push(lineUnit);
-                // }
+                UnitCycle: for (let idx = fixedLine, len = lines.length; idx < len; idx++) {
+                    let lineUnit = lines[idx].trim();
+                    if (lineUnit.length === 0) break UnitCycle
+                    else unitBody.push(lineUnit), lines[idx] = '';
+                }
                 
-                // console.log(Parser.parse(unitBody.join('\n')));
+                tokens.push({ unit: unitBody });
+                isInterpreteProccess.setState(true);
                 continue;
             }
 
-            if (Validator.isIssueStatement(line)) {
-                let issue = this.parseIssueStatement(line);
-                if (issue == 'rejected'){ break ParserCycle; } else tokens.push(issue); 
+            if (isInterpreteProccess.state && Validator.isImportStatement(line)) {
+                let alias = this.parseImportStatement(line);
+                if (alias == 'rejected') { break ParserCycle; } else tokens.push(alias);
                 continue;
             }
 
-            if (Validator.isSetDeclaration(line)) {
-                let set = this.parseSetStatement(line)
-                if (set == 'rejected'){ break ParserCycle; } else tokens.push(set);
+            if (isInterpreteProccess.state && Validator.isReturnStatement(line)) {
+                let ret = this.parseReturnStatement(line);
+                if (ret == 'rejected') { break ParserCycle; } else tokens.push(ret);
                 continue;
             }
 
-            if (Validator.isInvokeStatement(line)) {
-                let invoke = this.parseInvokeStatement(line);
-                if (invoke == 'rejected'){ break ParserCycle; } else tokens.push(invoke);
-                continue;
-            }
-
-            if (Validator.isMemoryInvokeStatement(line)) {
-                let memory = this.parseMemoryInvoke(line);
-                if (memory == 'rejected'){ break ParserCycle; } else  tokens.push(memory);
-                continue;
-            }
-
-            if (Validator.isAddressInvokeStatement(line)) {
-                let address = this.parseAddressInvoke(line);
-                if (address == 'rejected'){ break ParserCycle; } else tokens.push(address);
-                continue;
-            }
-
-            if (Validator.isRouteStatement(line)) {
-                let route = this.parseRouteStatement(line);
-                if (route == 'rejected'){ break ParserCycle; } else tokens.push(route);
-                continue;
-            }
-
-            if (Validator.isStackStatement(line)) {
-                let stack = this.parseStackStatement(line);
-                if (stack == 'rejected'){ break ParserCycle; } else tokens.push(stack);
-                continue;
-            }
-
-            if (Validator.isAddStatement(line)) {
-                let add = this.parseAddStatement(line);
-                if (add == 'rejected'){ break ParserCycle; } else tokens.push(add);
-                continue;
-            }
-
-            if (Validator.isSubStatement(line)) {
-                let sub = this.parseSubStatement(line);
-                if (sub == 'rejected'){ break ParserCycle; } else tokens.push(sub);
-                continue;
-            }
-
-            if (Validator.isCallStatement(line)) {
+            if (isInterpreteProccess.state && Validator.isCallStatement(line)) {
                 let call = this.parseCallStatement(line);
                 if (call == 'rejected'){ break ParserCycle; } else tokens.push(call);
                 continue;
             }
 
-            if (Validator.isEqualStatement(line)) {
+            if (isInterpreteProccess.state && Validator.isIssueStatement(line)) {
+                let issue = this.parseIssueStatement(line);
+                if (issue == 'rejected'){ break ParserCycle; } else tokens.push(issue); 
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isSetDeclaration(line)) {
+                let set = this.parseSetStatement(line)
+                if (set == 'rejected'){ break ParserCycle; } else tokens.push(set);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isInvokeStatement(line)) {
+                let invoke = this.parseInvokeStatement(line);
+                if (invoke == 'rejected'){ break ParserCycle; } else tokens.push(invoke);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isMemoryInvokeStatement(line)) {
+                let memory = this.parseMemoryInvoke(line);
+                if (memory == 'rejected'){ break ParserCycle; } else  tokens.push(memory);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isAddressInvokeStatement(line)) {
+                let address = this.parseAddressInvoke(line);
+                if (address == 'rejected'){ break ParserCycle; } else tokens.push(address);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isRouteStatement(line)) {
+                let route = this.parseRouteStatement(line);
+                if (route == 'rejected'){ break ParserCycle; } else tokens.push(route);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isStackStatement(line)) {
+                let stack = this.parseStackStatement(line);
+                if (stack == 'rejected'){ break ParserCycle; } else tokens.push(stack);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isAddStatement(line)) {
+                let add = this.parseAddStatement(line);
+                if (add == 'rejected'){ break ParserCycle; } else tokens.push(add);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isSubStatement(line)) {
+                let sub = this.parseSubStatement(line);
+                if (sub == 'rejected'){ break ParserCycle; } else tokens.push(sub);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isCallStatement(line)) {
+                let call = this.parseCallStatement(line);
+                if (call == 'rejected'){ break ParserCycle; } else tokens.push(call);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isEqualStatement(line)) {
                 let equal = this.parseEqualityStatement(line);
                 if (equal == 'rejected'){ break ParserCycle; } else tokens.push(equal);
                 continue;
             }
 
-            if (Validator.isDivStatement(line)) {
+            if (isInterpreteProccess.state && Validator.isDivStatement(line)) {
                 let div = this.parseDivStatement(line);
                 if (div == 'rejected'){ break ParserCycle; } else tokens.push(div);
                 continue;
             }
 
-            if (Validator.isModStatement(line)) {
+            if (isInterpreteProccess.state && Validator.isModStatement(line)) {
                 let mod = this.parseModStatement(line);
                 if (mod == 'rejected'){ break ParserCycle; } else tokens.push(mod);
                 continue;
@@ -127,6 +146,36 @@ class Parser {
         }
 
         return tokens;
+    }
+
+
+    static parseImportStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['import'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        const [ImportToken, Alias] = lineCode.split(' ');
+        if (lineCode.split(' ').length > 2) return 'rejected';
+        if (Alias == undefined) { process.stdout.write('Alias not defined'); return 'rejected'; }
+        else  smallAbstractSyntaxTree['import']['alias'] = Alias;
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code, splits it into two parts, and returns an object with the second part as
+     * a property of the first part
+     * @param lineCode - The line of code that is being parsed.
+     * @returns a small abstract syntax tree.
+     */
+    static parseReturnStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['ret'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        const [RetToken, RetAddress] = lineCode.split(' ');
+        if (lineCode.split(' ').length > 2) return 'rejected';
+        if (RetAddress == undefined) console.error('Invoke address not found');
+        else  smallAbstractSyntaxTree['ret']['arg'] = RetAddress;
+        return smallAbstractSyntaxTree;
     }
 
 
@@ -142,7 +191,7 @@ class Parser {
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validatorTypeHex(arg));
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
         smallAbstractSyntaxTree['div']['args'] = args;
         return smallAbstractSyntaxTree;
     }
@@ -160,7 +209,7 @@ class Parser {
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validatorTypeHex(arg));
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
         smallAbstractSyntaxTree['mod']['args'] = args;
         return smallAbstractSyntaxTree;
     }
@@ -198,7 +247,7 @@ class Parser {
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validatorTypeHex(arg));
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
         smallAbstractSyntaxTree['add']['args'] = args;
         return smallAbstractSyntaxTree;
     }
@@ -254,7 +303,7 @@ class Parser {
         if (lineCode.split(' ').length > 3) return 'rejected';
         const [RouteToken, RouteName, RouteAddress] = lineCode.split(' ');
 
-        if (RouteAddress && !ValidatorByType.validatorTypeHex(RouteAddress)) {
+        if (RouteAddress && !ValidatorByType.validateTypeHex(RouteAddress)) {
             new TypeError(lineCode, RouteAddress);
             return 'rejected';
         }
@@ -279,7 +328,7 @@ class Parser {
         const [StackToken, StackAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
 
-        if (!ValidatorByType.validatorTypeHex(StackAddress)) {
+        if (!ValidatorByType.validateTypeHex(StackAddress)) {
             new TypeError(lineCode, StackAddress);
             return 'rejected';
         }
@@ -301,6 +350,7 @@ class Parser {
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 2) return 'rejected';
         const [IssueToken, IssueStatus] = lineCode.split(' ');
+        Lexer.lexerBool(lineCode, IssueStatus);
         smallAbstractSyntaxTree['issue']['state'] = IssueStatus || 'on';
         return smallAbstractSyntaxTree;
     }
@@ -329,7 +379,6 @@ class Parser {
         smallAbstractSyntaxTree['set'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [setToken, setName, setType, setValue] = lineCode.split(' ');
-
         if (lineCode.split(' ').length > 4) return 'rejected';
 
         if (setValue == undefined) {
@@ -361,7 +410,7 @@ class Parser {
         const [InvokeToken, InvokeAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
 
-        if (!ValidatorByType.validatorTypeHex(InvokeAddress)) {
+        if (!ValidatorByType.validateTypeHex(InvokeAddress)) {
             new TypeError(lineCode, InvokeAddress);
             return 'rejected';
         }
@@ -382,7 +431,7 @@ class Parser {
         const [memoryToken, memoryValue, memoryAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 3) return 'rejected';
 
-        if (!ValidatorByType.validatorTypeHex(memoryAddress)) {
+        if (!ValidatorByType.validateTypeHex(memoryAddress)) {
             new TypeError(lineCode, memoryAddress);
             return 'rejected';
         }
@@ -420,22 +469,28 @@ class Parser {
      * value.
      */
     static parseTypesArgumentsUnit(args) {
-        if (args.indexOf(':') === -1) return false;
         args = args.trim().split(",");
         let argsRules = {};
         let argsTypes = [];
-
-        for (let index = 0; index < args.length; index++) {
-            const arg = args[index];
-            argsTypes.push(arg.split(':'));
-        }
-
-        for (let index = 0; index < argsTypes.length; index++) {
-            const argType = argsTypes[index];
-            argsRules[index] = argType[1].trim() || 'Any';
-        }
-
+        for (let index = 0; index < args.length; index++) argsTypes.push(args[index].split(':'));
+        for (let index = 0; index < argsTypes.length; index++) argsRules[index] = argsTypes[index][1].trim() || 'Any';
         return argsRules;
+    }
+
+
+    /**
+     * It takes a string of arguments, splits them into an array, splits each argument into a key and
+     * value, and returns an array of the keys
+     * @param args - The arguments that are passed to the function.
+     * @returns An array of strings.
+     */
+    static parseNamesArgumentsUnit(args) {
+        args = args.trim().split(",");
+        let argsParse = [];
+        let argsNames = [];
+        for (let index = 0; index < args.length; index++) argsParse.push(args[index].split(':'));
+        for (let index = 0; index < argsParse.length; index++) argsNames.push(argsParse[index][0].trim());
+        return argsNames;
     }
 
 
@@ -447,13 +502,16 @@ class Parser {
     static parseUnitStatement(lineCode){
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['unit'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
         const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('('));
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
         const argsRules = this.parseTypesArgumentsUnit(unitArguments.slice(1, -1));
-        //UnitCall.set(unitName, unitName, argsRules);
+        const argsNames = this.parseNamesArgumentsUnit(unitArguments.slice(1, -1));
         smallAbstractSyntaxTree['unit']['name'] = unitName;
         smallAbstractSyntaxTree['unit']['args'] = unitArguments;
+        smallAbstractSyntaxTree['unit']['argsnames'] = argsNames;
+        smallAbstractSyntaxTree['unit']['rules'] = { ...argsRules };
         return smallAbstractSyntaxTree;
     }
 }

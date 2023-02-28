@@ -1,6 +1,6 @@
 # Copyright (c) 2023
 # GitHub (E5war5IT)
-# @Issue "off"; # issue on
+@Issue false; # issue on
 
 @set age  14; 
 @set name String "E5war5"; 
@@ -17,7 +17,8 @@
 @Route $ret
 @Invoke 0x04
 
-@Div 0x128, 0x10, 0x08
+# 80 / 10 / 8 -> 1
+@Div 0x50, 0xA, 0x08
 @Invoke 0x04
 
 @Mod 0x32, 0x05
@@ -29,6 +30,10 @@
 
 @Route  ageAddress 0x05 # route
 @Stack  0x05   # stack set point with address
+@Invoke 0x04
+
+@Invoke 0x03
+@Add $out, $out
 @Invoke 0x04
 
 @Route  nameAddress 0x01

@@ -194,6 +194,17 @@ class Validator {
         lineCode = lineCode.replace(/\s+/g, ' ');
         return lineCode.startsWith('@Expression') || lineCode.startsWith('@Expr');
     }
+
+
+    /**
+     * It returns true if the line of code starts with the string '@Ret' and false otherwise
+     * @param lineCode - The line of code that is being checked.
+     * @returns The function isReturnStatement is being returned.
+     */
+    static isReturnStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Ret');
+    }
 }
 
 module.exports = Validator;

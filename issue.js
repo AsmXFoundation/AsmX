@@ -12,5 +12,9 @@ Object.defineProperty(Issues, 'SUB_EVENT', { value: '[AsmX]: match sub..\n' });
 Object.defineProperty(Issues, 'EQUALITY_EVENT', { value: '[AsmX]: match equal..\n' });
 Object.defineProperty(Issues, 'MATCH_DIV_EVENT', { value: '[AsmX]: match..\n' });
 Object.defineProperty(Issues, 'MATCH_MOD_EVENT', { value: '[AsmX]: match..\n' });
+Object.defineProperty(Issues, 'CALL_EVENT', { value: '[AsmX]: call ...\n' });
+Object.defineProperty(Issues, 'CREATE_UNIT_EVENT', { value: '[AsmX]: create unit ...\n' });
+Object.defineProperty(Issues, 'RET_EVENT', { value: '[AsmX]: ret ...\n' });
+Object.defineProperty(Issues, 'IMPORT_EVENT', { value: '[AsmX]: import ...\n' });
 
 module.exports = Issues;

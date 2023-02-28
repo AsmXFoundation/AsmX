@@ -13,6 +13,7 @@ class Route {
         this.value = null;
     }
 
+    
     /**
      * This function takes two arguments, a point name and a point address, and adds them to the
      * pointers array.

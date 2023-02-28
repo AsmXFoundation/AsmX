@@ -29,7 +29,9 @@ class Switching {
      * @param state - The state of the component.
      */
     static setState(state){
+        if (typeof state  !== 'boolean') throw new TypeError('State must be a boolean');
         this._state = state;
+        return this;
     }
     
 

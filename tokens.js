@@ -41,11 +41,15 @@ class Token {
           '@Issue', // Issue: define issue status (of or on)
           '@Add', // match args
           '@Sub', // match arguments
-          
+          '@Equal', // equality
+          '@Equ', // equality
+          '@equal', // equality
+          '@equ', // equality
           '@Unit', // create function
           '@call', // call @Unit
+          '@Ret', // Unit return value
 
-          '@ref', // referal to model
+          '@import', // import aliases
           '@Shift'// shift
         ];
 

@@ -1,17 +1,24 @@
 // requires
-const readline = require('readline');
+const readline = require('readline-sync');
+const { UnitError } = require('./anatomics.errors');
+const ValidatorByType = require('./checker');
+const { FlowOutput, FlowInput } = require('./flow');
 
 // Components that compiler
 const Issues = require("./issue");
 const { Memory, MemoryAddress, MemoryVariables } = require("./memory");
+const Parser = require('./parser');
 const Route = require("./route");
 const Stack = require("./stack");
 const Switching = require("./switching");
+const unitCall = require('./unit.call');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
         this.AbstractSyntaxTree = AbstractSyntaxTree;
         this.isIssue = Switching.setState(false);
+        this.scope = arguments[1] || 'global';
+        this.argsScopeLocal = arguments[2] || {};
         this.set = [];
         
         // Call this args
@@ -28,8 +35,12 @@ class Compiler {
         this.$mov = new Route();
         this.$mem = Memory;
         this.$stack = this.stack;
-        this.$name = 0x00;
+        this.$sp = this.$stack.sp;
         this.$offset = 0x00;
+        this.$name = 0x00;
+        this.$out = 0x00;
+        this.$urt = false;
+        this.$args = {};
         this.ret = false;
         this.$arch = "AsmX";
 
@@ -48,6 +59,30 @@ class Compiler {
             if (trace?.invoke){
                 Switching.state && process.stdout.write(Issues.INVOKE_EVENT);
                 this.compileInvoke(trace.invoke);
+                continue;
+            }
+
+            if (trace?.unit){
+                Switching.state && process.stdout.write(Issues.CREATE_UNIT_EVENT);
+                this.compilerUnitStatement(trace);
+                continue;
+            }
+
+            if (trace?.call){
+                Switching.state && process.stdout.write(Issues.CALL_EVENT);
+                this.compilerCallUnit(trace.call);
+                continue;
+            }
+
+            if (trace?.ret){
+                Switching.state && process.stdout.write(Issues.RET_EVENT);
+                this.compilerRet(trace.ret);
+                continue;
+            }
+
+            if (trace?.import){
+                Switching.state && process.stdout.write(Issues.IMPORT_EVENT);
+                this.compilerImport(trace.import);
                 continue;
             }
 
@@ -115,26 +150,73 @@ class Compiler {
     }
 
 
+    compilerImport(statement) {
+        if (ValidatorByType.validateByTypeString(statement.alias)) {
+
+        } else if (ValidatorByType.validateTypeIdentifier(statement.alias)) {
+
+        }
+    }
+
+
+    /**
+    * It compiles a unit call statement
+    * @param statement - The statement object.
+    */
+    compilerCallUnit(statement) {
+       if (unitCall.has(statement.name)) {
+            let unitcall = unitCall.get(`@Call ${statement.name}${statement.args}`, statement.name, statement.args.slice(1, -1));
+            let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args.slice(1, -1));
+            let compiler = new Compiler(unitcall, 'local', argsMap);
+            compiler.$urt == false ? this.$urt = 0x00 : this.$ret = this.$urt = compiler.$urt;
+       } else {
+            new UnitError(`@Call ${statement.name}${statement.args}` , UnitError.UNIT_UNKNOWN);
+       }
+    }
+
+
+    /**
+     * It takes a statement, parses the unit, and then adds it to the unitCall object
+     * @param statement - The statement object.
+     */
+    compilerUnitStatement(statement) {
+        let unit = statement.unit;
+        let unitParse = Parser.parseUnitStatement(unit[0]);
+        let compilerUnit = unit.slice(1).join('\n');
+        unitCall.set(unitParse.unit.name, unitParse.unit.rules, compilerUnit, unitParse.unit.argsnames);
+    }
+
+
+    /**
+     * It checks the argument of the statement and returns it.
+     * @param statement - The statement object that is being compiled.
+     */
+    compilerRet(statement) {
+        if (this.scope == 'global') {
+            process.stdout.write('You must specify a global scope before you compile the statement in the current process');
+            this.compileInvoke({ address: 0x01 });
+        } else if (this.scope == 'local') {
+            this.$urt = this.$ret = this.checkArgument(statement.arg);
+        }
+    }
+
+
+    /**
+     * It's a function that compiles a statement that invokes a function
+     * @param statement - The statement that is being compiled.
+     */
     compileInvoke(statement) {
         this.$arg0 = statement.address;
 
         // write
-        if (this.$arg0 == 0x04) this.#InvokeWrite();
+        if (this.$arg0 == 0x04) FlowOutput.createOutputStream(this.$stack.list[this.$stack.sp - 1]?.value);
         // exit
         if (this.$arg0 == 0x01) process.exit(0);
         
         // read
         if (this.$arg0 == 0x03) {
-            const rl = readline.createInterface({
-                input: process.stdin,
-                output: process.stdout
-            });
-
-            rl.question('> ',  (answer) => {
-                this.$arg0 = answer;
-                this.$stack.push({ value: this.$arg0 });
-                rl.close();
-            });
+            this.$arg0 = this.$out = FlowInput.createInputStream();
+            this.$stack.push({ value: this.$arg0 });
         }
     }
 
@@ -290,16 +372,7 @@ class Compiler {
             this.$mov.setPoint(this.$arg0, this.$arg1);
         } else if (this.$extensionRegisters.includes(statement.name)) {
             this.$arg = statement.name;
-            if (this.$arg == '$offset') this.$stack.push({ value: this.$offset });
-            if (this.$arg == '$name') this.$stack.push({ value: this.$name });
-            if (this.$arg == '$arch') this.$stack.push({ value: this.$arch });
-            if (this.$arg == '$ret') this.$stack.push({ value: this.$ret });
-            if (this.$arg == '$arg0') this.$stack.push({ value: this.$arg0 });
-            if (this.$arg == '$arg1') this.$stack.push({ value: this.$arg1 });
-            if (this.$arg == '$arg2') this.$stack.push({ value: this.$arg2 });
-            if (this.$arg == '$arg3') this.$stack.push({ value: this.$arg3 });
-            if (this.$arg == '$arg4') this.$stack.push({ value: this.$arg4 });
-            if (this.$arg == '$arg5') this.$stack.push({ value: this.$arg5 });
+            this.$stack.push({ value: this.checkArgument(this.$arg) });
         }
     }
     
@@ -352,17 +425,7 @@ class Compiler {
     compileIssue(statement) {
        this.$arg0 = statement.state;
        process.stdout.write(Issues.ISSUES_DEFINE_STATUS);
-       statement.state.indexOf('on') > -1 && Switching.trigger();
-       statement.state.indexOf('off') > -1 && Switching.trigger();
-    }
-    
-    
-    /**
-     * It writes the value of the stack pointer to the console
-     */
-    #InvokeWrite(){
-        //console.log(this.stack.list);
-        console.log(this.$stack.list[this.$stack.sp - 1]?.value);
+       statement.state == 'true' ? Switching.setState(true) : Switching.setState(false);
     }
 
 
@@ -373,20 +436,61 @@ class Compiler {
      */
     compilerAllArguments(statement, type){
         if (type == 'Int' || type == 'Float') {
-            this.$arg0 = +statement.args[0] || 0x00;
-            this.$arg1 = +statement.args[1] || 0x00;
-            this.$arg2 = +statement.args[2] || 0x00;
-            this.$arg3 = +statement.args[3] || 0x00;
-            this.$arg4 = +statement.args[4] || 0x00;
-            this.$arg5 = +statement.args[5] || 0x00;
+            this.$arg0 = +this.checkArgument(statement.args[0]) || +statement.args[0] || 0x00;
+            this.$arg1 = +this.checkArgument(statement.args[1]) || +statement.args[1] || 0x00;
+            this.$arg2 = +this.checkArgument(statement.args[2]) || +statement.args[2] || 0x00;
+            this.$arg3 = +this.checkArgument(statement.args[3]) || +statement.args[3] || 0x00;
+            this.$arg4 = +this.checkArgument(statement.args[4]) || +statement.args[4] || 0x00;
+            this.$arg5 = +this.checkArgument(statement.args[5]) || +statement.args[5] || 0x00;
         } else if (type == 'String' || type == 'Bool') {
-            this.$arg0 = statement.args[0] || 0x00;
-            this.$arg1 = statement.args[1] || 0x00;
-            this.$arg2 = statement.args[2] || 0x00;
-            this.$arg3 = statement.args[3] || 0x00;
-            this.$arg4 = statement.args[4] || 0x00;
-            this.$arg5 = statement.args[5] || 0x00;
+            this.$arg0 = this.checkArgument(statement.args[0]) || statement.args[0] || 0x00;
+            this.$arg1 = this.checkArgument(statement.args[1]) || statement.args[1] || 0x00;
+            this.$arg2 = this.checkArgument(statement.args[2]) || statement.args[2] || 0x00;
+            this.$arg3 = this.checkArgument(statement.args[3]) || statement.args[3] || 0x00;
+            this.$arg4 = this.checkArgument(statement.args[4]) || statement.args[4] || 0x00;
+            this.$arg5 = this.checkArgument(statement.args[5]) || statement.args[5] || 0x00;
         }
+    }
+
+
+    /**
+     * If the argument is a register, return the value of that register
+     * @param arg - The argument to check.
+     * @returns The value of the argument.
+     */
+    checkArgument(arg) {
+        let $dx =  this.argsScopeLocal;
+        /**
+         * It checks if the argument passed to it is a valid argument, and if it is, it returns the
+         * value of the argument.
+         * @param arg - The argument that is being checked.
+         * @returns The value of the argument.
+         */
+        function checkArgumentsUnit(arg) {
+            let $edx = 0x00;
+
+            for (const key in $dx) {
+                if (Object.hasOwnProperty.call($dx, key)) {
+                    if (new RegExp(`\[${key}\]`).test(arg)) $edx = $dx[key];
+                }
+            }
+
+            return $edx;
+        }
+
+        if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkArgumentsUnit(arg);
+        if (arg == '$offset') return this.$offset;
+        if (arg == '$arch') return this.$arch;
+        if (arg == '$name') return this.$name;
+        if (arg == '$ret') return this.$ret;
+        if (arg == '$out') return this.$out;
+        if (arg == '$sp') return this.$sp;
+        if (arg == '$arg0') return this.$arg0;
+        if (arg == '$arg1') return this.$arg1;
+        if (arg == '$arg2') return this.$arg2;
+        if (arg == '$arg3') return this.$arg3;
+        if (arg == '$arg4') return this.$arg4;
+        if (arg == '$arg5') return this.$arg5;
     }
 }
 

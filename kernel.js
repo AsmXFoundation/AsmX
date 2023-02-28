@@ -47,7 +47,6 @@ class CompilerAsmX {
         this.tokens = [];
         let file = fs.readFileSync(this.config.src, { encoding: 'utf8' });
         let parser = Parser.parse(file);
-       // console.log(parser);
         new Compiler(parser);
     }
 }
