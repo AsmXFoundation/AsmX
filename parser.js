@@ -504,7 +504,7 @@ class Parser {
         smallAbstractSyntaxTree['unit'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
-        const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('('));
+        const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('(')).trim();
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
         const argsRules = this.parseTypesArgumentsUnit(unitArguments.slice(1, -1));
         const argsNames = this.parseNamesArgumentsUnit(unitArguments.slice(1, -1));
