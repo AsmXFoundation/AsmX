@@ -1,0 +1,3 @@
+@Equ 0x32, 0x32
+@Route $ret
+@Invoke 0x04
