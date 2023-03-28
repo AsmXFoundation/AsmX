@@ -1,8 +1,7 @@
-const { TypeError } = require("./anatomics.errors");
+const { TypeError, StatementError, UnitError, SymbolError } = require("./anatomics.errors");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
 const Switching = require("./switching");
-const Token = require("./tokens");
 const Validator = require("./validator");
 
 class Parser {
@@ -28,7 +27,7 @@ class Parser {
           //  line.indexOf('#') === 0 ? instructions.push(line) : false;
           //  line.indexOf('#') >= 0  ? instructions.push(line.substring(0, line.indexOf('#'))) : false;
 
-            if (line.length === 0) continue;
+           if (line.length === 0) continue;
 
             if (isInterpreteProccess.state && Validator.isUnitStatement(line)) {
                 isInterpreteProccess.setState(false);
@@ -36,15 +35,74 @@ class Parser {
                 let unitBody = [];
                 if (unit == 'rejected' || line.length === 0) break ParserCycle;
                 let fixedLine = index;
+                let state = 0x00;
                 
                 UnitCycle: for (let idx = fixedLine, len = lines.length; idx < len; idx++) {
                     let lineUnit = lines[idx].trim();
+                    
+                    // if (!isInterpreteProccess.state && Validator.isUnitStatement(lineUnit)) {
+                    //     state += 0x001;
+                        
+                    //     if (state == 0x02) {
+                    //         throw new UnitError(lineUnit, "\nyou have no right to make a nested function in a function.");
+                    //         break ParserCycle;
+                    //     }
+                    // }
+
                     if (lineUnit.length === 0) break UnitCycle
                     else unitBody.push(lineUnit), lines[idx] = '';
                 }
                 
                 tokens.push({ unit: unitBody });
                 isInterpreteProccess.setState(true);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isCallStatement(line)) {
+                let call = this.parseCallStatement(line);
+                if (call == 'rejected'){ break ParserCycle; } else tokens.push(call);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isOffsetStatement(line)) {
+                let offset = this.parseOffsetStatement(line);
+                if (offset == 'rejected'){ break ParserCycle; } else tokens.push(offset);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isImulStatement(line)) {
+                let imul = this.parseImulStatement(line);
+                if (imul == 'rejected'){ break ParserCycle; } else tokens.push(imul);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isUnsetStatement(line)) {
+                let unset = this.parseUnsetStatement(line);
+                if (unset == 'rejected'){ break ParserCycle; } else tokens.push(unset);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isModifyStatement(line)) {
+                let modify = this.parseModifyStatement(line);
+                if (modify == 'rejected'){ break ParserCycle; } else tokens.push(modify);
+                continue;
+            }
+
+            if (isInterpreteProccess.state && Validator.isExecuteStatement(line)) {
+                let exec = this.parseExecuteStatement(line);
+                if (exec == 'rejected'){ break ParserCycle; } else tokens.push(exec);
+                continue;
+            }
+
+            if (Validator.isPoptatement(line)) {
+                let pop = this.parsePopStatement(line);
+                if (pop == 'rejected'){ break ParserCycle; } else tokens.push(pop);
+                continue;
+            }
+
+            if (Validator.isPushStatement(line)) {
+                let push = this.parsePushStatement(line);
+                if (push == 'rejected') { break ParserCycle; } else tokens.push(push);
                 continue;
             }
 
@@ -57,12 +115,6 @@ class Parser {
             if (isInterpreteProccess.state && Validator.isReturnStatement(line)) {
                 let ret = this.parseReturnStatement(line);
                 if (ret == 'rejected') { break ParserCycle; } else tokens.push(ret);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isCallStatement(line)) {
-                let call = this.parseCallStatement(line);
-                if (call == 'rejected'){ break ParserCycle; } else tokens.push(call);
                 continue;
             }
 
@@ -143,20 +195,61 @@ class Parser {
                 if (mod == 'rejected'){ break ParserCycle; } else tokens.push(mod);
                 continue;
             }
+
+            if (isInterpreteProccess.state && Validator.isDefineStatement(line)) {
+                let define = this.parseDefineStatement(line);
+                if (define == 'rejected'){ break ParserCycle; } else tokens.push(define);
+                continue;
+            }
         }
 
         return tokens;
     }
 
 
+    /**
+     * It takes a line of code, and if it's a define statement, it returns an object with the name and
+     * value of the define statement
+     * @param lineCode - the line of code that is being parsed
+     * @returns an object.
+     */
+    static parseDefineStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['const'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        if (lineCode.split(' ').length > 3) return 'rejected';
+        const [defineToken, defineName, defineValue] = lineCode.split(' ');
+        if (!/^[A-Z]+(_[A-Z]+)*$/.test(defineName)) return 'rejected';
+        smallAbstractSyntaxTree['const']['name'] = defineName;
+        smallAbstractSyntaxTree['const']['value'] = defineValue;
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code and returns an object with the alias of the imported module
+     * @param lineCode - The line of code that is being parsed.
+     * @returns an object.
+     */
     static parseImportStatement(lineCode){
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['import'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [ImportToken, Alias] = lineCode.split(' ');
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (Alias == undefined) { process.stdout.write('Alias not defined'); return 'rejected'; }
         else  smallAbstractSyntaxTree['import']['alias'] = Alias;
+        smallAbstractSyntaxTree['import']['linecode'] = lineCode;
         return smallAbstractSyntaxTree;
     }
 
@@ -172,6 +265,17 @@ class Parser {
         smallAbstractSyntaxTree['ret'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [RetToken, RetAddress] = lineCode.split(' ');
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (RetAddress == undefined) console.error('Invoke address not found');
         else  smallAbstractSyntaxTree['ret']['arg'] = RetAddress;
@@ -188,6 +292,16 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['div'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -206,6 +320,17 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['mod'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -226,6 +351,17 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['equal'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -244,6 +380,17 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['add'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -263,9 +410,9 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['call'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        if (lineCode.split(' ').length > 2) return 'rejected';
         const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('('));
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
+        if (lineCode.substring(lineCode.indexOf(unitName), lineCode.lastIndexOf('(')).indexOf(' ').length > 2) return 'rejected';
         smallAbstractSyntaxTree['call']['name'] = unitName;
         smallAbstractSyntaxTree['call']['args'] = unitArguments;
         return smallAbstractSyntaxTree;
@@ -282,10 +429,21 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['sub'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validatorTypeHex(arg));
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
         smallAbstractSyntaxTree['sub']['args'] = args;
         return smallAbstractSyntaxTree;
     }
@@ -326,6 +484,17 @@ class Parser {
         smallAbstractSyntaxTree['stack'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [StackToken, StackAddress] = lineCode.split(' ');
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 2) return 'rejected';
 
         if (!ValidatorByType.validateTypeHex(StackAddress)) {
@@ -348,6 +517,17 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['issue'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (lineCode.split(' ').length > 2) return 'rejected';
         const [IssueToken, IssueStatus] = lineCode.split(' ');
         Lexer.lexerBool(lineCode, IssueStatus);
@@ -410,12 +590,12 @@ class Parser {
         const [InvokeToken, InvokeAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
 
-        if (!ValidatorByType.validateTypeHex(InvokeAddress)) {
-            new TypeError(lineCode, InvokeAddress);
-            return 'rejected';
-        }
+        // if (!/^[A-Z]+(_[A-Z]+)*$/.test(InvokeAddress) || !ValidatorByType.validateTypeHex(InvokeAddress)) {
+        //     new TypeError(lineCode, InvokeAddress);
+        //     return 'rejected';
+        // }
 
-        if (InvokeAddress == undefined) console.error('Invoke address not found');
+        if (typeof InvokeAddress == 'undefined') console.error('[AsmX]: Invoke address not found');
         else  smallAbstractSyntaxTree['invoke']['address'] = InvokeAddress;
         return smallAbstractSyntaxTree;
     }
@@ -473,7 +653,7 @@ class Parser {
         let argsRules = {};
         let argsTypes = [];
         for (let index = 0; index < args.length; index++) argsTypes.push(args[index].split(':'));
-        for (let index = 0; index < argsTypes.length; index++) argsRules[index] = argsTypes[index][1].trim() || 'Any';
+        for (let index = 0; index < argsTypes.length; index++) argsRules[index] =  argsTypes[index][1] != undefined ? argsTypes[index][1].trim() : 'Any';
         return argsRules;
     }
 
@@ -503,6 +683,16 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['unit'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '=', '+', '-', '*', '%', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
         if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
         const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('(')).trim();
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
@@ -513,6 +703,245 @@ class Parser {
         smallAbstractSyntaxTree['unit']['argsnames'] = argsNames;
         smallAbstractSyntaxTree['unit']['rules'] = { ...argsRules };
         return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code, splits it into two parts, and then checks if the second part is a valid
+     * hexadecimal number. If it is, it returns an object with the second part as a property. If it
+     * isn't, it returns 'rejected'
+     * @param lineCode - The line of code that is being parsed.
+     * @returns An object with a key of 'offset' and a value of an object with a key of 'address' and a
+     * value of the address.
+     */
+    static parseOffsetStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['offset'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
+        const [OffsetToken, OffsetAddress] = lineCode.split(' ');
+        if (lineCode.split(' ').length > 2) return 'rejected';
+
+        if (!ValidatorByType.validateTypeHex(InvokeAddress)) {
+            new TypeError(lineCode, InvokeAddress);
+            return 'rejected';
+        }
+
+        if (typeof OffsetAddress == 'undefined') console.error('[AsmX]: address not found');
+        else  smallAbstractSyntaxTree['offset']['value'] = OffsetAddress;
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code, splits it into an array of arguments, and then validates each argument.
+     * @param lineCode - the line of code that is being parsed
+     * @returns an object.
+     */
+    static parseImulStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['imul'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
+        if (lineCode.split(' ').length > 6) return 'rejected';
+        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
+        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        smallAbstractSyntaxTree['imul']['args'] = args.slice(1);
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code, and returns an object with the model name
+     * @param lineCode - The line of code that is being parsed.
+     * @returns an object.
+     */
+    static parseUnsetStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['unset'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+
+        const [UnsetToken, UnsetModel] = lineCode.split(' ');
+        if (lineCode.split(' ').length > 2) return 'rejected';
+        if (typeof UnsetModel == 'undefined') console.error('[AsmX]: model not defined');
+        smallAbstractSyntaxTree['unset']['model'] = UnsetModel;
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code, splits it into three parts, and then returns an object with the three
+     * parts
+     * @param lineCode - The line of code that is being parsed.
+     * @returns an object.
+     */
+    static parseModifyStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['modify'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        
+        if (lineCode.indexOf('"') > -1 || lineCode.indexOf("'") > -1) {
+            let ModifyModel, ModifyValue;
+            let tokens = [];
+            let state = 0;
+            let spaces = 0;
+            let $mov = 0x00;
+            let isOpenQuotes = false;
+            let isCloseQuotes = false;
+            let openQuote = null;
+            let closeQuote = null;
+            
+            for (const char of lineCode) {
+                if (char == '"' || char == "'") {
+                    openQuote = char;
+                    isOpenQuotes = true;
+                    tokens[state] += char;
+                    spaces++;
+                }
+
+                if (lineCode[--$mov] == '\\' && (char == '"' || char == "'")) {}
+                
+                if (char == ' ') { 
+                    state++ 
+                } else tokens[state] += char;
+            }
+
+            ModifyModel = tokens[1];
+            ModifyValue = tokens[2];
+
+        } else {
+            const [ModifyToken, ModifyModel, ModifyValue] = lineCode.split(' ');
+            if (lineCode.split(' ').length > 3) return 'rejected';
+            if (typeof ModifyModel == 'undefined' || typeof ModifyValue == 'undefined') return 'rejected';
+            smallAbstractSyntaxTree['modify']['model'] = ModifyModel;
+            smallAbstractSyntaxTree['modify']['value'] = ModifyValue;
+        }
+
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a string, splits it into an array, then maps the array to a new array, then returns the
+     * new array.
+     * @param lineCode - the line of code that is being parsed
+     * @returns An object with a key of execute and a value of an object with a key of args and a value
+     * of an array of strings.
+     */
+    static parseExecuteStatement(lineCode){
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['execute'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        if (lineCode.split(' ').length > 7) return 'rejected';
+        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
+        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        smallAbstractSyntaxTree['execute']['cmd'] = args[1];
+        smallAbstractSyntaxTree['execute']['args'] = args.slice(2);
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code, and returns an object that represents the line of code.
+     * 
+     * The line of code is a string. The object is a JavaScript object.
+     * 
+     * The line of code is a line of code in a programming language called "POP". The object is an
+     * abstract syntax tree for the line of code.
+     * 
+     * The line of code is a line of code in a programming language called
+     * @param lineCode - the line of code that is being parsed
+     * @returns a small abstract syntax tree.
+     */
+    static parsePopStatement(lineCode) {
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['pop'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
+        let symbols = [
+            '(', ')', '[', ']', '{', '}',  // brackets
+            '=', '+', '-', '*', '%', ':', '/', // operators
+            '<', '>', // logical operators
+            '"', "'", // quoted identifiers
+            '&', '\\', '!', '?', '№', '|', '^']; // other
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+            
+        if (lineCode.split(' ').length > 1) return 'rejected';
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It takes a line of code and returns an object that represents the line of code.
+     *
+     * The function is called parsePushStatement. It takes a line of code as an argument. It returns an
+     * object that represents the line of code.
+     * 
+     * The function is called parsePushStatement. It
+     * @param lineCode - the line of code that is being parsed
+     * @returns a small abstract syntax tree.
+     */
+    static parsePushStatement(lineCode) {
+        let smallAbstractSyntaxTree = {};
+        smallAbstractSyntaxTree['push'] = {};
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        if (lineCode.split(' ').length > 2) return 'rejected';
+        let  args =  lineCode.split(' ');
+        smallAbstractSyntaxTree['push']['args'] = args[1];
+        return smallAbstractSyntaxTree;
+    }
+
+
+    /**
+     * It checks if a line of code contains a symbol.
+     * @param lineCode - The line of code that is being checked for a symbol.
+     * @param symbol - The symbol to check for.
+     * @returns The function isSymbol is being returned.
+     */
+    static isSymbol(lineCode, symbol) {
+        if (typeof symbol === 'string') {
+            return lineCode.indexOf(symbol) !== -1 ? true : false;
+        } else if (Array.isArray(symbol)) {
+            let result = false;
+            for (let i = 0; i < symbol.length; i++) if (lineCode[i] === symbol[i]) result = true;
+            return result;
+        } else if (lineCode === undefined) {
+            throw { message: "Missing line code for symbol '" + symbol + "'", line : undefined };
+        }
     }
 }
 

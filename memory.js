@@ -63,6 +63,11 @@ class Memory {
     removeCell(key) {
         this.memory.delete(key);
     }
+
+    /**
+    * The function unsett() clears the memory of the object.
+    */
+    unset(){ this.memory.clear(); }
 }
 
 
@@ -137,6 +142,12 @@ class MemoryAddress extends Memory {
 
 
     /**
+    * The function unsett() clears the memory address of the object.
+    */
+    unset(){ this.address.clear(); }
+
+
+    /**
     * The function returns the size of the address object.
     * @returns The size of the address.
     */
@@ -185,6 +196,11 @@ class MemoryVariables {
     getCellByValue(value){
        for (const [key, valueCell] of this.memory) if (valueCell.name === value) return this.memory.get(key);
     }
+
+    /**
+    * The function unsett() clears the memory of the object.
+    */
+    unsett(){ this.memory.clear(); }
 }
 
 

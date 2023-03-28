@@ -48,9 +48,13 @@ class Token {
           '@Unit', // create function
           '@call', // call @Unit
           '@Ret', // Unit return value
-
           '@import', // import aliases
-          '@Shift'// shift
+          '@Define',
+          '@Unset',
+          '@Modify',
+          '@Imul',
+          '@Execute',
+          '@Offset'
         ];
 
         this.tokensList.map(token => tokensSet.add(token));

@@ -38,9 +38,25 @@ class BackTraceError extends Error {
 }
 
 
-class SymbolError extends BackTraceError {
-    constructor(message) {
-        super(message);
+class SymbolError {
+    constructor(lineCode, symbol, message) {
+       // super();
+        
+        if (lineCode != undefined || lineCode != null) {
+
+            if (message != undefined) {
+                process.stdout.write(`${message}\n`);
+                process.stdout.write(lineCode);
+                process.stdout.write(`\n`);
+                process.stdout.write(' '.repeat(lineCode.indexOf(symbol)));
+                process.stdout.write(`${Color.FG_RED}^${Color.RESET}\n`);
+            } else {
+                console.log(`\n${symbol}`);
+                process.stdout.write(lineCode);
+                process.stdout.write(`\n${Color.FG_RED}^`);
+                process.stdout.write(`${Color.FG_RED}-${Color.RESET}`.repeat(lineCode.length-1));
+            }
+        }
     }
 }
 
@@ -63,10 +79,13 @@ class ArgumentError extends BackTraceError {
 class UnitError extends BackTraceError {
     constructor(lineCode, typeMessage) {
         super(lineCode);
-        console.log(typeMessage);
-        process.stdout.write(lineCode);
-        process.stdout.write('\n');
-        process.stdout.write(`${Color.FG_RED}^${Color.RESET}`.repeat(lineCode.length));
+        
+        if (lineCode != undefined || lineCode != null) {
+            console.log(typeMessage);
+            process.stdout.write(lineCode);
+            process.stdout.write(`\n${Color.FG_RED}^`);
+            process.stdout.write(`${Color.FG_RED}-${Color.RESET}`.repeat(lineCode.length));
+        }
     }
 }
 
@@ -82,14 +101,27 @@ class TypeError extends BackTraceError {
 }
 
 
+class FileError extends BackTraceError {
+    constructor(options) {
+        super(options.message);
+        this.options = options;
+        process.stdout.write(this.options.message);
+
+        if (this.options.lineCode != undefined || this.options.lineCode != null) {
+            process.stdout.write(this.options.lineCode);
+            process.stdout.write('\n');
+            process.stdout.write(`${Color.FG_RED}^${Color.RESET}`.repeat(this.options.lineCode.length));
+        }
+    }
+}
+
+
 //================================================================================================
 // SYNTAX ERRORS
 //================================================================================================
 Object.defineProperty(SymbolError, 'INVALID_SYMBOL_ERROR', { value: '[SyntaxError]: Invalid symbol' });
 Object.defineProperty(SymbolError, 'UNKNOWN_TYPE', { value: '[SyntaxError]: Unknown type' });
 Object.defineProperty(SymbolError, 'UNKNOWN_TOKEN', { value: '[SyntaxError]: Unknown token' });
-Object.defineProperty(SymbolError, 'UNKNOWN_MUTATION_OPERATOR', { value: '[SyntaxError]: Unknown operator' });
-Object.defineProperty(SymbolError, 'UNKNOWN_OPERATOR', { value: '[SyntaxError]: Unknown operator' });
 //================================================================================================
 
 
@@ -122,10 +154,20 @@ Object.defineProperty(StatementError, 'INVALID_CASES_ERROR', { value: '[Statemen
 Object.defineProperty(TypeError, 'INVALID_TYPE', { value: '[TypeError]: you must specify a type name' });
 //================================================================================================
 
+
+//================================================================================================
+// FILE ERRORS
+//================================================================================================
+Object.defineProperty(FileError, 'FILE_NOT_FOUND', { value: '[FileError]: File not found \n' });
+Object.defineProperty(FileError, 'FILE_EXTENSION_INVALID', { value: '[FileError]: File extension invalid \n' });
+//================================================================================================
+
+
 module.exports = {
     StatementError: StatementError,
     SymbolError: SymbolError,
     TypeError: TypeError,
     ArgumentError: ArgumentError,
     UnitError: UnitError,
+    FileError: FileError
 }

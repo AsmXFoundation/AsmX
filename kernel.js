@@ -1,13 +1,16 @@
+//===========================================================================================
+//      The Kernel is responsible for loading and executing the functions in the Kernel
+//===========================================================================================
+
 const fs = require('fs');
-const readline = require('readline');
-const path = require('path');
 const ProgressBar = require('progress');
 
 const Parser = require('./parser');
 const Color = require('./utils/color');
 const Compiler = require('./compiler');
+const { FileError } = require('./anatomics.errors');
 
-print = (message, callback) => process.stdout.write(message, callback);
+log = (message, callback) => process.stdout.write(message, callback);
 
 let progressBar = new ProgressBar(`[${Color.FG_CYAN}:bar${Color.RESET}] :percent :etas`, {
     complete: '#',
@@ -16,27 +19,43 @@ let progressBar = new ProgressBar(`[${Color.FG_CYAN}:bar${Color.RESET}] :percent
     total: 100
 });
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+log('COMPILER AsmX');
 
-print('COMPILER x64 asm');
-rl.question('MarsX file compiler asmX ~' , (answer) => {
-    print(answer);
+
+/**
+ * It asks a question, waits for the user to answer, and then calls a callback function with the
+ * answer.
+ * @param message - The message to display to the user.
+ * @param callback - The function to call when the user has entered their answer.
+ */
+function question(message, callback) {
+    log(message);
+    let answer;
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    process.stdin.on("data", function(data) {
+        answer = data.toString();
+        callback(answer.trim());
+        process.stdin.destroy();
+    });
+}
+
+question('AsmX file compiler asmX ~' , (answer) => {
+    console.log(answer);
     
     if (answer.endsWith('.asmx') || answer.endsWith('.asmX')) {
-        print('\nCOMPILING asmX FILE...\n');
+        log(`\nCOMPILING ${answer} FILE...\n`);
 
         let timer = setInterval(() => {
             progressBar.tick();
             progressBar.complete && new CompilerAsmX({ src: answer });
             progressBar.complete && clearInterval(timer);
         }, 10);
-
-        rl.close();
     } else {
-        print('\nINVALID EXTENSION FILE\n');
+        new FileError({
+            message: FileError.FILE_EXTENSION_INVALID
+        })
     }
 });
 
@@ -45,8 +64,15 @@ class CompilerAsmX {
     constructor(config) {
         this.config = config;
         this.tokens = [];
-        let file = fs.readFileSync(this.config.src, { encoding: 'utf8' });
-        let parser = Parser.parse(file);
-        new Compiler(parser);
+        
+        try {
+            let file = fs.readFileSync(this.config.src, { encoding: 'utf8' });
+            let parser = Parser.parse(file);
+            new Compiler(parser);
+        } catch (e) {
+            new FileError({
+                message: FileError.FILE_NOT_FOUND
+            });
+        }
     }
 }

@@ -185,18 +185,6 @@ class Validator {
 
 
     /**
-     * It returns true if the line of code starts with @Expression or @Expr.
-     * @param lineCode - The line of code that is being checked.
-     * @returns A boolean value.
-     */
-    static isExpressionStatement(lineCode) {
-        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
-        lineCode = lineCode.replace(/\s+/g, ' ');
-        return lineCode.startsWith('@Expression') || lineCode.startsWith('@Expr');
-    }
-
-
-    /**
      * It returns true if the line of code starts with the string '@Ret' and false otherwise
      * @param lineCode - The line of code that is being checked.
      * @returns The function isReturnStatement is being returned.
@@ -204,6 +192,107 @@ class Validator {
     static isReturnStatement(lineCode) {
         if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
         return lineCode.replace(/\s+/g, ' ').startsWith('@Ret');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with @Define, and false otherwise.
+     * @param lineCode - The line of code that is being checked.
+     * @returns a string.
+     */
+    static isDefineStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Define');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with the string "@Execute" and false otherwise
+     * @param lineCode - The line of code that is being checked.
+     * @returns a string.
+     */
+    static isExecuteStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Execute');
+    }
+
+
+    /**
+     * If the lineCode is a string and it starts with @Imul, then return the lineCode with all the
+     * spaces replaced with a single space.
+     * @param lineCode - The line of code that is being checked.
+     * @returns a boolean value.
+     */
+    static isImulStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Imul');
+    }
+
+
+    /**
+     * If the lineCode is a string and it starts with @Offset, then return true, otherwise return
+     * false.
+     * @param lineCode - The line of code that is being checked.
+     * @returns a string.
+     */
+    static isOffsetStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Offset');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with the string "@Unset" and false otherwise
+     * @param lineCode - The line of code that is being checked.
+     * @returns a boolean value.
+     */
+    static isUnsetStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Unset');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with the string "@Modify" and false otherwise.
+     * @param lineCode - The line of code that is being checked.
+     * @returns a boolean value.
+     */
+    static isModifyStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Modify');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with the word "Stream" preceded by an "@" symbol
+     * @param lineCode - The line of code that is being checked.
+     * @returns a string.
+     */
+    static isStreamStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Stream');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with @Pop, and false otherwise.
+     * @param lineCode - The line of code that is being checked.
+     * @returns a string.
+     */
+    static isPoptatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Pop');
+    }
+
+
+    /**
+     * It returns true if the line of code starts with the string "@Push" and false otherwise
+     * @param lineCode - The line of code that is being checked.
+     * @returns a boolean value.
+     */
+    static isPushStatement(lineCode) {
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        return lineCode.replace(/\s+/g, ' ').startsWith('@Push');
     }
 }
 

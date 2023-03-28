@@ -1,4 +1,4 @@
-const { UnitError } = require("./anatomics.errors");
+const { UnitError, ArgumentError } = require("./anatomics.errors");
 const Lexer = require("./lexer");
 const Parser = require("./parser");
 //const Compiler = require('./compiler');
@@ -89,11 +89,16 @@ class UnitCall {
     getArgumentsHashMap(name, args){
         let unit = this.units.find(unit => unit.name === name);
         let hashMap = {};
-        args = args.split(',');
+        args = args.split(',').map(arg => arg.trim());
+
+        if (args.length > unit.argsNames.length) {
+            new UnitError(null, ArgumentError.ARGUMENT_INVALID_COUNT_ARGUMENTS);
+            return 'rejected';
+        }
 
         if (!(unit == undefined || typeof unit === 'undefined')) {
            for (let index = 0; index < args.length; index++) {
-            hashMap[unit.argsNames[index].trim()] = args[index].trim();
+                hashMap[unit.argsNames[index].trim()] = args[index].trim();
            }
         }
 

@@ -1,9 +1,13 @@
 # ./examples/unit.asmX
-@Issue true;
+@import stream;
 
-@Unit  add5 (x: Int):
-    @Add [x] , 0x05
-    @Invoke 0x04
+@Unit  matchCoords(x, y: Int, z):
+    @Add [x] , [y],[z]
+    @Ret $ret
 
-@call add5(6);
-@call add5(9);
+
+@call matchCoords(4, 5, 4)
+@Route $urt
+@Invoke 0x04
+
+@call read()

@@ -57,7 +57,7 @@ returns an iterator object that iterates over the types array. */
 class Types extends KeyWords {
    constructor(){
         super();
-        this.types = ['Any', 'String', 'Int', 'Float', 'Bool', 'List', 'Unique'];
+        this.types = ['Any', 'String', 'Int', 'Float', 'Bool', 'List'];
    }
 
     [Symbol.iterator]() {

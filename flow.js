@@ -1,4 +1,5 @@
 const readline = require('readline-sync');
+const fs = require("fs");
 
 /** 
  *  This class is a placeholder for the platform specific implementation of the input/output functionality 
@@ -17,7 +18,17 @@ class FlowInput extends PlatformIO {
      * @returns The readline.question() method is being returned.
      */
     static createInputStream(text) {
-        return readline.question(text || '> ');
+        return readline.question(text == '' ? '> ' : text);
+    }
+
+
+    /**
+     * It reads a file and returns the contents of the file as a string
+     * @param path - The path to the file you want to read.
+     * @returns The file contents.
+     */
+    static createFileInputStream(path) {
+        return fs.readFileSync(path, 'utf8');
     }
 }
 
@@ -34,6 +45,16 @@ class FlowOutput extends PlatformIO {
      */
     static createOutputStream(text) {
         console.log(text);
+    }
+
+
+    /**
+     * It creates a file output stream.
+     * @param path - The path to the file to be created.
+     * @param text - The text to write to the file.
+     */
+    static createFileOutputStream(path, text) {
+        fs.writeFileSync(path, text, { encoding: 'utf8' });
     }
 }
 

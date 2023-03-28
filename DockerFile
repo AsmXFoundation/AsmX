@@ -1,0 +1,10 @@
+FROM node:16.15.1
+
+RUN mkdir -p /asmx.o
+WORKDIR /asmx.o
+COPY package.json ./
+RUN npm install
+# COPY ./package.json
+EXPOSE 3000
+
+CMD [ "npm", "start"]
