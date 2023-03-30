@@ -973,6 +973,7 @@ class Compiler {
         // Other
         if (arg == '$offset') return this.$offset;
         if (arg == '$name') return this.$name;
+        if (arg == '$math') return this.$math;
         // return
         if (arg == '$ret') return this.$ret;
         if (arg == '$urt') return this.$urt;
@@ -986,6 +987,7 @@ class Compiler {
         if (arg == '$count') return this.$count;
         // Logical registers
         if (arg == '$eq') return this.$eq;
+        if (arg == '$seq') return this.$seq;
         if (arg == '$cmp') return this.$cmp;
         if (arg == '$and') return this.$and;
         if (arg == '$or') return this.$or;
