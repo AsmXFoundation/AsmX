@@ -278,24 +278,30 @@ class Compiler {
     }
 
 
+    /**
+     * It's a function that executes a statement
+     * @param statement - { cmd: 'mov', args: [ '', '' ] }
+     * @param index - The index of the current statement.
+     */
     compilerExecute(statement, index) {
         this.$arg0 = statement.cmd;
         let args = statement.args;
 
        /* Checking if the argument is a hex, int, or float. If it is, it will return the argument. */
-
-        args = args.map(arg => {
+        args = args.map((arg) => {
             if (ValidatorByType.validateTypeHex(arg) || ValidatorByType.validateTypeInt(arg) || ValidatorByType.validateTypeFloat(arg)) {
-                let arg =  this.checkArgument(arg) || +arg;
-                if (arg == 'None') new SymbolError(arg, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
-                return arg;
+                return  +this.checkArgument(arg) || +arg;
+               // if (argument == 'None') new SymbolError(arg, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+               // return +arg;
             } else {
-                arg = this.checkArgument(arg);
-                if (arg == 'None') new SymbolError(arg, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+              //  let argument = this.checkArgument(arg);
+               // if (argument == 'None') new SymbolError(arg, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
-                if (ValidatorByType.validateTypeHex(arg) || ValidatorByType.validateTypeInt(arg) || ValidatorByType.validateTypeFloat(arg)) {
-                    return this.checkArgument(arg) || +arg;
-                } 
+                // if (ValidatorByType.validateTypeHex(arg) || ValidatorByType.validateTypeInt(arg) || ValidatorByType.validateTypeFloat(arg)) {
+                //     return this.checkArgument(arg) || +arg;
+                // } 
+
+                return this.checkArgument(arg);
             }
         });
 
@@ -422,7 +428,7 @@ class Compiler {
      */
     compilerPush(statement) {
         this.$arg0 = this.checkArgument(statement.args[0]) || statement.args[0];
-        if (this.$arg0 == 'None') new SymbolError(this.$arg0, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+       // if (this.$arg0 == 'None') new SymbolError(this.$arg0, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
         this.$stack.push(this.$arg0);
     }
 
@@ -570,7 +576,7 @@ class Compiler {
             this.compileInvoke({ address: 0x01 });
         } else if (this.scope == 'local') {
             this.$urt = this.checkArgument(statement.arg) || this.$ret || 0x00;
-            if (this.$urt == 'None') new SymbolError(statement.arg, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+          //  if (this.$urt == 'None') new SymbolError(statement.arg, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
         }
     }
 
@@ -775,9 +781,9 @@ class Compiler {
             this.$ret = value;
             this.$stack.push({ address: this.$arg1, value: value });
             this.$route.setPoint(this.$arg0, this.$arg1);
-        } else if (this.$extensionRegisters.includes(statement.name)) {
+        } else /*if (this.$extensionRegisters.includes(statement.name))*/ {
             this.$arg0 = this.checkArgument(statement.name);
-            if (this.$arg0 == 'None') new SymbolError(statement.name, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+           // if (this.$arg0 == 'None') new SymbolError(statement.name, SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
             this.$stack.push({ value: this.$arg0 });
         }
     }
@@ -847,58 +853,58 @@ class Compiler {
     compilerAllArguments(statement, type){
         if (type == 'Int' || type == 'Float') {
             this.$arg0 = +this.checkArgument(statement.args[0]) || +statement.args[0] || 0x00;
-            if (this.$arg0 == 'None') new SymbolError(statement.args[0], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg0 == 'None') new SymbolError(statement.args[0], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
             
             this.$arg1 = +this.checkArgument(statement.args[1]) || +statement.args[1] || 0x00;
-            if (this.$arg1 == 'None') new SymbolError(statement.args[1], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg1 == 'None') new SymbolError(statement.args[1], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg2 = +this.checkArgument(statement.args[2]) || +statement.args[2] || 0x00;
-            if (this.$arg2 == 'None') new SymbolError(statement.args[2], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+          //  if (this.$arg2 == 'None') new SymbolError(statement.args[2], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg3 = +this.checkArgument(statement.args[3]) || +statement.args[3] || 0x00;
-            if (this.$arg3 == 'None') new SymbolError(statement.args[3], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+           // if (this.$arg3 == 'None') new SymbolError(statement.args[3], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg4 = +this.checkArgument(statement.args[4]) || +statement.args[4] || 0x00;
-            if (this.$arg4 == 'None') new SymbolError(statement.args[4], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+          //  if (this.$arg4 == 'None') new SymbolError(statement.args[4], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg5 = +this.checkArgument(statement.args[5]) || +statement.args[5] || 0x00;
-            if (this.$arg5 == 'None') new SymbolError(statement.args[5], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+          //  if (this.$arg5 == 'None') new SymbolError(statement.args[5], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
         } else if (type == 'String') {
             this.$arg0 = this.checkArgument(statement.args[0]) || statement.args[0] || 0x00;
-            if (this.$arg0 == 'None') new SymbolError(statement.args[0], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg0 == 'None') new SymbolError(statement.args[0], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg1 = this.checkArgument(statement.args[1]) || statement.args[1] || 0x00;
-            if (this.$arg2 == 'None') new SymbolError(statement.args[1], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg2 == 'None') new SymbolError(statement.args[1], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg2 = this.checkArgument(statement.args[2]) || statement.args[2] || 0x00;
-            if (this.$arg2 == 'None') new SymbolError(statement.args[2], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg2 == 'None') new SymbolError(statement.args[2], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
  
             this.$arg3 = this.checkArgument(statement.args[3]) || statement.args[3] || 0x00;
-            if (this.$arg3 == 'None') new SymbolError(statement.args[3], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+           //if (this.$arg3 == 'None') new SymbolError(statement.args[3], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg4 = this.checkArgument(statement.args[4]) || statement.args[4] || 0x00;
-            if (this.$arg4 == 'None') new SymbolError(statement.args[4], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg4 == 'None') new SymbolError(statement.args[4], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg5 = this.checkArgument(statement.args[5]) || statement.args[5] || 0x00;
-            if (this.$arg5 == 'None') new SymbolError(statement.args[5], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg5 == 'None') new SymbolError(statement.args[5], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
         } else if (type == 'Bool') {
             this.$arg0 = Boolean(this.checkArgument(statement.args[0]) || statement.args[0] || 0x00);
-            if (this.$arg0 == 'None') new SymbolError(statement.args[0], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg0 == 'None') new SymbolError(statement.args[0], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg1 = Boolean(this.checkArgument(statement.args[1]) || statement.args[1] || 0x00);
-            if (this.$arg1 == 'None') new SymbolError(statement.args[1], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+           // if (this.$arg1 == 'None') new SymbolError(statement.args[1], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg2 = Boolean(this.checkArgument(statement.args[2]) || statement.args[2] || 0x00);
-            if (this.$arg2 == 'None') new SymbolError(statement.args[2], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+            //if (this.$arg2 == 'None') new SymbolError(statement.args[2], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg3 = Boolean(this.checkArgument(statement.args[3]) || statement.args[3] || 0x00);
-            if (this.$arg3 == 'None') new SymbolError(statement.args[3], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+           // if (this.$arg3 == 'None') new SymbolError(statement.args[3], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg4 = Boolean(this.checkArgument(statement.args[4]) || statement.args[4] || 0x00);
-            if (this.$arg4 == 'None') new SymbolError(statement.args[4], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+           // if (this.$arg4 == 'None') new SymbolError(statement.args[4], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
 
             this.$arg5 = Boolean(this.checkArgument(statement.args[5]) || statement.args[5] || 0x00);
-            if (this.$arg5 == 'None') new SymbolError(statement.args[5], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
+           // if (this.$arg5 == 'None') new SymbolError(statement.args[5], SymbolError.UNKNOWN_TOKEN), this.compileInvoke( { address: 0x01 });
         }
     }
 
@@ -994,7 +1000,9 @@ class Compiler {
         if (arg == '$arg4') return this.$arg4;
         if (arg == '$arg5') return this.$arg5;
 
-        return 'None';
+        //if (typeof arg === 'undefined') return 'None';
+        //if (ValidatorByType.validateTypeFloat(String(arg)) || ValidatorByType.validateTypeHex(String(arg)) || ValidatorByType.validateTypeInt(String(arg))) return +arg;
+       // return "None";
     }
 }
 

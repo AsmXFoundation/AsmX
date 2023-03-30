@@ -267,7 +267,7 @@ class Parser {
         const [RetToken, RetAddress] = lineCode.split(' ');
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -293,7 +293,7 @@ class Parser {
         smallAbstractSyntaxTree['div'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -322,7 +322,7 @@ class Parser {
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -353,7 +353,7 @@ class Parser {
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -382,7 +382,7 @@ class Parser {
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -431,7 +431,7 @@ class Parser {
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -486,7 +486,7 @@ class Parser {
         const [StackToken, StackAddress] = lineCode.split(' ');
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -720,7 +720,7 @@ class Parser {
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers
@@ -754,7 +754,7 @@ class Parser {
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
         let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
+            '(', ')', '{', '}',  // brackets
             '=', '+', '-', '*', '%', ':', '/', // operators
             '<', '>', // logical operators
             '"', "'", // quoted identifiers

@@ -1,3 +1,5 @@
-# 80 / 10 / 8 -> 1
-@Div 0x50, ewewewd, 0x08
-@Invoke 0x04
+#----------------------------------------------------------------
+@Div 0x50, 0xA, 0x08        #   $ret = 0x50 / 0xA / 0x8 = 1
+@Route $ret                 #   adding the result of the $ret register to the stack
+@Invoke 0x04                #   write lis (last item stack)
+#----------------------------------------------------------------

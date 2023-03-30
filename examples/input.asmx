@@ -1,3 +1,5 @@
-@Invoke 0x03
-@Add $out, $out
-@Invoke 0x04
+#----------------------------------------------------------------
+@Invoke 0x03            #   user readline
+@Add $out, $out         #   $ret = $out + $out
+@Invoke 0x04            #   write lis (last item stack)
+#----------------------------------------------------------------

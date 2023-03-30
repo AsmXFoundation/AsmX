@@ -2,86 +2,29 @@ const os = require('os');
 
 class KernelOS {
     static {
-        this.datalist = [
-            {
-                register: '$date',
-                prototype: [
-                    {
-                        property: 'time',
-                        data: new Date().toLocaleString()
-                    },
-
-                    {
-                        property: 'year',
-                        data: new Date().getFullYear()
-                    },
-
-                    {
-                        property: 'month',
-                        data: new Date().getMonth()
-                    },
-
-                    {
-                        property: 'day',
-                        data: new Date().getDay()
-                    },
-
-                    {
-                        property: 'hour',
-                        data: new Date().getHours()
-                    },
-
-                    {
-                        property: 'minute',
-                        data: new Date().getMinutes()
-                    },
-
-                    {
-                        property: 'seconds',
-                        data: new Date().getSeconds()
-                    },
-
-                    {
-                        property: 'milliseconds',
-                        data: new Date().getMilliseconds()
-                    }
-                ]
+        this.datalist = {
+            $date:  {
+                time: () => new Date().toLocaleString(),
+                year: () =>  new Date().getFullYear(),
+                month: () => new Date().getMonth(),
+                day: () => new Date().getDay(),
+                hour: () => new Date().getHours(),
+                minute: () => new Date().getMinutes(),
+                seconds: () => new Date().getSeconds(),
+                milliseconds: () => new Date().getMilliseconds()
             },
 
-            {
-                register: '$kernel',
-                prototype: [
-                    {
-                        property: 'arch',
-                        data: 'AsmX'
-                    },
-
-                    {
-                        property: 'version',
-                        data: 'v1.0'
-                    }
-                ]
+            $kernel: {
+                arch: 'AsmX',
+                version: 'v1.0'
             },
 
-            {
-                register: '$os',
-                prototype: [
-                    {
-                        property: 'arch',
-                        data: os.arch()
-                    },
-
-                    {
-                        property: 'version',
-                        data: os.version()
-                    }
-                ]
+            $os: {
+                arch: os.arch(),
+                version: os.version()
             }
-        ]
+        }
     }
 }
 
-
-KernelOS.datalist.forEach(list => {
-    console.log(list.prototype);
-});
+module.exports = KernelOS;
