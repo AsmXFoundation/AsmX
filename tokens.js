@@ -1,33 +1,3 @@
-class StreamLine {
-  static isComma(ch) {
-    return (ch === ",");
-  }
-  
-  static isDigit(ch) {
-    return /\d/.test(ch);
-  }
-
-  static isLabel(ch) {
-    return ch.startsWith('.');
-  }
-  
-  static isLetter(ch) {
-    return /[a-z]/i.test(ch);
-  }
-  
-  static isOperator(ch) {
-    return /\+|-|\*|\/|\^/.test(ch);
-  }
-  
-  static isLeftParenthesis(ch) {
-    return (ch === "(");
-  }
-  
-  static isRightParenthesis(ch) {
-    return (ch == ")");
-  }
-}
-
 class Token {
     constructor() {
         let tokensSet = new Set();
@@ -90,8 +60,6 @@ class Token {
     findByLine(line, token) {
       return this.tokensList.find(t => line.match(token)) || false;
     }
-      
-    StreamLine (){ return StreamLine; }
 }
 
 module.exports = Token;

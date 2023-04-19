@@ -1,7 +1,6 @@
 const { UnitError, ArgumentError } = require("./anatomics.errors");
 const Lexer = require("./lexer");
 const Parser = require("./parser");
-//const Compiler = require('./compiler');
 
 class UnitCall {
     constructor(){

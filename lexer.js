@@ -1,5 +1,7 @@
-const { SymbolError, TypeError } = require('./anatomics.errors');
+const { SymbolError, TypeError, SyntaxError } = require('./anatomics.errors');
 const ValidatorByType = require('./checker');
+const ServerLog = require('./server/log');
+const Color = require('./utils/color');
 
 class Lexer {
     /**
@@ -82,10 +84,10 @@ class Lexer {
      * @param valValue - The value of the variable
      * @returns the string 'rejected'
      */
-    static lexerString(lineCode, valValue) {
+    static lexerString(lineCode, valValue, options) {
         if (!ValidatorByType.validateByTypeString(valValue)) {
-            new TypeError(lineCode, valValue);
-            return 'rejected';
+            new TypeError(lineCode, valValue, options);
+            process.exit(1);
         }
 
         return true;
@@ -150,10 +152,10 @@ class Lexer {
      * @param type - The type of the variable
      * @returns The return value is the result of the last expression evaluated.
      */
-    static lexerAutonomyByType(lineCode, valValue, type) {
+    static lexerAutonomyByType(lineCode, valValue, type, options) {
         return  type === 'Int' && this.lexerInt(lineCode, valValue)
         || type === 'Float' && this.lexerFloat(lineCode, valValue)
-        || type === 'String' && this.lexerString(lineCode, valValue)
+        || type === 'String' && this.lexerString(lineCode, valValue, options)
         || type === 'Bool' && this.lexerBool(lineCode, valValue)
         || type === 'List' && this.lexerList(lineCode, valValue);
     }
@@ -171,6 +173,82 @@ class Lexer {
         if (this.lexerString(lineCode, value)) return 'String';
         if (this.lexerBool(lineCode, value)) return 'Bool';
         if (this.lexerList(lineCode, value)) return 'List';
+    }
+
+
+    /**
+     * The function is a lexer that checks and converts a given string into a valid JavaScript value.
+     * @param string - The input string that needs to be lexed (parsed and analyzed for syntax and
+     * structure).
+     * @param options - The options parameter is an object that contains additional information about
+     * the code being processed, such as the original line number and code string. It is used to
+     * provide more detailed error messages in case of syntax or semantic errors.
+     */
+    static lexer(string, options) {
+        const exceptionMessages = {
+            quoteInvalidEnd: 'You need to end the line with another quotation mark.',
+            quoteMark: 'You need to end the string with a quotation mark.',
+            invalidString: `[${Color.FG_RED}SyntaxException${Color.FG_WHITE}]: Invalid string`
+        }
+
+        if (string == '"' || string == "'") {
+            new SymbolError(options.code, string, 'Invalid character');
+            process.exit(1);
+        }
+
+        if (string.startsWith('"') || string.startsWith("'")) string = string.replace(/^"(.*)"$/, '$1');
+
+        if (string.startsWith('"')) {
+            if (string.endsWith("'")) {
+                new SyntaxError(exceptionMessages.invalidString, {
+                    row: options.row, select: string, code: options.code
+                });
+
+                ServerLog.log(exceptionMessages.quoteInvalidEnd, 'Possible fixes');
+                process.exit(1);
+            }
+
+            if (!string.endsWith('"')) {
+                new SyntaxError(`[${Color.FG_RED}SyntaxException${Color.FG_WHITE}]: You haven't finished the line, please finish it`, {
+                    row: options.row, select: string, code: options.code
+                });
+                process.exit(1);
+            }
+        } else if (string.startsWith("'")) {
+            if (string.endsWith('"')) {
+                new SyntaxError(exceptionMessages.invalidString, {
+                    row: options.row, select: string, code: options.code
+                });
+
+                ServerLog.log(exceptionMessages.quoteInvalidEnd, 'Possible fixes');
+                process.exit(1);
+            }
+
+            if (!string.endsWith("'")) {
+                new SyntaxError(`[${Color.FG_RED}SyntaxException${Color.FG_WHITE}]: You haven't finished the line, please finish it`, {
+                    row: options.row, select: string, code: options.code
+                });
+                process.exit(1);
+            }
+        } else if (!isNaN(string)) {
+            string = Number(string);
+        } else if (string === 'true' || string === 'false') {
+            string = string === 'true';
+        } else {
+            new SyntaxError(`Invalid value: ${string}`, {
+                row: options.row, select: string, code: options.code
+            });
+
+            if (string === 'True') {
+                ServerLog.log('You probably need to write \'true\'', 'Possible fixes');
+            } else if (string === 'False') {
+                ServerLog.log('You probably need to write \'false\'', 'Possible fixes');
+            } else if (string.match(/^\d+/)) {
+                ServerLog.log('You probably need to writeYou probably need to remove the letters', 'Possible fixes');
+            }
+    
+            process.exit(1);
+        }
     }
 }
 

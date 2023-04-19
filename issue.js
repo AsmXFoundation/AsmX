@@ -1,6 +1,9 @@
+const ServerLog = require("./server/log");
+
 class Issues {}
 
-Object.defineProperty(Issues, 'ISSUES_DEFINE_STATUS', {value: '[AsmX]: issues define status..\n' });
+// Object.defineProperty(Issues, 'ISSUES_DEFINE_STATUS' , { value: ServerLog.log("issues define", "Info") });
+// Object.defineProperty(Issues, 'ISSUES_DEFINE_STATUS', {value: '[AsmX]: issues define status..\n' });
 Object.defineProperty(Issues, 'SET_EVENT', { value: '[AsmX]: set..\n' });
 Object.defineProperty(Issues, 'INVOKE_EVENT', { value: '[AsmX]: invoke..\n' });
 Object.defineProperty(Issues, 'MEMORY_EVENT', { value: '[AsmX]: Print to memory...\n' });

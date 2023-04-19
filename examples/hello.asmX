@@ -1,7 +1,7 @@
 # Copyright (c) 2023
 # GitHub (E5war5IT)
 # ./examples/hello.asmX
-@set hello String "Hello-AsmX!";
+@set hello String "Hello AsmX!";
 
 @memory hello  0x01     #   swrite to memory
 @address 0x01 txt       #   define address of the memory

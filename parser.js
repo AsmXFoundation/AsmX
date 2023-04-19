@@ -1,21 +1,47 @@
-const { TypeError, StatementError, UnitError, SymbolError } = require("./anatomics.errors");
+const { TypeError, UnitError, SymbolError, SyntaxError, CodeStyleException, InstructionException } = require("./anatomics.errors");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
-const Switching = require("./switching");
-const Validator = require("./validator");
+const ServerLog = require("./server/log");
+const Color = require("./utils/color");
+
+function isUnitStatement(line) {
+    return line.replace(/\s+/g, ' ').startsWith('@Unit');
+}
 
 class Parser {
     static parse(sourceCode) {
         let lines = sourceCode.split('\n');
         let tokens = [];
         let newLines = [];
-        let isInterpreteProccess = Switching.setState(true);
-
+        let isInterpreteProccess = { state: true };
         lines = lines.map(line => line.indexOf(';') >= 0 ? line.split(';') : line);
 
-        lines.forEach((line) => {
+        lines.forEach((line, index) => {
+            if (this.parseAndDeleteEmptyCharacters(line) != '') {
+                let parsed = this.parseAndDeleteEmptyCharacters(line);
+
+                if (parsed.endsWith(',')) {
+                    new SyntaxError(`<source:${index+1}:${parsed.lastIndexOf(',')+1}>  Invalid character`, {
+                        select: ',',
+                        row: index,
+                        code: line,
+                        position: 'end'
+                    });
+
+                    if (lines.length-1 == index) {
+                        ServerLog.log('The end of the file, delete the last character or add more arguments to this instruction.', 'Possible fixes');
+                        process.exit(1);
+                    }
+
+                    if (lines[index+1] == '' || lines[index+1].test(/^\@\w+/)) {
+                        ServerLog.log('You may need to supplement this instruction or delete this symbol.', 'Possible fixes');
+                        process.exit(1);
+                    }
+                }
+            }
+
             if (Array.isArray(line))
-                for (let idx = 0, len = line.length; idx < len; idx++)  newLines.push(line[idx]);
+                for (let idx = 0, len = line.length; idx < len; idx++) newLines.push(line[idx]);
             else
                 newLines.push(line);
         });
@@ -29,177 +55,42 @@ class Parser {
 
            if (line.length === 0) continue;
 
-            if (isInterpreteProccess.state && Validator.isUnitStatement(line)) {
-                isInterpreteProccess.setState(false);
+            if (isInterpreteProccess.state && isUnitStatement(line)) {
+                isInterpreteProccess.state = false;
                 let unit = this.parseUnitStatement(line);
                 let unitBody = [];
                 if (unit == 'rejected' || line.length === 0) break ParserCycle;
                 let fixedLine = index;
-                let state = 0x00;
                 
-                UnitCycle: for (let idx = fixedLine, len = lines.length; idx < len; idx++) {
+                UnitCycle: for (let idx = fixedLine, len = lines.length, iterator = 0; idx < len; idx++, iterator++) {
                     let lineUnit = lines[idx].trim();
+                    this.parseAndDeleteEmptyCharacters(lineUnit) != '' && this.parseStatement(lineUnit, idx);
+    
+                    if (iterator > 0 && (isUnitStatement(lineUnit) || lineUnit.replace(/\s+/g, ' ').startsWith('@unit'))) {
+                        let message = "you have no right to make a nested function in a function.";
+                        ServerLog.log(message, 'Exception');
+                        new UnitError(lineUnit, `\n<source:${idx+1}:1>  ${message}`, { row: idx });
+                        ServerLog.log('You need to remove this line.', 'Possible fixes');
+                        process.exit(1);
+                    }
                     
-                    // if (!isInterpreteProccess.state && Validator.isUnitStatement(lineUnit)) {
-                    //     state += 0x001;
-                        
-                    //     if (state == 0x02) {
-                    //         throw new UnitError(lineUnit, "\nyou have no right to make a nested function in a function.");
-                    //         break ParserCycle;
-                    //     }
-                    // }
-
                     if (lineUnit.length === 0) break UnitCycle
                     else unitBody.push(lineUnit), lines[idx] = '';
                 }
+
+                if (unitBody.length === 1) {
+                    let message = 'You can\'t create an empty function.';
+                    ServerLog.log(message, 'Exception');
+                    new UnitError(unitBody[0], `\n<soure:${fixedLine}:1>  ${message}`, { row: fixedLine });
+                    ServerLog.log('You need to remove this line, or add a function.', 'Possible fixes');
+                    process.exit(1);
+                }
                 
                 tokens.push({ unit: unitBody });
-                isInterpreteProccess.setState(true);
+                isInterpreteProccess.state = true;
                 continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isCallStatement(line)) {
-                let call = this.parseCallStatement(line);
-                if (call == 'rejected'){ break ParserCycle; } else tokens.push(call);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isOffsetStatement(line)) {
-                let offset = this.parseOffsetStatement(line);
-                if (offset == 'rejected'){ break ParserCycle; } else tokens.push(offset);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isImulStatement(line)) {
-                let imul = this.parseImulStatement(line);
-                if (imul == 'rejected'){ break ParserCycle; } else tokens.push(imul);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isUnsetStatement(line)) {
-                let unset = this.parseUnsetStatement(line);
-                if (unset == 'rejected'){ break ParserCycle; } else tokens.push(unset);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isModifyStatement(line)) {
-                let modify = this.parseModifyStatement(line);
-                if (modify == 'rejected'){ break ParserCycle; } else tokens.push(modify);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isExecuteStatement(line)) {
-                let exec = this.parseExecuteStatement(line);
-                if (exec == 'rejected'){ break ParserCycle; } else tokens.push(exec);
-                continue;
-            }
-
-            if (Validator.isPoptatement(line)) {
-                let pop = this.parsePopStatement(line);
-                if (pop == 'rejected'){ break ParserCycle; } else tokens.push(pop);
-                continue;
-            }
-
-            if (Validator.isPushStatement(line)) {
-                let push = this.parsePushStatement(line);
-                if (push == 'rejected') { break ParserCycle; } else tokens.push(push);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isImportStatement(line)) {
-                let alias = this.parseImportStatement(line);
-                if (alias == 'rejected') { break ParserCycle; } else tokens.push(alias);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isReturnStatement(line)) {
-                let ret = this.parseReturnStatement(line);
-                if (ret == 'rejected') { break ParserCycle; } else tokens.push(ret);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isIssueStatement(line)) {
-                let issue = this.parseIssueStatement(line);
-                if (issue == 'rejected'){ break ParserCycle; } else tokens.push(issue); 
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isSetDeclaration(line)) {
-                let set = this.parseSetStatement(line)
-                if (set == 'rejected'){ break ParserCycle; } else tokens.push(set);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isInvokeStatement(line)) {
-                let invoke = this.parseInvokeStatement(line);
-                if (invoke == 'rejected'){ break ParserCycle; } else tokens.push(invoke);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isMemoryInvokeStatement(line)) {
-                let memory = this.parseMemoryInvoke(line);
-                if (memory == 'rejected'){ break ParserCycle; } else  tokens.push(memory);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isAddressInvokeStatement(line)) {
-                let address = this.parseAddressInvoke(line);
-                if (address == 'rejected'){ break ParserCycle; } else tokens.push(address);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isRouteStatement(line)) {
-                let route = this.parseRouteStatement(line);
-                if (route == 'rejected'){ break ParserCycle; } else tokens.push(route);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isStackStatement(line)) {
-                let stack = this.parseStackStatement(line);
-                if (stack == 'rejected'){ break ParserCycle; } else tokens.push(stack);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isAddStatement(line)) {
-                let add = this.parseAddStatement(line);
-                if (add == 'rejected'){ break ParserCycle; } else tokens.push(add);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isSubStatement(line)) {
-                let sub = this.parseSubStatement(line);
-                if (sub == 'rejected'){ break ParserCycle; } else tokens.push(sub);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isCallStatement(line)) {
-                let call = this.parseCallStatement(line);
-                if (call == 'rejected'){ break ParserCycle; } else tokens.push(call);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isEqualStatement(line)) {
-                let equal = this.parseEqualityStatement(line);
-                if (equal == 'rejected'){ break ParserCycle; } else tokens.push(equal);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isDivStatement(line)) {
-                let div = this.parseDivStatement(line);
-                if (div == 'rejected'){ break ParserCycle; } else tokens.push(div);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isModStatement(line)) {
-                let mod = this.parseModStatement(line);
-                if (mod == 'rejected'){ break ParserCycle; } else tokens.push(mod);
-                continue;
-            }
-
-            if (isInterpreteProccess.state && Validator.isDefineStatement(line)) {
-                let define = this.parseDefineStatement(line);
-                if (define == 'rejected'){ break ParserCycle; } else tokens.push(define);
-                continue;
+            } else if (isInterpreteProccess.state) {
+                this.parseAndDeleteEmptyCharacters(line) != '' && tokens.push(this.parseStatement(line, index));
             }
         }
 
@@ -208,21 +99,91 @@ class Parser {
 
 
     /**
-     * It takes a line of code, and if it's a define statement, it returns an object with the name and
-     * value of the define statement
-     * @param lineCode - the line of code that is being parsed
-     * @returns an object.
+    * The function parses a statement in a given line of code and returns an abstract syntax tree.
+    * @param line - The current line of code being parsed as a string.
+    * @param index - The index parameter is the line number or index of the current line being parsed
+    * in the code. It is used to provide context in case of syntax errors or other issues during
+    * parsing.
+    * @returns The function `parseStatement` is returning an abstract syntax tree (AST) for a given
+    * statement in the input `line`. The type of statement is determined by parsing the string and
+    * checking if it is a valid statement. If it is a valid statement, the corresponding
+    * `parse<Statement>` function is called to generate the AST. If it is not a valid statement, a
+    * `SyntaxError` is
+    */
+    static parseStatement(line, index){
+        let stmt = this.parseAndDeleteEmptyCharacters(line).substring(line.indexOf('@') + 1, line.indexOf(' '));
+        stmt = stmt[0].toUpperCase() + stmt.substring(1);
+        let ast;
+
+        if (this.isStatement(stmt)) {
+           ast = this[`parse${stmt}Statement`](line, index);
+        } else {
+            ServerLog.log('This instruction does not exist', 'Exception');
+            new SyntaxError(`\n<source:${index+1}:1>  This instruction does not exist`, {code: line, row: index });
+            ServerLog.log('You need to remove this instruction.', 'Possible fixes');
+            process.exit(1);
+        }
+
+        return ast;
+    }
+
+
+    /**
+     * The function checks if a given statement is valid by checking if there is a corresponding
+     * parsing function for it.
+     * @param stmt - stmt is a parameter that represents a statement in a programming language.
+     * @returns The function `isStatement` is returning a boolean value that indicates whether the
+     * object that the function is called on has a method with a name that matches the string passed as
+     * an argument to the function with the prefix "parse" and suffix "Statement".
      */
-    static parseDefineStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['const'] = {};
+    static isStatement(stmt) {
+        return Reflect.has(this, `parse${stmt}Statement`);
+    }
+
+
+    /**
+     * The function parses a define statement in JavaScript and returns a small abstract syntax tree.
+     * @param lineCode - a string representing a line of code that contains a define statement
+     * @param row - The row number where the code is located in the source file.
+     * @returns The function `parseDefineStatement` returns either a small abstract syntax tree object
+     * containing the name and value of the defined constant, or the string 'rejected' if the input
+     * line of code does not meet certain criteria.
+     */
+    static parseDefineStatement(lineCode, row){
+        let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        if (lineCode.split(' ').length > 3) return 'rejected';
-        const [defineToken, defineName, defineValue] = lineCode.split(' ');
-        if (!/^[A-Z]+(_[A-Z]+)*$/.test(defineName)) return 'rejected';
-        smallAbstractSyntaxTree['const']['name'] = defineName;
-        smallAbstractSyntaxTree['const']['value'] = defineValue;
-        return smallAbstractSyntaxTree;
+        const instructionPattern = /^@[d|D]efine\s+([\w-]+)\s+(.+)$/;
+        const match = instructionPattern.exec(lineCode);
+        
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: originalLine
+            });
+
+            if (match == null && (lineCode.indexOf("'") > -1 || lineCode.indexOf('"') > -1)) {
+                ServerLog.log('You are not allowed to use a quotation mark near the instruction or the name of the constant', 'Possible fixes');
+            }
+
+            process.exit(1);
+        }
+        
+        if (!/^[A-Z]+(_[A-Z]+)*$/.test(match[1])) {
+            new CodeStyleException('Invalid constant name style', {
+                row: row, code: originalLine, select: match[1]
+            });
+
+            ServerLog.log('You need to write the name of the constant in the SNAKE_UPPER_CASE style', 'Possible fixes');
+
+            if (match[1].startsWith('_') || match[1].endsWith('_')) {
+                ServerLog.log('You are not allowed to use underscores at the beginning or end of the constant name', 'Possible fixes');
+            }
+
+            process.exit(1);
+        }
+
+        let value = match[2];
+        Lexer.lexer(value, { row: row, code: originalLine });
+        return { const: { name: match[1], value: value } };
     }
 
 
@@ -235,17 +196,8 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['import'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const [ImportToken, Alias] = lineCode.split(' ');
-
-        let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        const [, Alias] = lineCode.split(' ');
+        this.lexerSymbol(lineCode, { quoted: false });
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (Alias == undefined) { process.stdout.write('Alias not defined'); return 'rejected'; }
         else  smallAbstractSyntaxTree['import']['alias'] = Alias;
@@ -260,22 +212,12 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns a small abstract syntax tree.
      */
-    static parseReturnStatement(lineCode){
+    static parseRetStatement(lineCode){
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['ret'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [RetToken, RetAddress] = lineCode.split(' ');
-
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (RetAddress == undefined) console.error('Invoke address not found');
         else  smallAbstractSyntaxTree['ret']['arg'] = RetAddress;
@@ -292,16 +234,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['div'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -320,17 +253,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['mod'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -347,21 +270,11 @@ class Parser {
      * @returns An object with a key of 'add' and a value of an object with a key of 'args' and a value
      * of an array of arguments.
      */
-    static parseEqualityStatement(lineCode) {
+    static parseEqualStatement(lineCode) {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['equal'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -380,17 +293,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['add'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -398,7 +301,6 @@ class Parser {
         smallAbstractSyntaxTree['add']['args'] = args;
         return smallAbstractSyntaxTree;
     }
-
 
 
     /**
@@ -429,17 +331,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['sub'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
@@ -484,17 +376,7 @@ class Parser {
         smallAbstractSyntaxTree['stack'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [StackToken, StackAddress] = lineCode.split(' ');
-
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 2) return 'rejected';
 
         if (!ValidatorByType.validateTypeHex(StackAddress)) {
@@ -517,19 +399,9 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['issue'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode);
         if (lineCode.split(' ').length > 2) return 'rejected';
-        const [IssueToken, IssueStatus] = lineCode.split(' ');
+        const [, IssueStatus] = lineCode.split(' ');
         Lexer.lexerBool(lineCode, IssueStatus);
         smallAbstractSyntaxTree['issue']['state'] = IssueStatus || 'on';
         return smallAbstractSyntaxTree;
@@ -542,7 +414,10 @@ class Parser {
      * @returns The line of code with all the empty characters removed.
      */
     static parseAndDeleteEmptyCharacters(lineCode){
-        lineCode = lineCode.replace(/\s+/g, ' ').trim();
+        if (Array.isArray(lineCode)) lineCode = lineCode.filter(code => code.trim() != ''),
+            lineCode = lineCode[0];
+        else
+            lineCode = lineCode.replace(/\s+/g, ' ').trim();
         return  lineCode.substring(0, lineCode.indexOf('#') >= 0 ? lineCode.indexOf('#') -1 : lineCode.length);
     }
 
@@ -554,24 +429,66 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns An array of objects.
      */
-    static parseSetStatement(lineCode){
+    static parseSetStatement(lineCode, index){
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['set'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const [setToken, setName, setType, setValue] = lineCode.split(' ');
-        if (lineCode.split(' ').length > 4) return 'rejected';
 
-        if (setValue == undefined) {
-            Lexer.lexerAutonomyByType(lineCode, setType, Lexer.lexerGetTypeByValue(lineCode, setType));
-            smallAbstractSyntaxTree['set']['name'] = setName;
-            smallAbstractSyntaxTree['set']['type'] = Lexer.lexerGetTypeByValue(lineCode, setType);
-            smallAbstractSyntaxTree['set']['value'] = setType;
-        } else {
-            Lexer.lexerAutonomyByType(lineCode, setValue, setType);
-            smallAbstractSyntaxTree['set']['name'] = setName;
-            smallAbstractSyntaxTree['set']['type'] = setType;
-            smallAbstractSyntaxTree['set']['value'] = setValue;
+        // const [, setName, setType, setValue] = lineCode.split(' ');
+        // const instructionPattern = /^@[s|S]et\s+([\w-]+)\s+([\w-]+)(?:\s*<\w+>)?\s+(.+)$/;
+        // const instructionPattern = /^@[s|S]et\s+([\w-]+)\s+([\w-]+)(<\w+.+?(\s+)?\w+?>)?\s+(.+)$/
+
+        const instructionPattern = /^@[s|S]et\s+([\w-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/;
+        let match = instructionPattern.exec(lineCode.trim());
+        match = match.filter(lexem => lexem !== undefined);
+        
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: originalLine
+            });
+
+            process.exit(1);
         }
+
+        // if (lineCode.split(' ').length > 4) {
+        //     new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  you have too many arguments for this instruction.`, {
+        //         row: index,     code: lineCode
+        //     });
+
+        //     process.exit(1);
+        // }
+
+        // if (setType == undefined) {
+        //     new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+        //         row: index,     code: lineCode
+        //     });
+
+        //     process.exit(1);
+        // }
+
+        // if (setValue == undefined) {
+        //     let type = Lexer.lexerAutonomyByType(lineCode, setType, Lexer.lexerGetTypeByValue(lineCode, setType), { row: index });
+        //     console.log(type);
+        //     smallAbstractSyntaxTree['set']['name'] = setName;
+        //     smallAbstractSyntaxTree['set']['type'] = Lexer.lexerGetTypeByValue(lineCode, setType);
+        //     smallAbstractSyntaxTree['set']['value'] = setType;
+        // } else {
+        //     let type = Lexer.lexerAutonomyByType(lineCode, setValue, setType, { row: index });
+            
+        //     if (!type) {
+        //         new SyntaxError(TypeError.INVALID_TYPE, {
+        //             row: index,
+        //             code: lineCode,
+        //             select: setType
+        //         });
+
+        //         process.exit(1);
+        //     }
+
+            smallAbstractSyntaxTree['set']['name'] = match[1];
+            smallAbstractSyntaxTree['set']['type'] = match[2];
+            smallAbstractSyntaxTree['set']['value'] = match[3];
+        // }
 
         return smallAbstractSyntaxTree;
     }
@@ -606,7 +523,7 @@ class Parser {
      * </code>
      * @param lineCode - The line of code that is being parsed.
      */
-    static parseMemoryInvoke(lineCode){
+    static parseMemoryStatement(lineCode){
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [memoryToken, memoryValue, memoryAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 3) return 'rejected';
@@ -628,7 +545,7 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns An object with two properties: ref and addressVal.
      */
-    static parseAddressInvoke(lineCode){
+    static parseAddressStatement(lineCode){
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.indexOf('(')  !== -1 && lineCode.indexOf(')') !== -1){
             const addressName = lineCode.substring(lineCode.indexOf('('), lineCode.lastIndexOf(')')).trim();
@@ -683,16 +600,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['unit'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '=', '+', '-', '*', '%', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode, { brackets: false, operators: ['=', '+', '-', '*', '%', '/'] });
         if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
         const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('(')).trim();
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
@@ -718,17 +626,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['offset'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         const [OffsetToken, OffsetAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
 
@@ -753,21 +651,25 @@ class Parser {
         smallAbstractSyntaxTree['imul'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
-        let symbols = [
-            '(', ')', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
+        if (lineCode.indexOf(' ') > -1) {
+            lineCode = lineCode.substring(lineCode.indexOf(' '));
+        } else {
+            return 'rejected';
+        }
 
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+
+        if (lineCode.indexOf(' ') > -1) {
+            if (lineCode.split(' ').length > 6) return 'rejected';
+        } else {
+            if (lineCode.split(',').length > 6) return 'rejected';
+        }
 
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
-        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg).flat().filter(item => item != '');
         args.map(arg => ValidatorByType.validateTypeHex(arg));
-        smallAbstractSyntaxTree['imul']['args'] = args.slice(1);
+        smallAbstractSyntaxTree['imul']['args'] = args;
         return smallAbstractSyntaxTree;
     }
 
@@ -781,17 +683,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['unset'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-
+        this.lexerSymbol(lineCode);
         const [UnsetToken, UnsetModel] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (typeof UnsetModel == 'undefined') console.error('[AsmX]: model not defined');
@@ -801,53 +693,22 @@ class Parser {
 
 
     /**
-     * It takes a line of code, splits it into three parts, and then returns an object with the three
-     * parts
-     * @param lineCode - The line of code that is being parsed.
-     * @returns an object.
+     * The function parses and returns a small abstract syntax tree for a modify statement in
+     * JavaScript.
+     * @param lineCode - a string representing a line of code that contains a modify statement.
+     * @returns either a rejected string if the first element of the commandArray is not '@Modify', or
+     * a small abstract syntax tree object with the 'modify' key containing a nested object with
+     * 'model' and 'value' keys.
      */
     static parseModifyStatement(lineCode){
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['modify'] = {};
-        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        
-        if (lineCode.indexOf('"') > -1 || lineCode.indexOf("'") > -1) {
-            let ModifyModel, ModifyValue;
-            let tokens = [];
-            let state = 0;
-            let spaces = 0;
-            let $mov = 0x00;
-            let isOpenQuotes = false;
-            let isCloseQuotes = false;
-            let openQuote = null;
-            let closeQuote = null;
-            
-            for (const char of lineCode) {
-                if (char == '"' || char == "'") {
-                    openQuote = char;
-                    isOpenQuotes = true;
-                    tokens[state] += char;
-                    spaces++;
-                }
-
-                if (lineCode[--$mov] == '\\' && (char == '"' || char == "'")) {}
-                
-                if (char == ' ') { 
-                    state++ 
-                } else tokens[state] += char;
-            }
-
-            ModifyModel = tokens[1];
-            ModifyValue = tokens[2];
-
-        } else {
-            const [ModifyToken, ModifyModel, ModifyValue] = lineCode.split(' ');
-            if (lineCode.split(' ').length > 3) return 'rejected';
-            if (typeof ModifyModel == 'undefined' || typeof ModifyValue == 'undefined') return 'rejected';
-            smallAbstractSyntaxTree['modify']['model'] = ModifyModel;
-            smallAbstractSyntaxTree['modify']['value'] = ModifyValue;
-        }
-
+        const commandArray = lineCode.trim().split(/\s+/);
+        if (commandArray[0] !== '@Modify') { return 'rejected'; }
+        const registerName = commandArray[1];
+        const value = commandArray.slice(2).join(' ');
+        smallAbstractSyntaxTree['modify']['model'] = registerName;
+        smallAbstractSyntaxTree['modify']['value'] = value.slice(1, -1);
         return smallAbstractSyntaxTree;
     }
 
@@ -889,17 +750,7 @@ class Parser {
         let smallAbstractSyntaxTree = {};
         smallAbstractSyntaxTree['pop'] = {};
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        let symbols = [
-            '(', ')', '[', ']', '{', '}',  // brackets
-            '=', '+', '-', '*', '%', ':', '/', // operators
-            '<', '>', // logical operators
-            '"', "'", // quoted identifiers
-            '&', '\\', '!', '?', '№', '|', '^']; // other
-
-        for (let i = 0; i < symbols.length; i++)
-            if (this.isSymbol(lineCode, symbols[i])) new SymbolError(lineCode, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
-            
+        this.lexerSymbol(lineCode);
         if (lineCode.split(' ').length > 1) return 'rejected';
         return smallAbstractSyntaxTree;
     }
@@ -940,8 +791,30 @@ class Parser {
             for (let i = 0; i < symbol.length; i++) if (lineCode[i] === symbol[i]) result = true;
             return result;
         } else if (lineCode === undefined) {
-            throw { message: "Missing line code for symbol '" + symbol + "'", line : undefined };
+            throw { message: "[SyntaxException]: Missing line code for symbol '" + symbol + "'", line : undefined };
         }
+    }
+
+
+    /**
+     * The function checks for invalid symbols in a given line of code based on specified options.
+     * @param line - The input string that needs to be checked for symbols.
+     * @param options - An object that contains optional parameters for the lexerSymbol function.
+     */
+    static lexerSymbol(line, options) {
+        let brackets = options?.brackets == false ? '' : options?.brackets || ['(', ')', '[', ']', '{', '}'];
+        let operators = options?.operators == false ? '' : options?.operators || ['=', '+', '-', '*', '%', ':', '/'];
+        let angles = options?.angles == false ? '' : options?.angles || ['<', '>'];
+        let quoted = options?.quoted == false ? '' : options?.quoted || [ '"', "'"];
+        let other = options?.other == false ? '' : options?.other || ['&', '\\', '!', '?', '№', '|', '^'];
+        let symbols = [brackets, operators, angles, quoted, other].flat().filter(char => char != '');
+
+        for (let i = 0; i < symbols.length; i++)
+            if (this.isSymbol(line, symbols[i])) {
+                new SymbolError(line, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
+                ServerLog.log('You need to remove this symbol.', 'Possible fixes');
+                process.exit(1);
+            }
     }
 }
 

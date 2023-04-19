@@ -9,6 +9,7 @@ const Parser = require('./parser');
 const Color = require('./utils/color');
 const Compiler = require('./compiler');
 const { FileError } = require('./anatomics.errors');
+const ServerLog = require('./server/log');
 
 log = (message, callback) => process.stdout.write(message, callback);
 
@@ -19,7 +20,7 @@ let progressBar = new ProgressBar(`[${Color.FG_CYAN}:bar${Color.RESET}] :percent
     total: 100
 });
 
-log('COMPILER AsmX');
+log('COMPILER AsmX \n');
 
 
 /**
@@ -42,10 +43,9 @@ function question(message, callback) {
 }
 
 question('AsmX file compiler asmX ~' , (answer) => {
-    console.log(answer);
-    
     if (answer.endsWith('.asmx') || answer.endsWith('.asmX')) {
-        log(`\nCOMPILING ${answer} FILE...\n`);
+        ServerLog.log(`COMPILING ${answer} FILE...\n`, 'Compiler');
+        ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
 
         let timer = setInterval(() => {
             progressBar.tick();
@@ -70,9 +70,8 @@ class CompilerAsmX {
             let parser = Parser.parse(file);
             new Compiler(parser);
         } catch (e) {
-            new FileError({
-                message: FileError.FILE_NOT_FOUND
-            });
+            new FileError({ message: FileError.FILE_NOT_FOUND });
+            console.log(e);
         }
     }
 }

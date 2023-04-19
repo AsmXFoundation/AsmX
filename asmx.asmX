@@ -1,6 +1,6 @@
 # Copyright (c) 2023
 # GitHub (E5war5IT)
-@Issue false; # issue on
+@Issue false; # issue off
 
 @set age  14; 
 @set name String "E5war5"; 

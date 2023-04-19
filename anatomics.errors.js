@@ -1,5 +1,5 @@
-const issue = require("./issue");
 const Color = require("./utils/color");
+const highlightCLI = require("./utils/highlight");
 
 class BackTraceError extends Error {
     constructor(message) {
@@ -40,20 +40,17 @@ class BackTraceError extends Error {
 
 class SymbolError {
     constructor(lineCode, symbol, message) {
-       // super();
-        
         if (lineCode != undefined || lineCode != null) {
-
             if (message != undefined) {
-                process.stdout.write(`${message}\n`);
-                process.stdout.write(lineCode);
-                process.stdout.write(`\n`);
+                process.stdout.write(`${Color.BRIGHT}${message}\n`);
+                process.stdout.write(' |\t\n');
+                process.stdout.write(` |\t${highlightCLI.light(lineCode)}\n ${Color.BRIGHT}|\t`);
                 process.stdout.write(' '.repeat(lineCode.indexOf(symbol)));
-                process.stdout.write(`${Color.FG_RED}^${Color.RESET}\n`);
+                process.stdout.write(`${Color.FG_RED}^${Color.RESET}\n${Color.RESET}`);
             } else {
                 console.log(`\n${symbol}`);
-                process.stdout.write(lineCode);
-                process.stdout.write(`\n${Color.FG_RED}^`);
+                process.stdout.write(highlightCLI.light(lineCode));
+                process.stdout.write(`\n${Color.BRIGHT}${Color.FG_RED}^`);
                 process.stdout.write(`${Color.FG_RED}-${Color.RESET}`.repeat(lineCode.length-1));
             }
         }
@@ -77,26 +74,40 @@ class ArgumentError extends BackTraceError {
 
 
 class UnitError extends BackTraceError {
-    constructor(lineCode, typeMessage) {
+    constructor(lineCode, typeMessage, options) {
         super(lineCode);
         
         if (lineCode != undefined || lineCode != null) {
-            console.log(typeMessage);
-            process.stdout.write(lineCode);
-            process.stdout.write(`\n${Color.FG_RED}^`);
-            process.stdout.write(`${Color.FG_RED}-${Color.RESET}`.repeat(lineCode.length));
+            this.options = options;
+            let lastLine = `${Color.FG_GRAY}${this.options?.row} |\t\n`;
+            let middleLine = `${this.options?.row + 1} |\t`;
+            let nextLine = `${this.options?.row + 2} |\t`;
+
+            console.log(`${Color.BRIGHT}${typeMessage}`);
+            process.stdout.write(lastLine);
+            process.stdout.write(`${middleLine}${highlightCLI.light(lineCode)}\n`);
+            process.stdout.write(`${Color.BRIGHT}${Color.FG_GRAY}${nextLine}${Color.FG_RED}^`);
+            process.stdout.write(`${Color.FG_RED}-`.repeat(lineCode.length - 1));
+            process.stdout.write(`${Color.RESET}\n`);
         }
     }
 }
 
 
 class TypeError extends BackTraceError {
-    constructor(lineCode, valValue) {
+    constructor(lineCode, valValue, options) {
         super(valValue);
-        console.log(`\n${TypeError.INVALID_TYPE}`);
-        process.stdout.write(lineCode);
-        process.stdout.write('\n');
-        process.stdout.write(' '.repeat(lineCode.indexOf(valValue)) + `${Color.FG_RED}^${Color.RESET}`.repeat(valValue.length));
+        this.options = options;
+        let lastLine = `${this.options?.row} |\t\n`;
+        let middleLine = `${this.options?.row + 1 } |\t`;
+        let nextLine = `${this.options?.row + 2} |\t`;
+
+        process.stdout.write(`\n${Color.BRIGHT}${TypeError.INVALID_TYPE}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(lineCode)}`);
+        process.stdout.write(`\n${Color.BRIGHT}${nextLine}`);
+        process.stdout.write(' '.repeat(lineCode.indexOf(valValue)) + `${Color.FG_RED}^`.repeat(valValue.length));
+        process.stdout.write(`\n${Color.RESET}`);
     }
 }
 
@@ -105,7 +116,7 @@ class FileError extends BackTraceError {
     constructor(options) {
         super(options.message);
         this.options = options;
-        process.stdout.write(this.options.message);
+        process.stdout.write(`${Color.BRIGHT}${this.options.message}\n`);
 
         if (this.options.lineCode != undefined || this.options.lineCode != null) {
             process.stdout.write(this.options.lineCode);
@@ -116,12 +127,77 @@ class FileError extends BackTraceError {
 }
 
 
+class SyntaxError extends Error {
+    constructor(message, options){
+        super(message);
+        this.options = options;
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine;
+
+        if (this.options.select) {
+            if (this.options.position === 'first') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+            } else if (this.options.position === 'end') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.length -1)}^${Color.RESET}\n`;
+            } else {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.indexOf(this.options.select))}^${'-'.repeat(this.options.select.length-1)}${Color.RESET}\n`;
+            }
+        }  else {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+        }
+
+        process.stdout.write(`${Color.BRIGHT}${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+
+    }
+}
+
+
+class CodeStyleException {
+    constructor(message, options) {
+        this.options = options;
+
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine;
+
+        if (options?.select) {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.indexOf(this.options.select))}^${'-'.repeat(this.options.select.length -1)}${Color.RESET}\n`;
+        } else {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+        }
+
+        process.stdout.write(`${Color.BRIGHT}[${Color.FG_RED}CodeStyleException${Color.FG_WHITE}]: ${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+    }
+}
+
+
+class InstructionException {
+    constructor(message, options){
+        this.options = options;
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+
+        process.stdout.write(`${Color.BRIGHT}${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+
+    }
+}
+
 //================================================================================================
 // SYNTAX ERRORS
 //================================================================================================
-Object.defineProperty(SymbolError, 'INVALID_SYMBOL_ERROR', { value: '[SyntaxError]: Invalid symbol' });
-Object.defineProperty(SymbolError, 'UNKNOWN_TYPE', { value: '[SyntaxError]: Unknown type' });
-Object.defineProperty(SymbolError, 'UNKNOWN_TOKEN', { value: '[SyntaxError]: Unknown token' });
+Object.defineProperty(SymbolError, 'INVALID_SYMBOL_ERROR', { value: `[${Color.BRIGHT}${Color.FG_RED}SyntaxError${Color.FG_WHITE}]: Invalid symbol` });
+Object.defineProperty(SymbolError, 'UNKNOWN_TOKEN', { value: `[SyntaxError]: Unknown token` });
 //================================================================================================
 
 
@@ -142,24 +218,17 @@ Object.defineProperty(UnitError, 'UNIT_UNKNOWN', { value: '[UnitError]: Unknown 
 
 
 //================================================================================================
-// STATEMENT ERRORS
-//================================================================================================
-Object.defineProperty(StatementError, 'INVALID_CASES_ERROR', { value: '[StatementError]: you must specify a statement' });
-//================================================================================================
-
-
-//================================================================================================
 // TYPE ERRORS
 //================================================================================================
-Object.defineProperty(TypeError, 'INVALID_TYPE', { value: '[TypeError]: you must specify a type name' });
+Object.defineProperty(TypeError, 'INVALID_TYPE', { value: `[${Color.FG_RED}TypeError${Color.FG_WHITE}]: you must specify a type name` });
 //================================================================================================
 
 
 //================================================================================================
 // FILE ERRORS
 //================================================================================================
-Object.defineProperty(FileError, 'FILE_NOT_FOUND', { value: '[FileError]: File not found \n' });
-Object.defineProperty(FileError, 'FILE_EXTENSION_INVALID', { value: '[FileError]: File extension invalid \n' });
+Object.defineProperty(FileError, 'FILE_NOT_FOUND', { value: `[${Color.FG_RED}FileError${Color.FG_WHITE}]: File not found` });
+Object.defineProperty(FileError, 'FILE_EXTENSION_INVALID', { value: `[${Color.FG_RED}FileError${Color.FG_WHITE}]: File extension invalid` });
 //================================================================================================
 
 
@@ -169,5 +238,8 @@ module.exports = {
     TypeError: TypeError,
     ArgumentError: ArgumentError,
     UnitError: UnitError,
-    FileError: FileError
+    FileError: FileError,
+    SyntaxError: SyntaxError,
+    CodeStyleException: CodeStyleException,
+    InstructionException: InstructionException
 }
