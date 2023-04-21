@@ -95,18 +95,18 @@ class UnitError extends BackTraceError {
 
 
 class TypeError extends BackTraceError {
-    constructor(lineCode, valValue, options) {
-        super(valValue);
+    constructor(lineCode, type, options) {
+        super(type);
         this.options = options;
-        let lastLine = `${this.options?.row} |\t\n`;
-        let middleLine = `${this.options?.row + 1 } |\t`;
-        let nextLine = `${this.options?.row + 2} |\t`;
+        let lastLine = `${this.options?.row - 1} |\t\n`;
+        let middleLine = `${this.options?.row } |\t`;
+        let nextLine = `${this.options?.row + 1} |\t`;
 
         process.stdout.write(`\n${Color.BRIGHT}${TypeError.INVALID_TYPE}\n`);
         process.stdout.write(lastLine);
         process.stdout.write(`${middleLine}${highlightCLI.light(lineCode)}`);
         process.stdout.write(`\n${Color.BRIGHT}${nextLine}`);
-        process.stdout.write(' '.repeat(lineCode.indexOf(valValue)) + `${Color.FG_RED}^`.repeat(valValue.length));
+        process.stdout.write(' '.repeat(lineCode.indexOf(type)) + `${Color.FG_RED}^`.repeat(type.length));
         process.stdout.write(`\n${Color.RESET}`);
     }
 }

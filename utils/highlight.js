@@ -23,6 +23,17 @@ class HighlightSyntax {
 
     return highlighted;
   }
+
+
+  /**
+   * The "remove" function removes a rule from an array of rules if it matches a regular expression.
+   * @param rule - The parameter "rule" is expected to be a regular expression object. If it is, then
+   * the method removes that regular expression from the "rules" array property of the object. If
+   * "rule" is not a regular expression, then nothing happens.
+   */
+  remove(rule) {
+    if (rule instanceof RegExp) this.rules = this.rules.filter(item => item != rule);
+  }
 }
 
 const highlightCLI = new HighlightSyntax();

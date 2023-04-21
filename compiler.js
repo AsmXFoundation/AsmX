@@ -6,7 +6,7 @@
 const fs = require('fs');
 
 // Components that compiler
-const { UnitError, FileError } = require('./anatomics.errors');
+const { UnitError, FileError, TypeError } = require('./anatomics.errors');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -15,6 +15,7 @@ const Parser = require('./parser');
 const Route = require("./route");
 const Stack = require("./stack");
 const unitCall = require('./unit.call');
+const Types = require('./keywords');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -174,7 +175,7 @@ class Compiler {
 
             if (trace?.set){
                 Switching.state && process.stdout.write(Issues.SET_EVENT);
-                this.compilerSetStatement(trace.set);
+                this.compilerSetStatement(trace.set, trace);
                 continue;
             }
 
@@ -744,7 +745,9 @@ class Compiler {
          * @returns The value of the key 'value' in the object.
          */
         function recursionGetValueByStack(row) {
-            return Object.keys(row.value).includes('value') ? recursionGetValueByStack(row.value) : row.value;
+            try {
+                return Object.keys(row.value).includes('value') ? recursionGetValueByStack(row.value) : row.value;
+            } catch { throw new Error().stack = 'Couldn\'t find value'; }
         }
 
         /* Getting the value of the last item in the stack, and then pushing it to the stack. */
@@ -810,6 +813,15 @@ class Compiler {
      * @param statement - The statement object that is being compiled.
      */
     compilerSetStatement(statement) {
+        let isType = false;
+        for (const T of Types) if (T == statement.type) isType = true;
+
+        if (!isType) {
+            new TypeError(arguments[1].parser?.code, statement.type, { row: arguments[1].parser?.row });
+            process.exit(1);
+        }
+
+        console.log(statement);
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.type;
         this.$arg2 = statement.value;
@@ -838,28 +850,21 @@ class Compiler {
      * @param type - The type of the variable.
      */
     compilerAllArguments(statement, type){
-        if (type == 'Int' || type == 'Float') {
-            this.$arg0 = +this.checkArgument(statement.args[0]) || +statement.args[0] || 0x00;        
-            this.$arg1 = +this.checkArgument(statement.args[1]) || +statement.args[1] || 0x00;
-            this.$arg2 = +this.checkArgument(statement.args[2]) ||+statement.args[2] || 0x00;
-            this.$arg3 = +this.checkArgument(statement.args[3]) || +statement.args[3] || 0x00;
-            this.$arg4 = +this.checkArgument(statement.args[4]) || +statement.args[4] || 0x00;
-            this.$arg5 = +this.checkArgument(statement.args[5]) || +statement.args[5] || 0x00;
-        } else if (type == 'String') {
-            this.$arg0 = this.checkArgument(statement.args[0]) || statement.args[0] || 0x00;
-            this.$arg1 = this.checkArgument(statement.args[1]) || statement.args[1] || 0x00;
-            this.$arg2 = this.checkArgument(statement.args[2]) || statement.args[2] || 0x00;
-            this.$arg3 = this.checkArgument(statement.args[3]) || statement.args[3] || 0x00;
-            this.$arg4 = this.checkArgument(statement.args[4]) || statement.args[4] || 0x00;
-            this.$arg5 = this.checkArgument(statement.args[5]) || statement.args[5] || 0x00;
-        } else if (type == 'Bool') {
-            this.$arg0 = Boolean(this.checkArgument(statement.args[0]) || statement.args[0] || 0x00);
-            this.$arg1 = Boolean(this.checkArgument(statement.args[1]) || statement.args[1] || 0x00);
-            this.$arg2 = Boolean(this.checkArgument(statement.args[2]) || statement.args[2] || 0x00);
-            this.$arg3 = Boolean(this.checkArgument(statement.args[3]) || statement.args[3] || 0x00);
-            this.$arg4 = Boolean(this.checkArgument(statement.args[4]) || statement.args[4] || 0x00);
-            this.$arg5 = Boolean(this.checkArgument(statement.args[5]) || statement.args[5] || 0x00);
-        }
+        // if (type == 'Int' || type == 'Float') {
+        //     for (let index = 0; index < statement.args.length; index++)
+        //         this[`$arg${index}`] = +this.checkArgument(statement.args[index]) || +statement.args[index] || 0x00;
+        // } else if (type == 'String') {
+        //     for (let index = 0; index < statement.args.length; index++)
+        //         this[`$arg${index}`] = this.checkArgument(statement.args[index]) || statement.args[index] || 0x00;
+        // } else if (type == 'Bool') {
+        //     for (let index = 0; index < statement.args.length; index++)
+        //         this[`$arg${index}`] = Boolean(this.checkArgument(statement.args[index]) || statement.args[index] || 0x00);
+        // }
+
+        for (let index = 0; index < statement.args.length; index++)
+            if (type == 'Int' || type == 'Float') this[`$arg${index}`] = +this.checkArgument(statement.args[index]) || +statement.args[index] || 0x00;
+            else if (type == 'String')   this[`$arg${index}`] = this.checkArgument(statement.args[index]) || statement.args[index] || 0x00;
+            else if (type == 'Bool') this[`$arg${index}`] = Boolean(this.checkArgument(statement.args[index]) || statement.args[index] || 0x00);
     }
 
 

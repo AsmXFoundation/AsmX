@@ -429,68 +429,32 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns An array of objects.
      */
-    static parseSetStatement(lineCode, index){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['set'] = {};
+    static parseSetStatement(lineCode, row){
+        let ast = { set: {}, parser: { code: lineCode, row: row+1 } };
+        let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        // const [, setName, setType, setValue] = lineCode.split(' ');
-        // const instructionPattern = /^@[s|S]et\s+([\w-]+)\s+([\w-]+)(?:\s*<\w+>)?\s+(.+)$/;
-        // const instructionPattern = /^@[s|S]et\s+([\w-]+)\s+([\w-]+)(<\w+.+?(\s+)?\w+?>)?\s+(.+)$/
-
         const instructionPattern = /^@[s|S]et\s+([\w-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/;
-        let match = instructionPattern.exec(lineCode.trim());
-        match = match.filter(lexem => lexem !== undefined);
+        let match = instructionPattern.exec(lineCode);
         
         if (match == null) {
             new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
                 row: row,     code: originalLine
             });
-
+            
             process.exit(1);
         }
 
-        // if (lineCode.split(' ').length > 4) {
-        //     new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  you have too many arguments for this instruction.`, {
-        //         row: index,     code: lineCode
-        //     });
+        if (/^[A-Z]+(_[A-Z]+)*$/.test(match[1])) ServerLog.log('For better readability, it is better not to make the variable name in the SNAKE_UPPER_CASE style, since basically this style is used only in constant names.', 'Warning');
+        match = match.filter(lexem => lexem !== undefined).filter(lexem => lexem != ' ');
 
-        //     process.exit(1);
-        // }
+        if (match.length == 5) { 
+            ast['set']['generics'] = match[3];
+            ast['set']['value'] = match[4];
+        } else ast['set']['value'] = match[3];
 
-        // if (setType == undefined) {
-        //     new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
-        //         row: index,     code: lineCode
-        //     });
-
-        //     process.exit(1);
-        // }
-
-        // if (setValue == undefined) {
-        //     let type = Lexer.lexerAutonomyByType(lineCode, setType, Lexer.lexerGetTypeByValue(lineCode, setType), { row: index });
-        //     console.log(type);
-        //     smallAbstractSyntaxTree['set']['name'] = setName;
-        //     smallAbstractSyntaxTree['set']['type'] = Lexer.lexerGetTypeByValue(lineCode, setType);
-        //     smallAbstractSyntaxTree['set']['value'] = setType;
-        // } else {
-        //     let type = Lexer.lexerAutonomyByType(lineCode, setValue, setType, { row: index });
-            
-        //     if (!type) {
-        //         new SyntaxError(TypeError.INVALID_TYPE, {
-        //             row: index,
-        //             code: lineCode,
-        //             select: setType
-        //         });
-
-        //         process.exit(1);
-        //     }
-
-            smallAbstractSyntaxTree['set']['name'] = match[1];
-            smallAbstractSyntaxTree['set']['type'] = match[2];
-            smallAbstractSyntaxTree['set']['value'] = match[3];
-        // }
-
-        return smallAbstractSyntaxTree;
+        ast['set']['name'] = match[1];
+        ast['set']['type'] = match[2];
+        return ast;
     }
 
 
@@ -623,11 +587,10 @@ class Parser {
      * value of the address.
      */
     static parseOffsetStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['offset'] = {};
+        let smallAbstractSyntaxTree = { offset: {} };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        const [OffsetToken, OffsetAddress] = lineCode.split(' ');
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        const [, OffsetAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
 
         if (!ValidatorByType.validateTypeHex(InvokeAddress)) {
@@ -680,15 +643,14 @@ class Parser {
      * @returns an object.
      */
     static parseUnsetStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['unset'] = {};
+        let ast = { unset: {} };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode);
         const [UnsetToken, UnsetModel] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (typeof UnsetModel == 'undefined') console.error('[AsmX]: model not defined');
-        smallAbstractSyntaxTree['unset']['model'] = UnsetModel;
-        return smallAbstractSyntaxTree;
+        ast['unset']['model'] = UnsetModel;
+        return ast;
     }
 
 
@@ -721,16 +683,15 @@ class Parser {
      * of an array of strings.
      */
     static parseExecuteStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['execute'] = {};
+        let ast = { execute: {} };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 7) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
         args.map(arg => ValidatorByType.validateTypeHex(arg));
-        smallAbstractSyntaxTree['execute']['cmd'] = args[1];
-        smallAbstractSyntaxTree['execute']['args'] = args.slice(2);
-        return smallAbstractSyntaxTree;
+        ast['execute']['cmd'] = args[1];
+        ast['execute']['args'] = args.slice(2);
+        return ast;
     }
 
 
@@ -747,12 +708,11 @@ class Parser {
      * @returns a small abstract syntax tree.
      */
     static parsePopStatement(lineCode) {
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['pop'] = {};
+        let ast = { pop: {} };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode);
         if (lineCode.split(' ').length > 1) return 'rejected';
-        return smallAbstractSyntaxTree;
+        return ast;
     }
 
 
@@ -767,13 +727,12 @@ class Parser {
      * @returns a small abstract syntax tree.
      */
     static parsePushStatement(lineCode) {
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['push'] = {};
+        let ast = { push: {} };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 2) return 'rejected';
         let  args =  lineCode.split(' ');
-        smallAbstractSyntaxTree['push']['args'] = args[1];
-        return smallAbstractSyntaxTree;
+        ast['push']['args'] = args[1];
+        return ast;
     }
 
 
