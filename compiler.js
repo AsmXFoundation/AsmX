@@ -6,7 +6,7 @@
 const fs = require('fs');
 
 // Components that compiler
-const { UnitError, FileError, TypeError } = require('./anatomics.errors');
+const { UnitError, FileError, TypeError, RegisterException } = require('./anatomics.errors');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -28,6 +28,33 @@ class Compiler {
         this.set = [];
         this.constants = [];
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
+
+
+        /* 
+            The above code is defining an object called "This" with two properties: "global" and
+            "local". The "global" property has two sub-properties: "set" and "const", which are assigned
+            the values of the global "set" function and the global "constants" object, respectively. The
+            "local" property has one sub-property called "unit", which has two sub-properties: "set" and
+            "const", both of which are initially set to null. 
+        */
+        this.This = {
+            global: {
+                set: this.set,
+                const: this.constants
+            },
+
+            local: {
+                unit: {
+                    set: null,
+                    const: null
+                },
+
+                label: {
+                    set: null,
+                    const: null
+                }
+            }
+        }
         
         // Call this args
         this.$arg0 = 0x00;
@@ -41,8 +68,8 @@ class Compiler {
         /* Setting up the compiler. */
         // models
         this.stack = new Stack();
-        this.$route = new Route();
-        this.$mem = Memory;
+        this.route = new Route();
+        this.mem = Memory;
         this.$stack = this.stack;
     
         // Stack
@@ -50,7 +77,6 @@ class Compiler {
         this.$lis = this.$stack.list[this.$stack.sp - 1]?.value; // Last item in stack
         this.$fis = this.$stack.list[0x00]?.value; // First item in stack
         // Other
-        this.$args = {};
         this.$offset = 0x00;
         this.$name = 0x00;
         this.$text = ''; // Text to display
@@ -74,11 +100,6 @@ class Compiler {
         // Immutable registers
         this.$out = 0x00;
         this.$arch = "AsmX";
-
-        this.$args = ['$arg0', '$arg1', '$arg2', '$arg3', '$arg4', '$arg5'];
-        this.$registers = ['$mem', '$stack', '$name', '$offset', '$arch', '$urt', '$ret', '$out', '$eq', '$sp', '$fis', '$lis'];
-        this.$extensionRegisters = [...this.$args, ...this.$registers];
-
 
         if (this.options?.registers && typeof arguments[2] != 'undefined' && typeof arguments[2] == 'object') {
             this.$arg0 = this.options.registers['$arg0'];
@@ -131,149 +152,152 @@ class Compiler {
         this.AbstractSyntaxTree.map(trace => {
             if (trace?.import){
                 Switching.state && process.stdout.write(Issues.IMPORT_EVENT);
-                const alias = this.compilerImport(trace.import);
+                const alias = this.compileImportStatement(trace.import);
 
                 if (alias && alias instanceof Array)
                     for (let index = 0; index < alias.length; index++) this.AbstractSyntaxTree.unshift(alias[index]);
             }
 
-            if (trace?.const) this.compilerDefine(trace.const);
+            if (trace?.const) this.compileDefineStatement(trace.const);
         });
 
 
         for (let index = 0; index < this.AbstractSyntaxTree.length; index++) {
             const trace = this.AbstractSyntaxTree[index];
 
-            if (trace?.issue){
-                this.compileIssue(trace.issue, Switching);  
-                continue;
-            }
+            // if (trace?.issue){
+            //     this.compileIssueStatement(trace.issue, Switching);  
+            //     continue;
+            // }
 
-            if (trace?.invoke){
-                Switching.state && process.stdout.write(Issues.INVOKE_EVENT);
-                this.compileInvoke(trace.invoke);
-                continue;
-            }
+            // if (trace?.invoke){
+            //     Switching.state && process.stdout.write(Issues.INVOKE_EVENT);
+            //     this.compileInvokeStatement(trace.invoke);
+            //     continue;
+            // }
 
-            if (trace?.unit){
-                Switching.state && process.stdout.write(Issues.CREATE_UNIT_EVENT);
-                this.compilerUnitStatement(trace);
-                continue;
-            }
+            // if (trace?.unit){
+            //     Switching.state && process.stdout.write(Issues.CREATE_UNIT_EVENT);
+            //     this.compileUnitStatement(trace);
+            //     continue;
+            // }
 
-            if (trace?.call){
-                Switching.state && process.stdout.write(Issues.CALL_EVENT);
-                this.compilerCallUnit(trace.call);
-                continue;
-            }
+            // if (trace?.call){
+            //     Switching.state && process.stdout.write(Issues.CALL_EVENT);
+            //     this.compileCallStatement(trace.call);
+            //     continue;
+            // }
 
-            if (trace?.ret){
-                Switching.state && process.stdout.write(Issues.RET_EVENT);
-                this.compilerRet(trace.ret);
-                continue;
-            }
+            // if (trace?.ret){
+            //     Switching.state && process.stdout.write(Issues.RET_EVENT);
+            //     this.compileRetStatement(trace.ret);
+            //     continue;
+            // }
 
-            if (trace?.set){
-                Switching.state && process.stdout.write(Issues.SET_EVENT);
-                this.compilerSetStatement(trace.set, trace);
-                continue;
-            }
+            // if (trace?.set){
+            //     Switching.state && process.stdout.write(Issues.SET_EVENT);
+            //     this.compileSetStatement(trace.set, trace);
+            //     continue;
+            // }
 
-            if (trace?.memory){
-                Switching.state && process.stdout.write(Issues.MEMORY_EVENT);
-                this.compilerMemory(trace.memory);
-                continue;
-            }
+            // if (trace?.memory){
+            //     Switching.state && process.stdout.write(Issues.MEMORY_EVENT);
+            //     this.compileMemoryStatement(trace.memory);
+            //     continue;
+            // }
 
-            if (trace?.address){
-                Switching.state && process.stdout.write(Issues.ADDRESS_EVENT);
-                this.compilerAddress(trace.address);
-                continue;
-            }
+            // if (trace?.address){
+            //     Switching.state && process.stdout.write(Issues.ADDRESS_EVENT);
+            //     this.compileAddressStatement(trace.address);
+            //     continue;
+            // }
 
-            if (trace?.route){
-                Switching.state && process.stdout.write(Issues.ROUTE_EVENT);
-                this.compilerRoute(trace.route);
-                continue;
-            }
+            // if (trace?.route){
+            //     Switching.state && process.stdout.write(Issues.ROUTE_EVENT);
+            //     this.compileRouteStatement(trace.route);
+            //     continue;
+            // }
 
-            if (trace?.stack){
-                Switching.state && process.stdout.write(Issues.STACK_EVENT);
-                this.compilerStack(trace.stack);
-                continue;
-            }
+            // if (trace?.stack){
+            //     Switching.state && process.stdout.write(Issues.STACK_EVENT);
+            //     this.compileStackStatement(trace.stack);
+            //     continue;
+            // }
 
-            if (trace?.add){
-                Switching.state && process.stdout.write(Issues.CALCULATE_ADD_EVENT);
-                this.compilerAddStatement(trace.add);
-                continue;
-            }
+            // if (trace?.add){
+            //     Switching.state && process.stdout.write(Issues.CALCULATE_ADD_EVENT);
+            //     this.compileAddStatement(trace.add);
+            //     continue;
+            // }
 
-            if (trace?.sub){
-                Switching.state && process.stdout.write(Issues.CALCULATE_SUB_EVENT);
-                this.compilerSubStatement(trace.sub);
-                continue;
-            }
+            // if (trace?.sub){
+            //     Switching.state && process.stdout.write(Issues.CALCULATE_SUB_EVENT);
+            //     this.compileSubStatement(trace.sub);
+            //     continue;
+            // }
 
-            if (trace?.equal){
-                Switching.state && process.stdout.write(Issues.EQUALITY_EVENT);
-                this.compilerEquality(trace.equal);
-                continue;
-            }
+            // if (trace?.equal){
+            //     Switching.state && process.stdout.write(Issues.EQUALITY_EVENT);
+            //     this.compileEqualStatement(trace.equal);
+            //     continue;
+            // }
 
-            if (trace?.div) {
-                Switching.state && process.stdout.write(Issues.CALCULATE_DIV_EVENT);
-                this.compilerDivStatement(trace.div);
-                continue;
-            }
+            // if (trace?.div) {
+            //     Switching.state && process.stdout.write(Issues.CALCULATE_DIV_EVENT);
+            //     this.compileDivStatement(trace.div);
+            //     continue;
+            // }
 
-            if (trace?.mod) {
-                Switching.state && process.stdout.write(Issues.CALCULATE_MOD_EVENT);
-                this.compilerModStatement(trace.mod);
-                continue;
-            }
+            // if (trace?.mod) {
+            //     Switching.state && process.stdout.write(Issues.CALCULATE_MOD_EVENT);
+            //     this.compileModStatement(trace.mod);
+            //     continue;
+            // }
 
-            if (trace?.imul) {
-                Switching.state && process.stdout.write(Issues.CALCULATE_IMUL_EVENT);
-                this.compilerImulStatement(trace.imul);
-                continue;
-            }
+            // if (trace?.imul) {
+            //     Switching.state && process.stdout.write(Issues.CALCULATE_IMUL_EVENT);
+            //     this.compileImulStatement(trace.imul);
+            //     continue;
+            // }
 
-            if (trace?.offset) {
-                Switching.state && process.stdout.write(Issues.SET_OFFSET_EVENT);
-                this.compilerOffset(trace.offset);
-                continue;
-            }
+            // if (trace?.offset) {
+            //     Switching.state && process.stdout.write(Issues.SET_OFFSET_EVENT);
+            //     this.compileOffsetStatement(trace.offset);
+            //     continue;
+            // }
 
-            if (trace?.unset) {
-                Switching.state && process.stdout.write(Issues.UNSET_EVENT);
-                this.compilerUnset(trace.unset);
-                continue;
-            }
+            // if (trace?.unset) {
+            //     Switching.state && process.stdout.write(Issues.UNSET_EVENT);
+            //     this.compileUnsetStatement(trace.unset);
+            //     continue;
+            // }
 
-            if (trace?.modify) {
-                Switching.state && process.stdout.write(Issues.MODIFY_EVENT);
-                this.compilerModify(trace.modify);
-                continue;
-            }
+            // if (trace?.modify) {
+            //     Switching.state && process.stdout.write(Issues.MODIFY_EVENT);
+            //     this.compileModifyStatement(trace.modify);
+            //     continue;
+            // }
 
-            if (trace?.execute) {
-                Switching.state && process.stdout.write(Issues.EXECUTE_EVENT);
-                this.compilerExecute(trace.execute, index);
-                continue;
-            }
+            // if (trace?.execute) {
+            //     Switching.state && process.stdout.write(Issues.EXECUTE_EVENT);
+            //     this.compileExecuteStatement(trace.execute, index);
+            //     continue;
+            // }
 
-            if (trace?.pop) {
-                Switching.state && process.stdout.write(Issues.POP_EVENT);
-                this.compilerPop();
-                continue;
-            }
+            // if (trace?.pop) {
+            //     Switching.state && process.stdout.write(Issues.POP_EVENT);
+            //     this.compilePopStatement();
+            //     continue;
+            // }
 
-            if (trace?.push) {
-                Switching.state && process.stdout.write(Issues.PUSH_EVENT);
-                this.compilerPush(trace.push);
-                continue;
-            }
+            // if (trace?.push) {
+            //     Switching.state && process.stdout.write(Issues.PUSH_EVENT);
+            //     this.compilePushStatement(trace.push);
+            //     continue;
+            // }
+
+            let statement = Reflect.ownKeys(trace).filter(stmt => stmt != 'parser')[0];
+            this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
         };
     }
 
@@ -283,7 +307,7 @@ class Compiler {
      * @param statement - { cmd: 'mov', args: [ '', '' ] }
      * @param index - The index of the current statement.
      */
-    compilerExecute(statement, index) {
+    compileExecuteStatement(statement, index) {
         this.$arg0 = statement.cmd;
         let args = statement.args;
 
@@ -336,7 +360,6 @@ class Compiler {
             let compile;
             
             for (let i = 1; i < args[0] + 1; i++) source.unshift(this.AbstractSyntaxTree[$idx - i]);
-
             this.$count = 0X01;
             for (let iterator = 0, $count = args[1]-1 || 1; iterator < $count; iterator++) {
                 compile = new Compiler(source, this.scope, {
@@ -417,12 +440,15 @@ class Compiler {
     }
 
 
+    compileGetStatement(statement) {}
+
+
     /**
      * This function pushes the first argument of the statement to the stack.
      * @param statement - The statement object that is being compiled.
      */
-    compilerPush(statement) {
-        this.$arg0 = this.checkArgument(statement.args[0]) || statement.args[0];
+    compilePushStatement(statement, index, trace) {
+        this.$arg0 = this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row) || statement.args[0];
         this.$stack.push(this.$arg0);
     }
 
@@ -430,7 +456,7 @@ class Compiler {
     /**
      * It removes the last element from the stack.
      */
-    compilerPop() {
+    compilePopStatement() {
         this.$stack.pop();
     }
 
@@ -439,7 +465,7 @@ class Compiler {
      * to the value of the statement.
      * @param statement - The statement that is being compiled.
      */
-    compilerModify(statement) {
+    compileModifyStatement(statement) {
         this.$arg0 = statement.model;
         this.$arg1 = statement.value;
         if (this.$arg0 == '$text') this.$text = this.$arg1;
@@ -453,8 +479,8 @@ class Compiler {
      * The function above is used to unset a variable.
      * @param statement - The statement object.
      */
-    compilerUnset(statement) {
-        this.$arg0 =  this.compilerAllArguments(statement, 'String') || statement.model;
+    compileUnsetStatement(statement, index, trace) {
+        this.$arg0 =  this.compilerAllArguments(statement, 'String', trace?.parser?.code, trace?.parser.row) || statement.model;
        
         if (this.$arg0 == 'mem') {
             Memory.unset();
@@ -470,7 +496,7 @@ class Compiler {
      * This function sets the offset to the value of the argument.
      * @param statement - The statement that is being compiled.
      */
-    compilerOffset(statement) {
+    compileOffsetStatement(statement) {
         this.$arg0 = statement.value;
         this.$offset = this.$arg0;
     }
@@ -480,7 +506,7 @@ class Compiler {
      * This function takes a statement and adds it to the set.
      * @param statement - The statement object that is being compiled.
      */
-    compilerDefine(statement) {
+    compileDefineStatement(statement) {
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.value;
 
@@ -499,7 +525,7 @@ class Compiler {
      * The function reads a file from the file system and then parses it.
      * @param statement - The statement object to parse.
      */
-    compilerImport(statement) {
+    compileImportStatement(statement) {
         let filePath = ValidatorByType.validateByTypeString(statement.alias) ? statement.alias.slice(1, -1) : statement.alias;
         let fileForCompiler;
 
@@ -533,15 +559,25 @@ class Compiler {
     * It compiles a unit call statement
     * @param statement - The statement object.
     */
-    compilerCallUnit(statement) {
-       if (unitCall.has(statement.name)) {
-            let unitcall = unitCall.get(`@Call ${statement.name}${statement.args}`, statement.name, statement.args.slice(1, -1));
-            let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args.slice(1, -1));
+    compileCallStatement(statement, index, trace) {
+        let options = {
+            row: trace?.parser?.row,
+            code: trace?.parser?.code
+        }
+
+        if (unitCall.has(statement.name)) {
+            let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args.slice(1, -1), options);
+            
+            for (const argument of Object.keys(argsMap))
+                argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument];
+            
+            let argsFor = Object.values(argsMap).join(',');
+            let unitcall = unitCall.get(trace?.parser?.code, statement.name, argsFor, options);
             let compiler = new Compiler(unitcall, 'local', { argsScopeLocal: argsMap });
             compiler.$urt == false ? this.$urt = 0x00 : this.$ret = this.$urt = compiler.$urt;
-       } else {
-            new UnitError(`@Call ${statement.name}${statement.args}` , UnitError.UNIT_UNKNOWN);
-       }
+        } else {
+            new UnitError(trace?.parser?.code , UnitError.UNIT_UNKNOWN, options);
+        }
     }
 
 
@@ -549,7 +585,8 @@ class Compiler {
      * It takes a statement, parses the unit, and then adds it to the unitCall object
      * @param statement - The statement object.
      */
-    compilerUnitStatement(statement) {
+    compileUnitStatement(statement, index, trace) {
+        statement = trace;
         let unit = statement.unit;
         let unitParse = Parser.parseUnitStatement(unit[0]);
         let compilerUnit = unit.slice(1).join('\n');
@@ -561,12 +598,12 @@ class Compiler {
      * It checks the argument of the statement and returns it.
      * @param statement - The statement object that is being compiled.
      */
-    compilerRet(statement) {
+    compileRetStatement(statement, index, trace) {
         if (this.scope == 'global') {
             process.stdout.write('You must specify a global scope before you compile the statement in the current process');
             this.compileInvoke({ address: 0x01 });
         } else if (this.scope == 'local') {
-            this.$urt = this.checkArgument(statement.arg) || this.$ret || 0x00;
+            this.$urt = this.checkArgument(statement.arg, trace?.parser?.code, trace?.parser.row) || this.$ret || 0x00;
         }
     }
 
@@ -575,8 +612,8 @@ class Compiler {
      * It's a function that compiles a statement that invokes a function
      * @param statement - The statement that is being compiled.
      */
-    compileInvoke(statement) {
-        this.$arg0 = this.checkArgument(statement.address) || statement.address;
+    compileInvokeStatement(statement, index, trace) {
+        this.$arg0 = this.checkArgument(statement.address, trace?.parser?.code, trace?.parser.row) || statement.address;
 
         // write
         if (this.$arg0 == 0x04) FlowOutput.createOutputStream(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
@@ -608,7 +645,7 @@ class Compiler {
      * The last thing we
      * @param statement - The statement object that is being executed.
      */
-    compilerEquality(statement) {
+    compileEqualStatement(statement) {
         const args = statement.args.map(arg => parseInt(arg, 16));
         this.$ret = this.$eq = args.reduce((previousArg, currentArg) => previousArg === currentArg);
         if (isNaN(this.$ret)) this.$ret = 0x00;
@@ -631,8 +668,8 @@ class Compiler {
      * The last thing the function does is push the result onto the stack.
      * @param statement - The statement object.
      */
-    compilerImulStatement(statement) {
-        this.compilerAllArguments(statement, 'Int');
+    compileImulStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.$ret = this.$arg0 * this.$arg1;
         if (this.$arg2 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg2;
         if (this.$arg3 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg3;
@@ -657,8 +694,8 @@ class Compiler {
      * The last thing that the function does is push the result onto the stack.
      * @param statement - The statement to be compiled.
      */
-    compilerDivStatement(statement) {
-        this.compilerAllArguments(statement, 'Int');
+    compileDivStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.$ret = this.$arg0 / this.$arg1;
         if (this.$arg2 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret / this.$arg2;
         if (this.$arg3 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret / this.$arg3;
@@ -688,8 +725,8 @@ class Compiler {
      * The fourth line of the
      * @param statement - The statement object.
      */
-    compilerModStatement(statement) {
-        this.compilerAllArguments(statement, 'Int');
+    compileModStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.$ret = this.$arg0 % this.$arg1;
         if (this.$arg2 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret % this.$arg2;
         if (this.$arg3 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret % this.$arg3;
@@ -705,8 +742,8 @@ class Compiler {
      * stack.
      * @param statement - The statement object that is being compiled.
      */
-    compilerAddStatement(statement) {
-        this.compilerAllArguments(statement, 'Int');
+    compileAddStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.$ret = this.$arg0 + this.$arg1 + this.$arg2 + this.$arg3 + this.$arg4 + this.$arg5;
         this.$stack.push({ value: this.$ret });
     }
@@ -716,8 +753,8 @@ class Compiler {
      * It takes a statement, and then it does some stuff with it.
      * @param statement - The statement object that is being compiled.
      */
-    compilerSubStatement(statement) {
-        this.compilerAllArguments(statement, 'Int');
+    compileSubStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.$ret = this.$arg0 - this.$arg1 - this.$arg2 - this.$arg3 - this.$arg4 - this.$arg5;
         if (isNaN(this.$ret)) this.$ret = 0x00;
         this.$stack.push({ value: this.$ret });
@@ -734,7 +771,7 @@ class Compiler {
      * The compilerStack function is called by the compiler when it encounters a
      * @param statement - The statement object that is being compiled.
      */
-    compilerStack(statement) {
+    compileStackStatement(statement) {
         this.$arg0 = statement.address;
         this.$ret = 0x00;
 
@@ -763,17 +800,17 @@ class Compiler {
      * of the mov to the name and address of the statement
      * @param statement - The statement that is being compiled.
      */
-    compilerRoute(statement) {
+    compileRouteStatement(statement, index, trace) {
         if (!(typeof statement.address === 'undefined')) {
-            this.$arg0 = this.$name = this.checkArgument(statement.name) || statement.name;
+            this.$arg0 = this.$name = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
             this.$arg1 = statement.address;
             let cell = MemoryVariables.getCellByValue(MemoryAddress.getCellByValue(this.$arg0)?.name);
             let value = Memory.getCellByAddress(cell.address);
             this.$ret = value;
             this.$stack.push({ address: this.$arg1, value: value });
-            this.$route.setPoint(this.$arg0, this.$arg1);
+            this.route.setPoint(this.$arg0, this.$arg1);
         } else {
-            this.$arg0 = this.checkArgument(statement.name);
+            this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row);
             this.$stack.push({ value: this.$arg0 });
         }
     }
@@ -784,7 +821,7 @@ class Compiler {
      * statement to the name of the statement.
      * @param statement - The statement object that is being compiled.
      */
-    compilerAddress(statement) {
+    compileAddressStatement(statement) {
         this.$arg0 = statement.address;
         this.$arg1 = this.$name = statement.name;
         this.$stack.push({ address: this.$arg0, value: this.$arg1 });
@@ -798,13 +835,13 @@ class Compiler {
      * The function takes a statement, and then pushes the name of the statement to the stack.
      * @param statement - The statement object that is being compiled.
      */
-    compilerMemory(statement) {
+    compileMemoryStatement(statement) {
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.address;
         this.$stack.push({ address: this.$arg1, value: this.$arg0 });
         let set = this.set.filter(cell => cell.name === this.$arg0);
         set['address'] = this.$arg1;
-        this.$mem.addCell(this.$arg1, ...set);
+        this.mem.addCell(this.$arg1, ...set);
     }
 
 
@@ -812,7 +849,7 @@ class Compiler {
      * It takes a statement object, and pushes it to the set array.
      * @param statement - The statement object that is being compiled.
      */
-    compilerSetStatement(statement) {
+    compileSetStatement(statement) {
         let isType = false;
         for (const T of Types) if (T == statement.type) isType = true;
 
@@ -821,7 +858,6 @@ class Compiler {
             process.exit(1);
         }
 
-        console.log(statement);
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.type;
         this.$arg2 = statement.value;
@@ -837,7 +873,7 @@ class Compiler {
      * @param usestate - This is the object that is passed to the compiler. It is the object that is
      * used to store the state of the compiler.
      */
-    compileIssue(statement, usestate) {
+    compileIssueStatement(statement, usestate) {
        this.$arg0 = statement.state;
        process.stdout.write(Issues.ISSUES_DEFINE_STATUS);
        statement.state == 'true' ? usestate.state = true : usestate.state = false;
@@ -849,22 +885,11 @@ class Compiler {
      * @param statement - The statement that is being compiled.
      * @param type - The type of the variable.
      */
-    compilerAllArguments(statement, type){
-        // if (type == 'Int' || type == 'Float') {
-        //     for (let index = 0; index < statement.args.length; index++)
-        //         this[`$arg${index}`] = +this.checkArgument(statement.args[index]) || +statement.args[index] || 0x00;
-        // } else if (type == 'String') {
-        //     for (let index = 0; index < statement.args.length; index++)
-        //         this[`$arg${index}`] = this.checkArgument(statement.args[index]) || statement.args[index] || 0x00;
-        // } else if (type == 'Bool') {
-        //     for (let index = 0; index < statement.args.length; index++)
-        //         this[`$arg${index}`] = Boolean(this.checkArgument(statement.args[index]) || statement.args[index] || 0x00);
-        // }
-
+    compilerAllArguments(statement, type, code, row){
         for (let index = 0; index < statement.args.length; index++)
-            if (type == 'Int' || type == 'Float') this[`$arg${index}`] = +this.checkArgument(statement.args[index]) || +statement.args[index] || 0x00;
-            else if (type == 'String')   this[`$arg${index}`] = this.checkArgument(statement.args[index]) || statement.args[index] || 0x00;
-            else if (type == 'Bool') this[`$arg${index}`] = Boolean(this.checkArgument(statement.args[index]) || statement.args[index] || 0x00);
+            if (type == 'Int' || type == 'Float') this[`$arg${index}`] = +this.checkArgument(statement.args[index], code, row) || +statement.args[index] || 0x00;
+            else if (type == 'String')   this[`$arg${index}`] = this.checkArgument(statement.args[index], code, row) || statement.args[index] || 0x00;
+            else if (type == 'Bool') this[`$arg${index}`] = Boolean(this.checkArgument(statement.args[index], code, row) || statement.args[index] || 0x00);
     }
 
 
@@ -873,7 +898,7 @@ class Compiler {
      * @param arg - The argument to check.
      * @returns The value of the argument.
      */
-    checkArgument(arg) {
+    checkArgument(arg, code, row) {
         let $al =  this.argsScopeLocal; // $al - arguments in local scope
         let $cl = this.constants; // $cl - constants list
         let $vl = this.set; // $vl - variables list
@@ -926,40 +951,19 @@ class Compiler {
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkArgumentsUnit(arg);
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkVariable(arg);
         if (/^[A-Z]+(_[A-Z]+)*$/.test(arg)) return checkConstant(arg);
-        // Immutable registers
-        if (arg == '$arch') return this.$arch;
-        if (arg == '$out') return this.$out;
-        // Other
-        if (arg == '$offset') return this.$offset;
-        if (arg == '$name') return this.$name;
-        if (arg == '$math') return this.$math;
-        // return
-        if (arg == '$ret') return this.$ret;
-        if (arg == '$urt') return this.$urt;
-        // Stack
-        if (arg == '$sp') return this.$sp;
-        if (arg == '$lis') return this.$lis;
-        if (arg == '$fis') return this.$fis;
-        // Execute
-        if (arg == '$mov') return this.$mov;
-        // jmp counter
-        if (arg == '$count') return this.$count;
-        // Logical registers
-        if (arg == '$eq') return this.$eq;
-        if (arg == '$seq') return this.$seq;
-        if (arg == '$cmp') return this.$cmp;
-        if (arg == '$and') return this.$and;
-        if (arg == '$or') return this.$or;
-        if (arg == '$xor') return this.$xor;
-        if (arg == '$b_and') return this.$b_and;
-        if (arg == '$b_or') return this.$b_or;
-        // argument registers
-        if (arg == '$arg0') return this.$arg0;
-        if (arg == '$arg1') return this.$arg1;
-        if (arg == '$arg2') return this.$arg2;
-        if (arg == '$arg3') return this.$arg3;
-        if (arg == '$arg4') return this.$arg4;
-        if (arg == '$arg5') return this.$arg5;
+
+        if (/\$\w+/.test(arg)) {
+            if (Reflect.has(this, `${arg}`)){
+                return this[`${arg}`];
+            } else {
+                new RegisterException('Non-existent register', {
+                    row: row || 0,
+                    code: code || ' ',
+                    select: arg
+                });
+                process.exit(1);
+            }
+        }
     }
 }
 

@@ -15,7 +15,7 @@ class Lexer {
      * @param valValue - the value of the token
      * @returns the string 'rejected'
      */
-    static lexerList(lineCode, valValue){
+    static lexerList(lineCode, valValue, options){
         if (!ValidatorByType.validateByTypeList(lineCode)) {
             console.log(`\n${SymbolError.UNKNOWN_TOKEN}`);
             process.stdout.write(lineCode);
@@ -35,10 +35,10 @@ class Lexer {
      * @param valValue - The value of the variable
      * @returns the string 'rejected'
      */
-    static lexerInt(lineCode, valValue){
+    static lexerInt(lineCode, valValue, options){
         if (!ValidatorByType.validateTypeInt(valValue)) {
-            new TypeError(lineCode, valValue);
-            return 'rejected';
+            new TypeError(lineCode, valValue, options);
+            process.exit(1);
         }
         
         return true;
@@ -52,10 +52,10 @@ class Lexer {
      * @param valValue - The value of the variable
      * @returns the string 'rejected'
      */
-    static lexerFloat(lineCode, valValue){
+    static lexerFloat(lineCode, valValue, options){
         if (!ValidatorByType.validatorTypeFloat(valValue)) {
-            new TypeError(lineCode, valValue);
-            return 'rejected';
+            new TypeError(lineCode, valValue, options);
+            process.exit(1);
         }
 
         return true;
@@ -68,10 +68,10 @@ class Lexer {
      * @param valValue - The value of the variable
      * @returns the string 'rejected'
      */
-    static lexerBool(lineCode, valValue){
+    static lexerBool(lineCode, valValue, options){
         if (!ValidatorByType.validateTypeBoolean(valValue)) {
-            new TypeError(lineCode, valValue);
-            return 'rejected';
+            new TypeError(lineCode, valValue, options);
+            process.exit(1);
         }
 
         return true;
@@ -153,11 +153,11 @@ class Lexer {
      * @returns The return value is the result of the last expression evaluated.
      */
     static lexerAutonomyByType(lineCode, valValue, type, options) {
-        return  type === 'Int' && this.lexerInt(lineCode, valValue)
-        || type === 'Float' && this.lexerFloat(lineCode, valValue)
+        return  type === 'Int' && this.lexerInt(lineCode, valValue, options)
+        || type === 'Float' && this.lexerFloat(lineCode, valValue, options)
         || type === 'String' && this.lexerString(lineCode, valValue, options)
-        || type === 'Bool' && this.lexerBool(lineCode, valValue)
-        || type === 'List' && this.lexerList(lineCode, valValue);
+        || type === 'Bool' && this.lexerBool(lineCode, valValue, options)
+        || type === 'List' && this.lexerList(lineCode, valValue, options);
     }
 
 

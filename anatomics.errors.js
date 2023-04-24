@@ -76,7 +76,7 @@ class ArgumentError extends BackTraceError {
 class UnitError extends BackTraceError {
     constructor(lineCode, typeMessage, options) {
         super(lineCode);
-        
+
         if (lineCode != undefined || lineCode != null) {
             this.options = options;
             let lastLine = `${Color.FG_GRAY}${this.options?.row} |\t\n`;
@@ -193,6 +193,28 @@ class InstructionException {
     }
 }
 
+
+class RegisterException {
+    constructor(message, options) {
+        this.options = options;
+
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine;
+
+        if (options?.select) {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.indexOf(this.options.select))}^${'-'.repeat(this.options.select.length -1)}${Color.RESET}\n`;
+        } else {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+        }
+
+        process.stdout.write(`${Color.BRIGHT}[${Color.FG_RED}RegisterException${Color.FG_WHITE}]: ${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+    }
+}
+
 //================================================================================================
 // SYNTAX ERRORS
 //================================================================================================
@@ -206,14 +228,14 @@ Object.defineProperty(SymbolError, 'UNKNOWN_TOKEN', { value: `[SyntaxError]: Unk
 //================================================================================================
 Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_TYPE_ARGUMENT', { value: '[ArgumentError]: Invalid type argument' });
 Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_VALUE_ARGUMENT', { value: '[ArgumentError]: Invalid value argument' });
-Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_COUNT_ARGUMENTS', { value: '[ArgumentError]: Invalid count argument' });
+Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_COUNT_ARGUMENTS', { value: `[${Color.FG_RED}ArgumentError${Color.FG_WHITE}]: Invalid count argument` });
 //================================================================================================
 
 
 //================================================================================================
 // UNIT ERRORS
 //================================================================================================
-Object.defineProperty(UnitError, 'UNIT_UNKNOWN', { value: '[UnitError]: Unknown unit call' });
+Object.defineProperty(UnitError, 'UNIT_UNKNOWN', { value: `[${Color.FG_RED}UnitError${Color.FG_WHITE}]: You are trying to call a non-existent function.` });
 //================================================================================================
 
 
@@ -241,5 +263,6 @@ module.exports = {
     FileError: FileError,
     SyntaxError: SyntaxError,
     CodeStyleException: CodeStyleException,
-    InstructionException: InstructionException
+    InstructionException: InstructionException,
+    RegisterException: RegisterException
 }

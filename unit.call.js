@@ -16,12 +16,12 @@ class UnitCall {
      * @param args - is the arguments of the function
      * @param typesArgs - is an array of types of arguments, for example:
      */
-    #lexerFunctionArguments(lineCode, args, typesArgs){
+    #lexerFunctionArguments(lineCode, args, typesArgs, options){
         args = args.indexOf(',') ? args = args.trim().split(",").map(arg => arg.trim()) : args.trim();
         
         for (let index = 0; index < args.length; index++) {
             const typeArgument = typesArgs[index];
-            Lexer.lexerAutonomyByType(lineCode, args[index], typeArgument);
+            Lexer.lexerAutonomyByType(lineCode, args[index], typeArgument, options);
         }
     }
 
@@ -68,31 +68,36 @@ class UnitCall {
      * @param args - The arguments of the function
      * @returns the result of the Parser.parse() function.
      */
-    get(lineCode, name, args){
+    get(lineCode, name, args, options){
         let unit = this.units.find(unit => unit.name === name);
 
         if (!(unit == undefined || typeof unit === 'undefined')) {
-            if (unit.argsRules != false) this.#lexerFunctionArguments(lineCode, args, unit.argsRules);
+            if (unit.argsRules != false) this.#lexerFunctionArguments(lineCode, args, unit.argsRules, options);
             return Parser.parse(unit.body);
+        } else {
+            new UnitError(lineCode, UnitError.UNIT_UNKNOWN, options);
         }
     }
 
 
     /**
-     * It takes a string of arguments and a unit name, and returns a hashmap of the arguments and their
-     * corresponding names.
-     * @param name - The name of the unit.
-     * @param args - The arguments that the user has entered.
-     * @returns A hashmap of the arguments and their values.
+     * This function takes in a name, arguments, and options and returns a hash map of the arguments
+     * for a specific unit.
+     * @param name - The name of the unit for which the arguments are being processed.
+     * @param args - args is a string containing comma-separated values of arguments.
+     * @param options - An optional object that can contain additional information or options for the
+     * function. It can be used to pass in a code for error handling purposes.
+     * @returns a JavaScript object (hashMap) that contains key-value pairs of arguments passed to the
+     * function. The keys are the argument names and the values are the argument values.
      */
-    getArgumentsHashMap(name, args){
+    getArgumentsHashMap(name, args, options){
         let unit = this.units.find(unit => unit.name === name);
         let hashMap = {};
         args = args.split(',').map(arg => arg.trim());
 
         if (args.length > unit.argsNames.length) {
-            new UnitError(null, ArgumentError.ARGUMENT_INVALID_COUNT_ARGUMENTS);
-            return 'rejected';
+            new UnitError(options?.code, ArgumentError.ARGUMENT_INVALID_COUNT_ARGUMENTS, options);
+            process.exit(1);
         }
 
         if (!(unit == undefined || typeof unit === 'undefined')) {

@@ -119,7 +119,7 @@ class Parser {
            ast = this[`parse${stmt}Statement`](line, index);
         } else {
             ServerLog.log('This instruction does not exist', 'Exception');
-            new SyntaxError(`\n<source:${index+1}:1>  This instruction does not exist`, {code: line, row: index });
+            new SyntaxError(`\n<source:${index+1}:1>  This instruction does not exist`, { code: line, row: index });
             ServerLog.log('You need to remove this instruction.', 'Possible fixes');
             process.exit(1);
         }
@@ -150,6 +150,7 @@ class Parser {
      * line of code does not meet certain criteria.
      */
     static parseDefineStatement(lineCode, row){
+        let ast = { define: {}, parser: { code: lineCode, row: row + 1 } };
         let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const instructionPattern = /^@[d|D]efine\s+([\w-]+)\s+(.+)$/;
@@ -183,7 +184,9 @@ class Parser {
 
         let value = match[2];
         Lexer.lexer(value, { row: row, code: originalLine });
-        return { const: { name: match[1], value: value } };
+        ast['define']['name'] = match[1];
+        ast['define']['value'] = value;
+        return ast;
     }
 
 
@@ -192,17 +195,16 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns an object.
      */
-    static parseImportStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['import'] = {};
+    static parseImportStatement(lineCode, row){
+        let ast = { import: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [, Alias] = lineCode.split(' ');
         this.lexerSymbol(lineCode, { quoted: false });
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (Alias == undefined) { process.stdout.write('Alias not defined'); return 'rejected'; }
-        else  smallAbstractSyntaxTree['import']['alias'] = Alias;
-        smallAbstractSyntaxTree['import']['linecode'] = lineCode;
-        return smallAbstractSyntaxTree;
+        else  ast['import']['alias'] = Alias;
+        ast['import']['linecode'] = lineCode;
+        return ast;
     }
 
 
@@ -212,16 +214,15 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns a small abstract syntax tree.
      */
-    static parseRetStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['ret'] = {};
+    static parseRetStatement(lineCode, row){
+        let ast = { ret: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [RetToken, RetAddress] = lineCode.split(' ');
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (RetAddress == undefined) console.error('Invoke address not found');
-        else  smallAbstractSyntaxTree['ret']['arg'] = RetAddress;
-        return smallAbstractSyntaxTree;
+        else  ast['ret']['arg'] = RetAddress;
+        return ast;
     }
 
 
@@ -230,17 +231,16 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns A small abstract syntax tree.
      */
-    static parseDivStatement(lineCode) {
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['div'] = {};
+    static parseDivStatement(lineCode, row) {
+        let ast = { div: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
         args.map(arg => ValidatorByType.validateTypeHex(arg));
-        smallAbstractSyntaxTree['div']['args'] = args;
-        return smallAbstractSyntaxTree;
+        ast['div']['args'] = args;
+        return ast;
     }
 
 
@@ -249,17 +249,16 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns a small abstract syntax tree.
      */
-    static parseModStatement(lineCode) {
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['mod'] = {};
+    static parseModStatement(lineCode, row) {
+        let ast = { mod: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
         args.map(arg => ValidatorByType.validateTypeHex(arg));
-        smallAbstractSyntaxTree['mod']['args'] = args;
-        return smallAbstractSyntaxTree;
+        ast['mod']['args'] = args;
+        return ast;
     }
 
 
@@ -270,16 +269,15 @@ class Parser {
      * @returns An object with a key of 'add' and a value of an object with a key of 'args' and a value
      * of an array of arguments.
      */
-    static parseEqualStatement(lineCode) {
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['equal'] = {};
+    static parseEqualStatement(lineCode, row) {
+        let ast = { equal: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        smallAbstractSyntaxTree['equal']['args'] = args;
-        return smallAbstractSyntaxTree;
+        ast['equal']['args'] = args;
+        return ast;
     }
 
 
@@ -289,17 +287,16 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns an object.
      */
-    static parseAddStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['add'] = {};
+    static parseAddStatement(lineCode, row){
+        let ast = { add: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
         args.map(arg => ValidatorByType.validateTypeHex(arg));
-        smallAbstractSyntaxTree['add']['args'] = args;
-        return smallAbstractSyntaxTree;
+        ast['add']['args'] = args;
+        return ast;
     }
 
 
@@ -308,16 +305,15 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns a small abstract syntax tree.
      */
-    static parseCallStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['call'] = {};
+    static parseCallStatement(lineCode, row){
+        let ast = { call: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('('));
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
         if (lineCode.substring(lineCode.indexOf(unitName), lineCode.lastIndexOf('(')).indexOf(' ').length > 2) return 'rejected';
-        smallAbstractSyntaxTree['call']['name'] = unitName;
-        smallAbstractSyntaxTree['call']['args'] = unitArguments;
-        return smallAbstractSyntaxTree;
+        ast['call']['name'] = unitName;
+        ast['call']['args'] = unitArguments;
+        return ast;
     }
 
 
@@ -327,40 +323,41 @@ class Parser {
      * @returns An object with a key of 'sub' and a value of an object with a key of 'args' and a value
      * of an array of arguments.
      */
-    static parseSubStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['sub'] = {};
+    static parseSubStatement(lineCode, row){
+        let ast = { sub: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 6) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
         args.map(arg => ValidatorByType.validateTypeHex(arg));
-        smallAbstractSyntaxTree['sub']['args'] = args;
-        return smallAbstractSyntaxTree;
+        ast['sub']['args'] = args;
+        return ast;
     }
 
 
     /**
-     * It takes a string, splits it into an array, and then assigns the array elements to variables.
-     * @param lineCode - The line of code that is being parsed.
-     * @returns An object with a key of route and a value of an object with keys of name and address.
+     * The function parses a route statement and returns an abstract syntax tree object containing the
+     * route name and address.
+     * @param lineCode - a string representing a line of code to be parsed and processed.
+     * @param row - The row number of the code being parsed.
+     * @returns either an object representing the parsed route statement or the string 'rejected' if
+     * the statement is invalid.
      */
-    static parseRouteStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['route'] = {};
+    static parseRouteStatement(lineCode, row){
+        let ast = { route: {}, parser: { row, code: lineCode } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 3) return 'rejected';
-        const [RouteToken, RouteName, RouteAddress] = lineCode.split(' ');
+        const [, RouteName, RouteAddress] = lineCode.split(' ');
 
         if (RouteAddress && !ValidatorByType.validateTypeHex(RouteAddress)) {
             new TypeError(lineCode, RouteAddress);
             return 'rejected';
         }
 
-        smallAbstractSyntaxTree['route']['name'] = RouteName;
-        smallAbstractSyntaxTree['route']['address'] = RouteAddress;
-        return smallAbstractSyntaxTree;
+        ast['route']['name'] = RouteName;
+        ast['route']['address'] = RouteAddress;
+        return ast;
     }
 
 
@@ -371,9 +368,8 @@ class Parser {
      * @returns an object with a key of 'stack' and a value of an object with a key of 'address' and a
      * value of the stack address.
      */
-    static parseStackStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['stack'] = {};
+    static parseStackStatement(lineCode, row){
+        let ast = { stack: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [StackToken, StackAddress] = lineCode.split(' ');
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
@@ -384,8 +380,8 @@ class Parser {
             return 'rejected';
         }
 
-        smallAbstractSyntaxTree['stack']['address'] = StackAddress;
-        return smallAbstractSyntaxTree;
+        ast['stack']['address'] = StackAddress;
+        return ast;
     }
 
 
@@ -395,16 +391,15 @@ class Parser {
      * @param lineCode - The line of code that is being parsed
      * @returns An array of objects.
      */
-    static parseIssueStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['issue'] = {};
+    static parseIssueStatement(lineCode, row){
+        let ast = { issue: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode);
         if (lineCode.split(' ').length > 2) return 'rejected';
         const [, IssueStatus] = lineCode.split(' ');
         Lexer.lexerBool(lineCode, IssueStatus);
-        smallAbstractSyntaxTree['issue']['state'] = IssueStatus || 'on';
-        return smallAbstractSyntaxTree;
+        ast['issue']['state'] = IssueStatus || 'on';
+        return ast;
     }
 
 
@@ -430,7 +425,7 @@ class Parser {
      * @returns An array of objects.
      */
     static parseSetStatement(lineCode, row){
-        let ast = { set: {}, parser: { code: lineCode, row: row+1 } };
+        let ast = { set: {}, parser: { code: lineCode, row: row + 1 } };
         let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const instructionPattern = /^@[s|S]et\s+([\w-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/;
@@ -464,11 +459,10 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns An array of objects.
      */
-    static parseInvokeStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['invoke'] = {};
+    static parseInvokeStatement(lineCode, row){
+        let ast = { invoke: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const [InvokeToken, InvokeAddress] = lineCode.split(' ');
+        const [, InvokeAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
 
         // if (!/^[A-Z]+(_[A-Z]+)*$/.test(InvokeAddress) || !ValidatorByType.validateTypeHex(InvokeAddress)) {
@@ -477,8 +471,8 @@ class Parser {
         // }
 
         if (typeof InvokeAddress == 'undefined') console.error('[AsmX]: Invoke address not found');
-        else  smallAbstractSyntaxTree['invoke']['address'] = InvokeAddress;
-        return smallAbstractSyntaxTree;
+        else  ast['invoke']['address'] = InvokeAddress;
+        return ast;
     }
 
 
@@ -489,7 +483,7 @@ class Parser {
      */
     static parseMemoryStatement(lineCode){
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const [memoryToken, memoryValue, memoryAddress] = lineCode.split(' ');
+        const [, memoryValue, memoryAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 3) return 'rejected';
 
         if (!ValidatorByType.validateTypeHex(memoryAddress)) {
@@ -560,9 +554,8 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns An array of three elements.
      */
-    static parseUnitStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['unit'] = {};
+    static parseUnitStatement(lineCode, row){
+        let ast = { unit: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: false, operators: ['=', '+', '-', '*', '%', '/'] });
         if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
@@ -570,11 +563,11 @@ class Parser {
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
         const argsRules = this.parseTypesArgumentsUnit(unitArguments.slice(1, -1));
         const argsNames = this.parseNamesArgumentsUnit(unitArguments.slice(1, -1));
-        smallAbstractSyntaxTree['unit']['name'] = unitName;
-        smallAbstractSyntaxTree['unit']['args'] = unitArguments;
-        smallAbstractSyntaxTree['unit']['argsnames'] = argsNames;
-        smallAbstractSyntaxTree['unit']['rules'] = { ...argsRules };
-        return smallAbstractSyntaxTree;
+        ast['unit']['name'] = unitName;
+        ast['unit']['args'] = unitArguments;
+        ast['unit']['argsnames'] = argsNames;
+        ast['unit']['rules'] = { ...argsRules };
+        return ast;
     }
 
 
@@ -586,8 +579,8 @@ class Parser {
      * @returns An object with a key of 'offset' and a value of an object with a key of 'address' and a
      * value of the address.
      */
-    static parseOffsetStatement(lineCode){
-        let smallAbstractSyntaxTree = { offset: {} };
+    static parseOffsetStatement(lineCode, row){
+        let ast = { offset: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         const [, OffsetAddress] = lineCode.split(' ');
@@ -599,8 +592,8 @@ class Parser {
         }
 
         if (typeof OffsetAddress == 'undefined') console.error('[AsmX]: address not found');
-        else  smallAbstractSyntaxTree['offset']['value'] = OffsetAddress;
-        return smallAbstractSyntaxTree;
+        else  ast['offset']['value'] = OffsetAddress;
+        return ast;
     }
 
 
@@ -609,9 +602,8 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns an object.
      */
-    static parseImulStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['imul'] = {};
+    static parseImulStatement(lineCode, row){
+        let ast = { imul: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
 
         if (lineCode.indexOf(' ') > -1) {
@@ -632,8 +624,8 @@ class Parser {
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
         args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg).flat().filter(item => item != '');
         args.map(arg => ValidatorByType.validateTypeHex(arg));
-        smallAbstractSyntaxTree['imul']['args'] = args;
-        return smallAbstractSyntaxTree;
+        ast['imul']['args'] = args;
+        return ast;
     }
 
 
@@ -642,11 +634,11 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns an object.
      */
-    static parseUnsetStatement(lineCode){
-        let ast = { unset: {} };
+    static parseUnsetStatement(lineCode, row){
+        let ast = { unset: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode);
-        const [UnsetToken, UnsetModel] = lineCode.split(' ');
+        const [, UnsetModel] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
         if (typeof UnsetModel == 'undefined') console.error('[AsmX]: model not defined');
         ast['unset']['model'] = UnsetModel;
@@ -662,16 +654,15 @@ class Parser {
      * a small abstract syntax tree object with the 'modify' key containing a nested object with
      * 'model' and 'value' keys.
      */
-    static parseModifyStatement(lineCode){
-        let smallAbstractSyntaxTree = {};
-        smallAbstractSyntaxTree['modify'] = {};
+    static parseModifyStatement(lineCode, row){
+        let ast = { modify: {}, parser: { code: lineCode, row: row + 1 } };
         const commandArray = lineCode.trim().split(/\s+/);
         if (commandArray[0] !== '@Modify') { return 'rejected'; }
         const registerName = commandArray[1];
         const value = commandArray.slice(2).join(' ');
-        smallAbstractSyntaxTree['modify']['model'] = registerName;
-        smallAbstractSyntaxTree['modify']['value'] = value.slice(1, -1);
-        return smallAbstractSyntaxTree;
+        ast['modify']['model'] = registerName;
+        ast['modify']['value'] = value;
+        return ast;
     }
 
 
@@ -682,8 +673,8 @@ class Parser {
      * @returns An object with a key of execute and a value of an object with a key of args and a value
      * of an array of strings.
      */
-    static parseExecuteStatement(lineCode){
-        let ast = { execute: {} };
+    static parseExecuteStatement(lineCode, row){
+        let ast = { execute: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 7) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
@@ -726,12 +717,31 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns a small abstract syntax tree.
      */
-    static parsePushStatement(lineCode) {
-        let ast = { push: {} };
+    static parsePushStatement(lineCode, row) {
+        let ast = { push: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 2) return 'rejected';
-        let  args =  lineCode.split(' ');
+        let args = lineCode.split(' ');
         ast['push']['args'] = args[1];
+        return ast;
+    }
+
+
+    /**
+     * The function parses a "get" statement in JavaScript code and returns an abstract syntax tree
+     * (AST) object with the arguments.
+     * @param lineCode - The parameter `lineCode` is a string representing a line of code that contains
+     * a "get" statement. The method `parseGetStatement` parses this line of code and returns an
+     * abstract syntax tree (AST) object representing the "get" statement.
+     * @returns If the length of the split lineCode is greater than 2, the function returns 'rejected'.
+     * Otherwise, it returns an AST (Abstract Syntax Tree) object with a 'get' property containing an
+     * 'args' property that holds the second element of the split lineCode.
+     */
+    static parseGetStatement(lineCode, row) {
+        let ast = { get: {}, parser: { code: lineCode, row: row + 1 }  };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        if (lineCode.split(' ').length > 2) return 'rejected';
+        ast['get']['args'] = lineCode.split(' ')[1];
         return ast;
     }
 
