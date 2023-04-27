@@ -1,4 +1,4 @@
-const { TypeError, UnitError, SymbolError, SyntaxError, CodeStyleException, InstructionException } = require("./anatomics.errors");
+const { TypeError, UnitError, SymbolError, SyntaxError, CodeStyleException, InstructionException, ArgumentError } = require("./anatomics.errors");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
 const ServerLog = require("./server/log");
@@ -196,11 +196,16 @@ class Parser {
      * @returns an object.
      */
     static parseImportStatement(lineCode, row){
-        let ast = { import: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { import: {}, parser: { code: lineCode, row: row } };
+        let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [, Alias] = lineCode.split(' ');
-        this.lexerSymbol(lineCode, { quoted: false });
-        if (lineCode.split(' ').length > 2) return 'rejected';
+        if (!ValidatorByType.validateTypeIdentifier(Alias)) Lexer.lexer(Alias, { code: originalLine, row: row + 1 });
+
+        if (lineCode.split(' ').length > 2) {
+            process.exit(1);
+        }
+
         if (Alias == undefined) { process.stdout.write('Alias not defined'); return 'rejected'; }
         else  ast['import']['alias'] = Alias;
         ast['import']['linecode'] = lineCode;
@@ -217,11 +222,10 @@ class Parser {
     static parseRetStatement(lineCode, row){
         let ast = { ret: {}, parser: { code: lineCode, row: row + 1 } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const [RetToken, RetAddress] = lineCode.split(' ');
+        const args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args,ast.parser, [1, 1]);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        if (lineCode.split(' ').length > 2) return 'rejected';
-        if (RetAddress == undefined) console.error('Invoke address not found');
-        else  ast['ret']['arg'] = RetAddress;
+        ast['ret']['arg'] = args[0];
         return ast;
     }
 
@@ -232,13 +236,11 @@ class Parser {
      * @returns A small abstract syntax tree.
      */
     static parseDivStatement(lineCode, row) {
-        let ast = { div: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { div: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
-        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['div']['args'] = args;
         return ast;
     }
@@ -250,13 +252,11 @@ class Parser {
      * @returns a small abstract syntax tree.
      */
     static parseModStatement(lineCode, row) {
-        let ast = { mod: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { mod: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
-        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['mod']['args'] = args;
         return ast;
     }
@@ -270,12 +270,11 @@ class Parser {
      * of an array of arguments.
      */
     static parseEqualStatement(lineCode, row) {
-        let ast = { equal: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { equal: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
-        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['equal']['args'] = args;
         return ast;
     }
@@ -288,13 +287,11 @@ class Parser {
      * @returns an object.
      */
     static parseAddStatement(lineCode, row){
-        let ast = { add: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { add: {}, parser: { code: lineCode, row: row  } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
-        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['add']['args'] = args;
         return ast;
     }
@@ -324,13 +321,11 @@ class Parser {
      * of an array of arguments.
      */
     static parseSubStatement(lineCode, row){
-        let ast = { sub: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { sub: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
-        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
-        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['sub']['args'] = args;
         return ast;
     }
@@ -603,27 +598,10 @@ class Parser {
      * @returns an object.
      */
     static parseImulStatement(lineCode, row){
-        let ast = { imul: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { imul: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-
-        if (lineCode.indexOf(' ') > -1) {
-            lineCode = lineCode.substring(lineCode.indexOf(' '));
-        } else {
-            return 'rejected';
-        }
-
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-
-        if (lineCode.indexOf(' ') > -1) {
-            if (lineCode.split(' ').length > 6) return 'rejected';
-        } else {
-            if (lineCode.split(',').length > 6) return 'rejected';
-        }
-
-        if (lineCode.split(' ').length > 6) return 'rejected';
-        let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
-        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg).flat().filter(item => item != '');
-        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['imul']['args'] = args;
         return ast;
     }
@@ -635,7 +613,7 @@ class Parser {
      * @returns an object.
      */
     static parseUnsetStatement(lineCode, row){
-        let ast = { unset: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { unset: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode);
         const [, UnsetModel] = lineCode.split(' ');
@@ -655,7 +633,7 @@ class Parser {
      * 'model' and 'value' keys.
      */
     static parseModifyStatement(lineCode, row){
-        let ast = { modify: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { modify: {}, parser: { code: lineCode, row: row } };
         const commandArray = lineCode.trim().split(/\s+/);
         if (commandArray[0] !== '@Modify') { return 'rejected'; }
         const registerName = commandArray[1];
@@ -674,7 +652,7 @@ class Parser {
      * of an array of strings.
      */
     static parseExecuteStatement(lineCode, row){
-        let ast = { execute: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { execute: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         if (lineCode.split(' ').length > 7) return 'rejected';
         let  args =  lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
@@ -747,6 +725,54 @@ class Parser {
 
 
     /**
+     * This function parses the arguments of a given line of code in JavaScript.
+     * @param lineCode - The code line that contains the instruction and its arguments.
+     * @returns The function `parserArgumentsInstruction` returns an array of parsed arguments
+     * extracted from the input `lineCode`. The function first checks if the input contains a comma
+     * (`,`) and splits the input by comma. If there are spaces in any of the arguments, it splits them
+     * by space as well. The resulting array is then flattened to remove any nested arrays. If there
+     * are no commas in the input, the array is returned as an empty array instead of returning an empty array 
+     * with the same length and no nested arrays returned
+     */
+    static parserArgumentsInstruction(lineCode) {
+        let parsed;
+
+        if (lineCode.indexOf(',') > -1) {
+            parsed = lineCode.split(',').map(argument => argument.indexOf(' ') > -1 ? argument.split(' ') : argument).flatMap(argument => argument);
+        } else if (lineCode.indexOf(' ') > -1) parsed = lineCode.split(' ');
+
+        return parsed && parsed.filter(argument => argument.trim() != '').slice(1) || [];
+    }
+
+
+    /**
+     * This function checks if the number of arguments passed to a function is within a specified range and throws an exception if it is not.
+     * @param args - an array of arguments passed to a function
+     * @param options - an object containing information about the instruction, such as the row and code
+     * @param list - A list of integers representing the minimum number of arguments required for a given instruction.
+     */
+    static checkLimitArguments(args, options, list) {
+        const constexpr = (list[0] == 1 && args.length == 1);
+
+        if (!constexpr && list && list[0] > args.length) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: options.row,     code: options.code
+            });
+
+            process.exit(1);
+        }
+
+        if (list[1] && (args.length > list[1])) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You have too many arguments.`, {
+                row: options.row,     code: options.code
+            });
+
+            process.exit(1);
+        }
+    }
+
+
+    /**
      * It checks if a line of code contains a symbol.
      * @param lineCode - The line of code that is being checked for a symbol.
      * @param symbol - The symbol to check for.
@@ -760,7 +786,7 @@ class Parser {
             for (let i = 0; i < symbol.length; i++) if (lineCode[i] === symbol[i]) result = true;
             return result;
         } else if (lineCode === undefined) {
-            throw { message: "[SyntaxException]: Missing line code for symbol '" + symbol + "'", line : undefined };
+            throw { message: `[${Color.FG_RED}SyntaxException${Color.FG_WHITE}]: Missing line code for symbol: ${symbol}` };
         }
     }
 

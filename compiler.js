@@ -6,7 +6,7 @@
 const fs = require('fs');
 
 // Components that compiler
-const { UnitError, FileError, TypeError, RegisterException } = require('./anatomics.errors');
+const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException } = require('./anatomics.errors');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -16,6 +16,10 @@ const Route = require("./route");
 const Stack = require("./stack");
 const unitCall = require('./unit.call');
 const Types = require('./keywords');
+const { Type } = require('./types');
+const Lexer = require('./lexer');
+const ServerLog = require('./server/log');
+const path = require('path');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -28,6 +32,7 @@ class Compiler {
         this.set = [];
         this.constants = [];
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
+        this.STACKTRACE_LIMIT = 10;
 
 
         /* 
@@ -152,7 +157,7 @@ class Compiler {
         this.AbstractSyntaxTree.map(trace => {
             if (trace?.import){
                 Switching.state && process.stdout.write(Issues.IMPORT_EVENT);
-                const alias = this.compileImportStatement(trace.import);
+                const alias = this.compileImportStatement(trace.import, trace);
 
                 if (alias && alias instanceof Array)
                     for (let index = 0; index < alias.length; index++) this.AbstractSyntaxTree.unshift(alias[index]);
@@ -164,138 +169,6 @@ class Compiler {
 
         for (let index = 0; index < this.AbstractSyntaxTree.length; index++) {
             const trace = this.AbstractSyntaxTree[index];
-
-            // if (trace?.issue){
-            //     this.compileIssueStatement(trace.issue, Switching);  
-            //     continue;
-            // }
-
-            // if (trace?.invoke){
-            //     Switching.state && process.stdout.write(Issues.INVOKE_EVENT);
-            //     this.compileInvokeStatement(trace.invoke);
-            //     continue;
-            // }
-
-            // if (trace?.unit){
-            //     Switching.state && process.stdout.write(Issues.CREATE_UNIT_EVENT);
-            //     this.compileUnitStatement(trace);
-            //     continue;
-            // }
-
-            // if (trace?.call){
-            //     Switching.state && process.stdout.write(Issues.CALL_EVENT);
-            //     this.compileCallStatement(trace.call);
-            //     continue;
-            // }
-
-            // if (trace?.ret){
-            //     Switching.state && process.stdout.write(Issues.RET_EVENT);
-            //     this.compileRetStatement(trace.ret);
-            //     continue;
-            // }
-
-            // if (trace?.set){
-            //     Switching.state && process.stdout.write(Issues.SET_EVENT);
-            //     this.compileSetStatement(trace.set, trace);
-            //     continue;
-            // }
-
-            // if (trace?.memory){
-            //     Switching.state && process.stdout.write(Issues.MEMORY_EVENT);
-            //     this.compileMemoryStatement(trace.memory);
-            //     continue;
-            // }
-
-            // if (trace?.address){
-            //     Switching.state && process.stdout.write(Issues.ADDRESS_EVENT);
-            //     this.compileAddressStatement(trace.address);
-            //     continue;
-            // }
-
-            // if (trace?.route){
-            //     Switching.state && process.stdout.write(Issues.ROUTE_EVENT);
-            //     this.compileRouteStatement(trace.route);
-            //     continue;
-            // }
-
-            // if (trace?.stack){
-            //     Switching.state && process.stdout.write(Issues.STACK_EVENT);
-            //     this.compileStackStatement(trace.stack);
-            //     continue;
-            // }
-
-            // if (trace?.add){
-            //     Switching.state && process.stdout.write(Issues.CALCULATE_ADD_EVENT);
-            //     this.compileAddStatement(trace.add);
-            //     continue;
-            // }
-
-            // if (trace?.sub){
-            //     Switching.state && process.stdout.write(Issues.CALCULATE_SUB_EVENT);
-            //     this.compileSubStatement(trace.sub);
-            //     continue;
-            // }
-
-            // if (trace?.equal){
-            //     Switching.state && process.stdout.write(Issues.EQUALITY_EVENT);
-            //     this.compileEqualStatement(trace.equal);
-            //     continue;
-            // }
-
-            // if (trace?.div) {
-            //     Switching.state && process.stdout.write(Issues.CALCULATE_DIV_EVENT);
-            //     this.compileDivStatement(trace.div);
-            //     continue;
-            // }
-
-            // if (trace?.mod) {
-            //     Switching.state && process.stdout.write(Issues.CALCULATE_MOD_EVENT);
-            //     this.compileModStatement(trace.mod);
-            //     continue;
-            // }
-
-            // if (trace?.imul) {
-            //     Switching.state && process.stdout.write(Issues.CALCULATE_IMUL_EVENT);
-            //     this.compileImulStatement(trace.imul);
-            //     continue;
-            // }
-
-            // if (trace?.offset) {
-            //     Switching.state && process.stdout.write(Issues.SET_OFFSET_EVENT);
-            //     this.compileOffsetStatement(trace.offset);
-            //     continue;
-            // }
-
-            // if (trace?.unset) {
-            //     Switching.state && process.stdout.write(Issues.UNSET_EVENT);
-            //     this.compileUnsetStatement(trace.unset);
-            //     continue;
-            // }
-
-            // if (trace?.modify) {
-            //     Switching.state && process.stdout.write(Issues.MODIFY_EVENT);
-            //     this.compileModifyStatement(trace.modify);
-            //     continue;
-            // }
-
-            // if (trace?.execute) {
-            //     Switching.state && process.stdout.write(Issues.EXECUTE_EVENT);
-            //     this.compileExecuteStatement(trace.execute, index);
-            //     continue;
-            // }
-
-            // if (trace?.pop) {
-            //     Switching.state && process.stdout.write(Issues.POP_EVENT);
-            //     this.compilePopStatement();
-            //     continue;
-            // }
-
-            // if (trace?.push) {
-            //     Switching.state && process.stdout.write(Issues.PUSH_EVENT);
-            //     this.compilePushStatement(trace.push);
-            //     continue;
-            // }
-
             let statement = Reflect.ownKeys(trace).filter(stmt => stmt != 'parser')[0];
             this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
         };
@@ -525,32 +398,45 @@ class Compiler {
      * The function reads a file from the file system and then parses it.
      * @param statement - The statement object to parse.
      */
-    compileImportStatement(statement) {
+    compileImportStatement(statement, trace) {
         let filePath = ValidatorByType.validateByTypeString(statement.alias) ? statement.alias.slice(1, -1) : statement.alias;
         let fileForCompiler;
+        let stacktrace = 0x00;
+        let typeAlias = 'Empty';
 
-        if (filePath.lastIndexOf('.') > -1 && !filePath.startsWith('.asmx')) {
-           new  FileError({
-             message: FileError.FILE_EXTENSION_INVALID,
-             lineCode: statement.linecode
-           });
+        if (filePath.lastIndexOf('.') > -1 && filePath.startsWith('.asmX')) {
+            new ImportException('Invalid file extension', {
+                row: trace?.parser?.row,
+                code: trace?.parser?.code,
+                select: statement.alias
+            });
+
+            stacktrace++;
         }
 
         /* Reading a file from the file system. */
         try {
             if (ValidatorByType.validateByTypeString(statement.alias)) {
+                typeAlias = 'module';
                 fileForCompiler = fs.readFileSync(filePath, {encoding: 'utf-8' });
             } else if (ValidatorByType.validateTypeIdentifier(statement.alias)) {
+                typeAlias = 'library';
                 fileForCompiler = fs.readFileSync(`./libs/${filePath}.asmX`, {encoding: 'utf-8' });
             }
 
             let parser = Parser.parse(fileForCompiler);
             return parser;
         } catch {
-            new FileError({
-                message: FileError.FILE_NOT_FOUND,
-                lineCode: statement.linecode
+            new ImportException(`You are using a non-existent ${typeAlias} to import`, {
+                row: trace?.parser?.row,
+                code: trace?.parser?.code,
+                select: statement.alias
             });
+
+            stacktrace++;
+
+            if ([7, 8, 9].includes(stacktrace)) ServerLog.log('The stack trace limit is close to 10 for the output of the StackTraceException error', 'Warning');
+            if (stacktrace == this.STACKTRACE_LIMIT) new StackTraceException();
         }
     }
 
@@ -670,6 +556,15 @@ class Compiler {
      */
     compileImulStatement(statement, index, trace) {
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
+
+        statement.args.map(arg => {
+            if (!ValidatorByType.validateTypeNumber(this.checkArgument(arg) || arg)) {
+                new ArgumentError(ArgumentError.ARGUMENT_INVALID_TYPE_ARGUMENT, { select: arg, ...trace?.parser });
+                ServerLog.log('You need to use numeric type arguments.', 'Possible fixes');
+                process.exit(1);
+            }
+        });
+
         this.$ret = this.$arg0 * this.$arg1;
         if (this.$arg2 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg2;
         if (this.$arg3 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg3;
@@ -849,12 +744,22 @@ class Compiler {
      * It takes a statement object, and pushes it to the set array.
      * @param statement - The statement object that is being compiled.
      */
-    compileSetStatement(statement) {
+    compileSetStatement(statement, index, trace) {
         let isType = false;
         for (const T of Types) if (T == statement.type) isType = true;
 
         if (!isType) {
             new TypeError(arguments[1].parser?.code, statement.type, { row: arguments[1].parser?.row });
+            process.exit(1);
+        }
+
+        if (!Type.check(statement.type, statement.value)) {
+            new ArgumentError(ArgumentError.ARGUMENT_INVALID_VALUE_ARGUMENT, {
+                row: trace?.parser.row,
+                code: trace?.parser.code,
+                select: statement.value
+            });
+
             process.exit(1);
         }
 
@@ -888,7 +793,7 @@ class Compiler {
     compilerAllArguments(statement, type, code, row){
         for (let index = 0; index < statement.args.length; index++)
             if (type == 'Int' || type == 'Float') this[`$arg${index}`] = +this.checkArgument(statement.args[index], code, row) || +statement.args[index] || 0x00;
-            else if (type == 'String')   this[`$arg${index}`] = this.checkArgument(statement.args[index], code, row) || statement.args[index] || 0x00;
+            else if (type == 'String') this[`$arg${index}`] = this.checkArgument(statement.args[index], code, row) || statement.args[index] || 0x00;
             else if (type == 'Bool') this[`$arg${index}`] = Boolean(this.checkArgument(statement.args[index], code, row) || statement.args[index] || 0x00);
     }
 
@@ -953,6 +858,7 @@ class Compiler {
         if (/^[A-Z]+(_[A-Z]+)*$/.test(arg)) return checkConstant(arg);
 
         if (/\$\w+/.test(arg)) {
+            console.log(arg);
             if (Reflect.has(this, `${arg}`)){
                 return this[`${arg}`];
             } else {
