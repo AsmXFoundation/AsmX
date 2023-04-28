@@ -58,23 +58,35 @@ class SymbolError {
 }
 
 
-class StatementError extends BackTraceError {
-    constructor(message) {
-        super(message);
-    }
-}
+class ArgumentError {
+    constructor(message, options) {
+        this.options = options;
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine;
 
+        if (this.options.select) {
+            if (this.options.position === 'first') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+            } else if (this.options.position === 'end') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.length -1)}^${Color.RESET}\n`;
+            } else {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.indexOf(this.options.select))}^${'-'.repeat(this.options.select.length-1)}${Color.RESET}\n`;
+            }
+        }  else {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+        }
 
-class ArgumentError extends BackTraceError {
-    constructor(lineCode, valValue, typeMessage) {
-        super(valValue);
-        console.log(`\n${typeMessage}`);
+        process.stdout.write(`${Color.BRIGHT}${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
     }
 }
 
 
 class UnitError extends BackTraceError {
-    constructor(lineCode, typeMessage, options) {
+    constructor(lineCode, message, options) {
         super(lineCode);
 
         if (lineCode != undefined || lineCode != null) {
@@ -83,7 +95,7 @@ class UnitError extends BackTraceError {
             let middleLine = `${this.options?.row + 1} |\t`;
             let nextLine = `${this.options?.row + 2} |\t`;
 
-            console.log(`${Color.BRIGHT}${typeMessage}`);
+            console.log(`${Color.BRIGHT}${message}`);
             process.stdout.write(lastLine);
             process.stdout.write(`${middleLine}${highlightCLI.light(lineCode)}\n`);
             process.stdout.write(`${Color.BRIGHT}${Color.FG_GRAY}${nextLine}${Color.FG_RED}^`);
@@ -127,6 +139,33 @@ class FileError extends BackTraceError {
 }
 
 
+class ImportException {
+    constructor(message, options) {
+        this.options = options;
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine;
+
+        if (this.options.select) {
+            if (this.options.position === 'first') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+            } else if (this.options.position === 'end') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.length -1)}^${Color.RESET}\n`;
+            } else {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.indexOf(this.options.select))}^${'-'.repeat(this.options.select.length-1)}${Color.RESET}\n`;
+            }
+        }  else {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+        }
+
+        process.stdout.write(`${Color.BRIGHT}[${Color.FG_RED}ImportException${Color.FG_WHITE}]: ${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+    }
+}
+
+
 class SyntaxError extends Error {
     constructor(message, options){
         super(message);
@@ -151,7 +190,6 @@ class SyntaxError extends Error {
         process.stdout.write(lastLine);
         process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
         process.stdout.write(nextLine);
-
     }
 }
 
@@ -215,6 +253,16 @@ class RegisterException {
     }
 }
 
+
+class StackTraceException {
+    constructor() {
+        let message = 'You have exceeded the stack trace limit';
+        process.stdout.write(`${Color.BRIGHT}[${Color.FG_RED}RegisterException${Color.FG_WHITE}]: ${message}${Color.RESET}\n`);
+        process.exit(1);
+    }
+}
+
+
 //================================================================================================
 // SYNTAX ERRORS
 //================================================================================================
@@ -226,8 +274,8 @@ Object.defineProperty(SymbolError, 'UNKNOWN_TOKEN', { value: `[SyntaxError]: Unk
 //================================================================================================
 // ARGUMENT ERRRORS
 //================================================================================================
-Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_TYPE_ARGUMENT', { value: '[ArgumentError]: Invalid type argument' });
-Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_VALUE_ARGUMENT', { value: '[ArgumentError]: Invalid value argument' });
+Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_TYPE_ARGUMENT', { value: `[${Color.FG_RED}ArgumentError${Color.FG_WHITE}]: Invalid argument type` });
+Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_VALUE_ARGUMENT', { value: `[${Color.FG_RED}ArgumentError${Color.FG_WHITE}]: You are using a different type of value.` });
 Object.defineProperty(ArgumentError, 'ARGUMENT_INVALID_COUNT_ARGUMENTS', { value: `[${Color.FG_RED}ArgumentError${Color.FG_WHITE}]: Invalid count argument` });
 //================================================================================================
 
@@ -255,7 +303,6 @@ Object.defineProperty(FileError, 'FILE_EXTENSION_INVALID', { value: `[${Color.FG
 
 
 module.exports = {
-    StatementError: StatementError,
     SymbolError: SymbolError,
     TypeError: TypeError,
     ArgumentError: ArgumentError,
@@ -264,5 +311,7 @@ module.exports = {
     SyntaxError: SyntaxError,
     CodeStyleException: CodeStyleException,
     InstructionException: InstructionException,
-    RegisterException: RegisterException
+    RegisterException: RegisterException,
+    ImportException: ImportException,
+    StackTraceException: StackTraceException
 }
