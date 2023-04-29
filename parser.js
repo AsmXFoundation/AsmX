@@ -19,7 +19,7 @@ class Parser {
         lines.forEach((line, index) => {
             if (this.parseAndDeleteEmptyCharacters(line) != '') {
                 let parsed = this.parseAndDeleteEmptyCharacters(line);
-
+                
                 if (parsed.endsWith(',')) {
                     new SyntaxError(`<source:${index+1}:${parsed.lastIndexOf(',')+1}>  Invalid character`, {
                         select: ',',
@@ -33,7 +33,7 @@ class Parser {
                         process.exit(1);
                     }
 
-                    if (lines[index+1] == '' || lines[index+1].test(/^\@\w+/)) {
+                    if (lines[index+1] == '' || /^\@\w+/.test(lines[index+1])) {
                         ServerLog.log('You may need to supplement this instruction or delete this symbol.', 'Possible fixes');
                         process.exit(1);
                     }
@@ -111,7 +111,12 @@ class Parser {
     * `SyntaxError` is
     */
     static parseStatement(line, index){
-        let stmt = this.parseAndDeleteEmptyCharacters(line).substring(line.indexOf('@') + 1, line.indexOf(' '));
+        let stmt;
+
+        line.trim().indexOf(' ') > -1 ?
+            stmt = this.parseAndDeleteEmptyCharacters(line).substring(line.indexOf('@') + 1, line.indexOf(' '))
+            : stmt = line.substring(1);
+
         stmt = stmt[0].toUpperCase() + stmt.substring(1);
         let ast;
 
@@ -231,6 +236,75 @@ class Parser {
 
 
     /**
+     * It takes a line of code, splits it into an array of arguments, and returns an object with the
+     * arguments as properties.
+     * @param lineCode - the line of code that is being parsed
+     * @returns An object with a key of 'add' and a value of an object with a key of 'args' and a value
+     * of an array of arguments.
+     */
+    static parseEqualStatement(lineCode, row) {
+        let ast = { equal: {}, parser: { code: lineCode, row: row } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
+        ast['equal']['args'] = args;
+        return ast;
+    }
+
+
+    /**
+     * It takes a line of code and returns an object with the name of the function and the arguments
+     * @param lineCode - the line of code that is being parsed
+     * @returns a small abstract syntax tree.
+     */
+    static parseCallStatement(lineCode, row){
+        let ast = { call: {}, parser: { code: lineCode, row: row + 1 } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('('));
+        const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
+        if (lineCode.substring(lineCode.indexOf(unitName), lineCode.lastIndexOf('(')).indexOf(' ').length > 2) return 'rejected';
+        ast['call']['name'] = unitName;
+        ast['call']['args'] = unitArguments;
+        return ast;
+    }
+
+
+    /**
+     * It takes a line of code, splits it into an array of arguments, and returns an object with the
+     * arguments as properties.
+     * @param lineCode - the line of code that is being parsed
+     * @returns an object.
+     */
+    static parseAddStatement(lineCode, row){
+        let ast = { add: {}, parser: { code: lineCode, row: row  } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
+        ast['add']['args'] = args;
+        return ast;
+    }
+
+
+    /**
+     * It takes a line of code and returns an object with the sub statement and its arguments.
+     * @param lineCode - the line of code that is being parsed
+     * @returns An object with a key of 'sub' and a value of an object with a key of 'args' and a value
+     * of an array of arguments.
+     */
+    static parseSubStatement(lineCode, row){
+        let ast = { sub: {}, parser: { code: lineCode, row: row } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [2, 6]);
+        ast['sub']['args'] = args;
+        return ast;
+    }
+
+
+    /**
      * It takes a line of code, splits it into an array of arguments, and then validates each argument
      * @param lineCode - the line of code that is being parsed
      * @returns A small abstract syntax tree.
@@ -260,73 +334,20 @@ class Parser {
         ast['mod']['args'] = args;
         return ast;
     }
-
-
-    /**
-     * It takes a line of code, splits it into an array of arguments, and returns an object with the
-     * arguments as properties.
-     * @param lineCode - the line of code that is being parsed
-     * @returns An object with a key of 'add' and a value of an object with a key of 'args' and a value
-     * of an array of arguments.
-     */
-    static parseEqualStatement(lineCode, row) {
-        let ast = { equal: {}, parser: { code: lineCode, row: row } };
-        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        let args = this.parserArgumentsInstruction(lineCode);
-        this.checkLimitArguments(args, ast.parser, [2, 6]);
-        ast['equal']['args'] = args;
-        return ast;
-    }
-
+    
 
     /**
-     * It takes a line of code, splits it into an array of arguments, and returns an object with the
-     * arguments as properties.
+     * It takes a line of code, splits it into an array of arguments, and then validates each argument.
      * @param lineCode - the line of code that is being parsed
      * @returns an object.
      */
-    static parseAddStatement(lineCode, row){
-        let ast = { add: {}, parser: { code: lineCode, row: row  } };
+    static parseImulStatement(lineCode, row){
+        let ast = { imul: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [2, 6]);
-        ast['add']['args'] = args;
-        return ast;
-    }
-
-
-    /**
-     * It takes a line of code and returns an object with the name of the function and the arguments
-     * @param lineCode - the line of code that is being parsed
-     * @returns a small abstract syntax tree.
-     */
-    static parseCallStatement(lineCode, row){
-        let ast = { call: {}, parser: { code: lineCode, row: row + 1 } };
-        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('('));
-        const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
-        if (lineCode.substring(lineCode.indexOf(unitName), lineCode.lastIndexOf('(')).indexOf(' ').length > 2) return 'rejected';
-        ast['call']['name'] = unitName;
-        ast['call']['args'] = unitArguments;
-        return ast;
-    }
-
-
-    /**
-     * It takes a line of code and returns an object with the sub statement and its arguments.
-     * @param lineCode - the line of code that is being parsed
-     * @returns An object with a key of 'sub' and a value of an object with a key of 'args' and a value
-     * of an array of arguments.
-     */
-    static parseSubStatement(lineCode, row){
-        let ast = { sub: {}, parser: { code: lineCode, row: row } };
-        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
-        let args = this.parserArgumentsInstruction(lineCode);
-        this.checkLimitArguments(args, ast.parser, [2, 6]);
-        ast['sub']['args'] = args;
+        ast['imul']['args'] = args;
         return ast;
     }
 
@@ -593,21 +614,6 @@ class Parser {
 
 
     /**
-     * It takes a line of code, splits it into an array of arguments, and then validates each argument.
-     * @param lineCode - the line of code that is being parsed
-     * @returns an object.
-     */
-    static parseImulStatement(lineCode, row){
-        let ast = { imul: {}, parser: { code: lineCode, row: row } };
-        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        let args = this.parserArgumentsInstruction(lineCode);
-        this.checkLimitArguments(args, ast.parser, [2, 6]);
-        ast['imul']['args'] = args;
-        return ast;
-    }
-
-
-    /**
      * It takes a line of code, and returns an object with the model name
      * @param lineCode - The line of code that is being parsed.
      * @returns an object.
@@ -676,11 +682,12 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns a small abstract syntax tree.
      */
-    static parsePopStatement(lineCode) {
-        let ast = { pop: {} };
+    static parsePopStatement(lineCode, row) {
+        let ast = { pop: {}, parser: { code: lineCode , row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode);
-        if (lineCode.split(' ').length > 1) return 'rejected';
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [0, 0]);
         return ast;
     }
 
@@ -696,11 +703,11 @@ class Parser {
      * @returns a small abstract syntax tree.
      */
     static parsePushStatement(lineCode, row) {
-        let ast = { push: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { push: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        if (lineCode.split(' ').length > 2) return 'rejected';
-        let args = lineCode.split(' ');
-        ast['push']['args'] = args[1];
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [1, 2]);
+        ast['push']['args'] = args[0];
         return ast;
     }
 
@@ -716,10 +723,12 @@ class Parser {
      * 'args' property that holds the second element of the split lineCode.
      */
     static parseGetStatement(lineCode, row) {
-        let ast = { get: {}, parser: { code: lineCode, row: row + 1 }  };
+        let ast = { get: {}, parser: { code: lineCode, row: row }  };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        if (lineCode.split(' ').length > 2) return 'rejected';
-        ast['get']['args'] = lineCode.split(' ')[1];
+        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'] });
+        let args = this.parserArgumentsInstruction(lineCode);
+        this.checkLimitArguments(args, ast.parser, [1, 1]);
+        ast['get']['args'] = args[0];
         return ast;
     }
 

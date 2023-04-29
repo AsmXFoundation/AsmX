@@ -13,4 +13,4 @@
 # @api public
 @Unit read():
     @Invoke 0x03
-    @Ret $out
+    @Ret $input

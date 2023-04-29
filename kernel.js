@@ -10,6 +10,7 @@ const Color = require('./utils/color');
 const Compiler = require('./compiler');
 const { FileError } = require('./anatomics.errors');
 const ServerLog = require('./server/log');
+const { getTotalSize } = require('./fs');
 
 log = (message, callback) => process.stdout.write(message, callback);
 
@@ -42,10 +43,46 @@ function question(message, callback) {
     });
 }
 
+
+class Fax {
+    static news() {
+        const faxs = {
+            instructions: Object.getOwnPropertyNames(Parser),
+            registers: Object.getOwnPropertyNames(new Compiler([])),
+            sentence: [
+                '✨ The first version of the AsmX programming language was released on February 23, 2023\n',
+                `The AsmX core size is ${Math.floor(getTotalSize('./') / (1024 * 1024))} megabytes (mb) \n`
+            ],
+        }
+
+        faxs.instructions = faxs.instructions.filter(instruction => /parse\w+Statement/.test(instruction)).length;
+        faxs.registers = faxs.registers.filter(register => /\$\w+/.test(register)).length;
+
+        let randomize = (struct) => {
+            let call = (structure) => Math.floor(Math.random()* (structure - 0) + 0);
+            return (struct instanceof Object) ? call(Reflect.ownKeys(struct).length) : call(struct.length - 1);
+        }
+
+        let faxsKeys = Reflect.ownKeys(faxs);
+        const fax = faxsKeys[randomize(faxs)];
+        const tag = 'Fun faxs';
+        ServerLog.newTag(tag, Color.FG_CYAN);
+
+        if (fax == 'sentence' && Array.isArray(faxs[fax])) {
+            const faxsV2 = faxs[fax];
+            ServerLog.log(faxsV2[randomize(faxs[fax])], tag);
+        } else {
+            ServerLog.log(`fun fax: AsmX have ${faxs[fax]} ${fax}\n`, tag);
+        }
+    }
+}
+
+
 question('AsmX file compiler asmX ~' , (answer) => {
     if (answer.endsWith('.asmx') || answer.endsWith('.asmX')) {
         ServerLog.log(`COMPILING ${answer} FILE...\n`, 'Compiler');
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
+        Fax.news();
 
         let timer = setInterval(() => {
             progressBar.tick();
@@ -71,7 +108,7 @@ class CompilerAsmX {
             new Compiler(parser);
         } catch (e) {
             new FileError({ message: FileError.FILE_NOT_FOUND });
-            // console.log(e);
+            console.log(e);
         }
     }
 }

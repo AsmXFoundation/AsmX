@@ -3,4 +3,11 @@
 @Invoke 0x04                #   write lis (last item stack)
 #----------------------------------------------------------------
 
-@Imul 0x04, 0x09
+@Imul 0x04 3
+@Invoke 0x04
+
+@Add 0x05 $ret
+@Invoke 0x04
+
+@Mod 0x05 0
+@Invoke 0x04

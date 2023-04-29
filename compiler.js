@@ -20,6 +20,8 @@ const { Type } = require('./types');
 const Lexer = require('./lexer');
 const ServerLog = require('./server/log');
 const path = require('path');
+const KernelOS = require('./kernelos');
+const Color = require('./utils/color');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -43,6 +45,8 @@ class Compiler {
             "const", both of which are initially set to null. 
         */
         this.This = {
+            kernelos: KernelOS,
+
             global: {
                 set: this.set,
                 const: this.constants
@@ -93,6 +97,7 @@ class Compiler {
         this.ret = false;
         // Execute registers
         this.$mov = 0x00;
+        this.$get = 0x00;
         // Logical registers
         this.$eq = 0x00;    // a == b
         this.$seq = 0x00; // a === b
@@ -103,7 +108,7 @@ class Compiler {
         this.$b_and = false; // a & b
         this.$b_or = false; // a | b
         // Immutable registers
-        this.$out = 0x00;
+        this.$input = 0x00;
         this.$arch = "AsmX";
 
         if (this.options?.registers && typeof arguments[2] != 'undefined' && typeof arguments[2] == 'object') {
@@ -114,9 +119,10 @@ class Compiler {
             this.$arg4 = this.options.registers['$arg4'];
             this.$arg5 = this.options.registers['$arg5'];
             this.$mov = this.options.registers['$mov'];
+            this.$get = this.options.registers['$get'];
             this.$sp = this.options.registers['$sp'];
             this.$offset = this.options.registers['$offset'];
-            this.$out = this.options.registers['$out'];
+            this.$input = this.options.registers['$input'];
             this.$name = this.options.registers['$name'];
             this.$ret = this.options.registers['$ret'];
             this.$urt = this.options.registers['$urt'];
@@ -249,6 +255,7 @@ class Compiler {
                         $urt: this.$urt,
                         // ................
                         $mov: this.$mov,
+                        $get: this.$get,
                         // jmp counter
                         $count: this.$count+1,
                         type: 'cycle',
@@ -257,7 +264,7 @@ class Compiler {
                         $lis: this.$lis,
                         $sp: this.$sp,
                         // Immutable registers
-                        $out: this.$out,
+                        $input: this.$input,
                         // Other registers
                         $name: this.$name,
                         $offset: this.$offset,
@@ -289,10 +296,11 @@ class Compiler {
 
                 this.$count = compile.$count;
                 this.$math = compile.$math;
-                this.$out = compile.$out;
+                this.$input = compile.$input;
                 this.$ret = compile.$ret;
                 this.$urt = compile.$urt;
                 this.$mov = compile.$mov;
+                this.$get = compile.$get;
                 this.$fis = compile.$fis;
                 this.$lis = compile.$lis;
                 this.$cmp = compile.$cmp;
@@ -313,8 +321,62 @@ class Compiler {
     }
 
 
-    compileGetStatement(statement) {}
+    /**
+     * The function compiles a JavaScript get statement and checks for non-existent properties.
+     * @param statement - The statement being compiled, which includes the arguments to be parsed and
+     * executed.
+     * @param index - The index parameter is not used in the given code snippet. It is not clear what
+     * its purpose is without further context.
+     * @param trace - The `trace` parameter is an object that contains information about the current
+     * execution context, such as the row and code where the function is being called from. It is used
+     * for error reporting purposes.
+     */
+    compileGetStatement(statement, index, trace) {
+        let $this = this.This;
+        const properties = statement.args.split('::');
 
+        function NonExistent(trace, object, select, position = 'end') {
+            new ArgumentError(`[${Color.FG_RED}ArgumentException${Color.FG_WHITE}]: Non-existent property`, {
+                row: trace?.parser.row, code: trace?.parser.code, select: select, position: position
+            });
+
+            ServerLog.log(`You need to use existing keys example: { ${Color.FG_BLUE}${ Reflect.ownKeys(object).join(`${Color.FG_WHITE}, ${Color.FG_BLUE}`)} ${Color.FG_WHITE}}`, 'Possible fixes');
+            process.exit(1);
+        }
+
+        if (!['global', 'local', 'kernelos'].includes(properties[0])) $this = $this[this.scope];
+
+        properties.forEach((property) => {
+            if (property.indexOf(':') > -1) property = property.split(':');
+
+            if ($this instanceof Array) {
+                if (property instanceof Array) {
+                    try {
+                        this.$get = $this.filter(item => item.name == property[0])[0][property[1]];
+                        if (this.$get == undefined) NonExistent(trace, $this[0], property[1]);
+                    } catch {
+                        NonExistent(trace, $this[0], property[1]);
+                    }
+                } else {
+                    try {
+                        this.$get = $this.filter(item => item.name == property)[0]['value'];
+                    } catch {
+                        NonExistent(trace, $this, property, 'start');
+                    }
+                }
+            } else if ($this instanceof Function) {
+                if (properties[0] == 'kernelos') $this = $this['datalist'];
+                $this = $this[property];
+            } else {
+                try {
+                    this.$get = $this[property]();
+                } catch (error) {
+                    $this = $this[property];
+                    if ($this == undefined) NonExistent(trace, this.This, property);
+                }
+            }
+        });
+    }
 
     /**
      * This function pushes the first argument of the statement to the stack.
@@ -362,6 +424,7 @@ class Compiler {
         }   else if (this.$arg0 == 'offset') this.$offset = 0x00
             else if (this.$arg0 == 'text')  this.$text = ''
             else if (this.$arg0 == 'sp') this.$sp = 0x00
+            else if (this.$arg0 == 'get') this.$get = 0x00
     }
 
 
@@ -508,7 +571,7 @@ class Compiler {
         
         // read
         if (this.$arg0 == 0x03) {
-            this.$arg0 = this.$out = FlowInput.createInputStream(this.$text);
+            this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
             this.$stack.push({ value: this.$arg0 });
         }
     }
@@ -540,118 +603,106 @@ class Compiler {
 
 
     /**
-     * "This function compiles a statement that multiplies all of its arguments together and pushes the
-     * result onto the stack."
-     * 
-     * The first thing the function does is call the compilerAllArguments function. This function takes
-     * the statement and the type of the arguments as parameters. The compilerAllArguments function
-     * will then compile all of the arguments in the statement and store them in the  through
-     *  variables.
-     * 
-     * The next thing the function does is multiply all of the arguments together and store the result
-     * in the  variable.
-     * 
-     * The last thing the function does is push the result onto the stack.
-     * @param statement - The statement object.
-     */
-    compileImulStatement(statement, index, trace) {
-        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
-
-        statement.args.map(arg => {
-            if (!ValidatorByType.validateTypeNumber(this.checkArgument(arg) || arg)) {
-                new ArgumentError(ArgumentError.ARGUMENT_INVALID_TYPE_ARGUMENT, { select: arg, ...trace?.parser });
-                ServerLog.log('You need to use numeric type arguments.', 'Possible fixes');
-                process.exit(1);
-            }
-        });
-
-        this.$ret = this.$arg0 * this.$arg1;
-        if (this.$arg2 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg2;
-        if (this.$arg3 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg3;
-        if (this.$arg4 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg4;
-        if (this.$arg5 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret * this.$arg5;
-        if (isNaN(this.$ret)) this.$ret = 0x00;
-        this.$stack.push({ value: this.$ret });
-    }
-
-
-    /**
-     * "This function takes a statement, and then compiles it into a JavaScript function that will
-     * divide all of the arguments together and then push the result onto the stack."
-     * 
-     * The first thing that the function does is call the compilerAllArguments function. This function
-     * takes the statement, and then compiles it into a JavaScript function that will push all of the
-     * arguments onto the stack.
-     * 
-     * The next thing that the function does is set the  variable to the result of dividing all of
-     * the arguments together.
-     * 
-     * The last thing that the function does is push the result onto the stack.
-     * @param statement - The statement to be compiled.
-     */
-    compileDivStatement(statement, index, trace) {
-        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
-        this.$ret = this.$arg0 / this.$arg1;
-        if (this.$arg2 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret / this.$arg2;
-        if (this.$arg3 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret / this.$arg3;
-        if (this.$arg4 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret / this.$arg4;
-        if (this.$arg5 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret / this.$arg5;
-        if (isNaN(this.$ret)) this.$ret = 0x00;
-        this.$stack.push({ value: this.$ret });
-    }
-
-
-    /**
-     * "This function takes a statement, and compiles it into a JavaScript function that returns the
-     * remainder of the first argument divided by the second argument."
-     * 
-     * The first line of the function is a comment. It's a comment because it starts with a double
-     * slash. Comments are ignored by the compiler.
-     * 
-     * The second line of the function is a function call. It's a function call because it starts with
-     * the name of a function, followed by a pair of parentheses. The function call is to the function
-     * "compilerAllArguments". The function call passes two arguments to the function. The first
-     * argument is the statement. The second argument is the string "Int".
-     * 
-     * The third line of the function is an assignment. It's an assignment because it starts with a
-     * dollar sign, followed by an equal sign. The assignment assigns the value of the first argument
-     * to the variable "".
-     * 
-     * The fourth line of the
-     * @param statement - The statement object.
-     */
-    compileModStatement(statement, index, trace) {
-        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
-        this.$ret = this.$arg0 % this.$arg1;
-        if (this.$arg2 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret % this.$arg2;
-        if (this.$arg3 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret % this.$arg3;
-        if (this.$arg4 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret % this.$arg4;
-        if (this.$arg5 !== 0x00 || typeof this.$arg2 == 'undefined') this.$ret = this.$ret % this.$arg5;
-        if (isNaN(this.$ret)) this.$ret = 0x00;
-        this.$stack.push({ value: this.$ret });
-    }
-
-
-    /**
-     * It takes a statement object, and adds the arguments together, and pushes the result to the
-     * stack.
-     * @param statement - The statement object that is being compiled.
+     * This function compiles an addition statement by validating and adding all the arguments, and
+     * then pushing the result onto the stack.
+     * @param statement - The statement object that contains information about the "add" operation
+     * being compiled, such as the operation type and its arguments.
+     * @param index - The index parameter in the function `compileAddStatement` is used as a loop
+     * counter to iterate over the arguments passed to the function. It is not used for any other
+     * purpose within the function.
+     * @param trace - The `trace` parameter is an optional object that contains information about the
+     * code being compiled, such as the code itself and the row number. It is used to provide more
+     * detailed error messages if there are any issues during compilation.
      */
     compileAddStatement(statement, index, trace) {
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
-        this.$ret = this.$arg0 + this.$arg1 + this.$arg2 + this.$arg3 + this.$arg4 + this.$arg5;
+        this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
+        this.$ret = 0;
+        for (let index = 0; index < statement.args.length; index++) this.$ret += this[`$arg${[index]}`];
         this.$stack.push({ value: this.$ret });
     }
 
 
     /**
-     * It takes a statement, and then it does some stuff with it.
-     * @param statement - The statement object that is being compiled.
+     * This function compiles a subtraction statement by validating the arguments and subtracting them
+     * from the first argument.
+     * @param statement - The statement to be compiled, which is an object containing information about
+     * the code to be executed.
+     * @param index - The index parameter in the function `compileSubStatement` is used as a loop
+     * counter to iterate over the arguments passed to the function. It starts at 1 because the first
+     * argument is already assigned to `this.`.
+     * @param trace - The `trace` parameter is an object that contains information about the current
+     * execution context, including the parser code and row number. It is used to provide more detailed
+     * error messages and debugging information.
      */
     compileSubStatement(statement, index, trace) {
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
-        this.$ret = this.$arg0 - this.$arg1 - this.$arg2 - this.$arg3 - this.$arg4 - this.$arg5;
-        if (isNaN(this.$ret)) this.$ret = 0x00;
+        this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
+        this.$ret = this.$arg0;
+        for (let index = 1; index < statement.args.length; index++) this.$ret -= this[`$arg${[index]}`];
+        this.$stack.push({ value: this.$ret });
+    }
+
+
+    /**
+     * This function compiles a division statement in JavaScript, checking the type of arguments and
+     * pushing the result onto the stack.
+     * @param statement - The statement object that contains information about the division operation
+     * to be performed.
+     * @param index - The index parameter in the function `compileDivStatement` is used as a loop
+     * counter to iterate over the arguments passed to the function. It starts at 1 because the first
+     * argument is already assigned to ``.
+     * @param trace - The `trace` parameter is an optional object that contains information about the
+     * code being executed, including the parser code and row number. It is used to provide more
+     * detailed error messages and debugging information.
+     */
+    compileDivStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
+        this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
+        this.$ret = this.$arg0;
+        for (let index = 1; index < statement.args.length; index++) this.$ret /= this[`$arg${[index]}`];
+        this.$stack.push({ value: this.$ret });
+    }
+
+
+    /**
+     * This function compiles a modulo statement in JavaScript, validating the arguments and returning
+     * the result.
+     * @param statement - The statement to be compiled, which is an object containing information about
+     * the "mod" operation and its arguments.
+     * @param index - The index parameter in the function `compileModStatement` is used as a loop
+     * counter to iterate over the arguments passed to the function. It starts at 1 because the first
+     * argument is already assigned to ``.
+     * @param trace - The `trace` parameter is an object that contains information about the current
+     * execution context, including the parser code and row number. It is used to provide more detailed
+     * error messages and debugging information.
+     */
+    compileModStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
+        this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
+        this.$ret = this.$arg0;
+        for (let index = 1; index < statement.args.length; index++) this.$ret %= this[`$arg${[index]}`];
+        this.$stack.push({ value: this.$ret });
+    }
+
+
+    /**
+     * This function compiles an imul statement in JavaScript by checking the type of arguments and
+     * multiplying them together.
+     * @param statement - The statement object that contains information about the "imul" statement
+     * being compiled, such as the name of the statement and its arguments.
+     * @param index - The index parameter in the function `compileImulStatement` is used as a loop
+     * counter to iterate over the arguments passed to the function. It is not used for any other
+     * purpose within the function.
+     * @param trace - The `trace` parameter is an optional object that contains information about the
+     * current execution context, such as the code being executed and the current row in the code. It
+     * is used to provide more detailed error messages and debugging information.
+     */
+    compileImulStatement(statement, index, trace) {
+        this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
+        this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
+        this.$ret = 1;
+        for (let index = 0; index < statement.args.length; index++) this.$ret *= this[`$arg${[index]}`];
         this.$stack.push({ value: this.$ret });
     }
 
@@ -784,6 +835,30 @@ class Compiler {
        statement.state == 'true' ? usestate.state = true : usestate.state = false;
     }
 
+    
+    /**
+     * The function checks if the type of arguments in a list matches a given function and throws an
+     * error if they don't.
+     * @param list - The `list` parameter is an array of arguments that need to be checked for their
+     * type.
+     * @param trace - The `trace` parameter is likely an object that contains information about the
+     * location or context in which the `checkTypeArguments` function is being called. It may include
+     * properties such as `parser` which could provide information about the parser being used.
+     * However, without more context it is difficult to determine the
+     * @param func - The `func` parameter is a function that takes an argument and returns a boolean
+     * value indicating whether the argument is of the correct type. This function is used to validate
+     * the type of each argument in the `list` parameter.
+     */
+    checkTypeArguments(list, trace, func) {
+        list.map(arg => {
+            if (!func(this.checkArgument(arg) || arg)) {
+                new ArgumentError(ArgumentError.ARGUMENT_INVALID_TYPE_ARGUMENT, { select: arg, ...trace?.parser });
+                ServerLog.log('You need to use numeric type arguments.', 'Possible fixes');
+                process.exit(1);
+            }
+        });
+    }
+
 
     /**
      * It takes a statement and a type, and then sets the arguments to the statement's arguments
@@ -858,7 +933,6 @@ class Compiler {
         if (/^[A-Z]+(_[A-Z]+)*$/.test(arg)) return checkConstant(arg);
 
         if (/\$\w+/.test(arg)) {
-            console.log(arg);
             if (Reflect.has(this, `${arg}`)){
                 return this[`${arg}`];
             } else {

@@ -54,8 +54,8 @@
 
 #----------------------------------------------------------------
 @Execute mov 0x01           #   $mov = 0x01 AND $ret = 0x01
-@Invoke 0x03                #   user readline ($out)
-@Add $out, $ret             #   $ret = $out + $ret
+@Invoke 0x03                #   user readline ($input)
+@Add $input, $ret             #   $ret = $input + $ret
 @Modify $mov $ret           #   $mov = $ret
 @Route $ret                 #   write $ret in stack
 @Invoke 0x04                #   write lis (last item stack)

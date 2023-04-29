@@ -69,7 +69,7 @@ class ArgumentError {
             if (this.options.position === 'first') {
                 nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
             } else if (this.options.position === 'end') {
-                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.length -1)}^${Color.RESET}\n`;
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.length - this.options?.select.length)}^${'-'.repeat(this.options.select.length - 1)}${Color.RESET}\n`;
             } else {
                 nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.indexOf(this.options.select))}^${'-'.repeat(this.options.select.length-1)}${Color.RESET}\n`;
             }

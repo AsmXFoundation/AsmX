@@ -1,5 +1,37 @@
 const { ArgumentError } = require("./anatomics.errors");
 
+class Type {
+    static types = [];
+
+    static has(type) {
+        let is = false;
+        this.types.forEach(t => { if (t.name == type) is = true });
+        return is;
+    }
+
+    static check(type, value) {
+        let rules = this.types.filter(t => t.name == type);
+        let check = false;
+
+        if (Array.isArray(rules)) {
+            rules.forEach(rule => check = rule.rule.test(value));
+        } else {
+            check = rules[0]['rule'].test(value);
+        }
+
+        return check;
+    }
+
+    static getRule(type) {
+        return this.types.filter(t => t.name == type)['rule'];
+    }
+
+    static new(name, rule) {
+        this.types.push({ name, rule });
+    }
+}
+
+
 class List {
     constructor(...items) {
         items.forEach(item => {
@@ -34,20 +66,6 @@ class List {
     }
 }
 
-class ListItem {
-    constructor(...items) {
-        this.items = items;
-        this.type = 'Item';
-    }
-}
-
-class None extends Number {
-    constructor() {
-        this.value = undefined;
-        this.type = 'None';
-        return undefined;
-    }
-}
 
 class Tuple extends List {
     constructor(...items) {
@@ -56,4 +74,17 @@ class Tuple extends List {
         this.readable = false;
         this.type = 'Tuple';
     }
+}
+
+
+Type.new('String', /'[^"]*'/);
+Type.new('String', /"[^']*"/);
+Type.new('Int', /([+-]?\d+$)/);
+Type.new('Float', /[/+-]?\d+(\.\d+)$/);
+
+
+module.exports = {
+    Type,
+    Tuple,
+    List
 }

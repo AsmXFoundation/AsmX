@@ -75,7 +75,20 @@ class ValidatorByType {
      */
     static validateTypeHex(lineCode){
         lineCode = lineCode.indexOf(';') !== -1 ? lineCode.trim().slice(0, lineCode.indexOf(';') - 1) : lineCode.trim();
-        return /[0-9a-fA-F]+x[0-9a-fA-F]+/.test(lineCode);
+        return /0[xX][0-9a-fA-F]+/.test(lineCode);
+    }
+
+
+    /**
+     * The function validates if a given value is a number in various formats.
+     * @param value - The value that needs to be validated as a number.
+     * @returns The function `validateTypeNumber` returns a boolean value indicating whether the input
+     * `value` matches any of the three regular expressions in the array.
+     */
+    static validateTypeNumber(value) {
+        let is;
+        [/0[xX][0-9a-fA-F]+/, /^[+-]?\d+(\.\d+)$/, /(^[+-]?\d+$)/].forEach(v => { if (v.test(value)) is = true });
+        return is;
     }
 }
 

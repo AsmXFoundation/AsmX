@@ -3,7 +3,7 @@ const os = require('os');
 class KernelOS {
     static {
         this.datalist = {
-            $date:  {
+            date:  {
                 time: () => new Date().toLocaleString(),
                 year: () =>  new Date().getFullYear(),
                 month: () => new Date().getMonth(),
@@ -14,12 +14,12 @@ class KernelOS {
                 milliseconds: () => new Date().getMilliseconds()
             },
 
-            $kernel: {
+            kernel: {
                 arch: 'AsmX',
                 version: 'v1.0'
             },
 
-            $os: {
+            os: {
                 arch: os.arch(),
                 version: os.version()
             }
