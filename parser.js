@@ -1,12 +1,9 @@
-const { TypeError, UnitError, SymbolError, SyntaxError, CodeStyleException, InstructionException, ArgumentError } = require("./anatomics.errors");
+const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException } = require("./anatomics.errors");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
 const ServerLog = require("./server/log");
+const Structure = require("./structure");
 const Color = require("./utils/color");
-
-function isUnitStatement(line) {
-    return line.replace(/\s+/g, ' ').startsWith('@Unit');
-}
 
 class Parser {
     static parse(sourceCode) {
@@ -55,38 +52,26 @@ class Parser {
 
            if (line.length === 0) continue;
 
-            if (isInterpreteProccess.state && isUnitStatement(line)) {
+            if (isInterpreteProccess.state && Structure.is(line)){
                 isInterpreteProccess.state = false;
-                let unit = this.parseUnitStatement(line);
-                let unitBody = [];
-                if (unit == 'rejected' || line.length === 0) break ParserCycle;
+                let structureName = Structure.getNameByLine(line.trim())[1];
+                let structureBody = [];
                 let fixedLine = index;
-                
-                UnitCycle: for (let idx = fixedLine, len = lines.length, iterator = 0; idx < len; idx++, iterator++) {
-                    let lineUnit = lines[idx].trim();
-                    this.parseAndDeleteEmptyCharacters(lineUnit) != '' && this.parseStatement(lineUnit, idx);
-    
-                    if (iterator > 0 && (isUnitStatement(lineUnit) || lineUnit.replace(/\s+/g, ' ').startsWith('@unit'))) {
-                        let message = "you have no right to make a nested function in a function.";
-                        ServerLog.log(message, 'Exception');
-                        new UnitError(lineUnit, `\n<source:${idx+1}:1>  ${message}`, { row: idx });
-                        ServerLog.log('You need to remove this line.', 'Possible fixes');
-                        process.exit(1);
-                    }
-                    
-                    if (lineUnit.length === 0) break UnitCycle
-                    else unitBody.push(lineUnit), lines[idx] = '';
+
+                StructureCycle: for (let idx = fixedLine, len = lines.length, iterator = 0; idx < len; idx++, iterator++) {
+                    let lineStructure = lines[idx].trim();
+                    this.parseAndDeleteEmptyCharacters(lineStructure) != '' && this.parseStatement(lineStructure, idx);
+                    let structureNameByLine = Structure.getNameByLine(lineStructure);
+                    if (structureNameByLine != null) structureNameByLine = structureNameByLine[1];
+                    if (iterator > 0 && structureNameByLine == structureName) StructureException.NestedStructureException(structureName, lineStructure, idx);
+                    if (iterator > 0 && Structure.is(lineStructure)) StructureException.NestedStructureInStructureException(structureName, structureNameByLine, lineStructure, idx);
+                    if (lineStructure.length === 0) break StructureCycle;
+                    else structureBody.push(lineStructure), lines[idx] = '';
                 }
 
-                if (unitBody.length === 1) {
-                    let message = 'You can\'t create an empty function.';
-                    ServerLog.log(message, 'Exception');
-                    new UnitError(unitBody[0], `\n<soure:${fixedLine}:1>  ${message}`, { row: fixedLine });
-                    ServerLog.log('You need to remove this line, or add a function.', 'Possible fixes');
-                    process.exit(1);
-                }
-                
-                tokens.push({ unit: unitBody });
+                if (structureBody.length === 1) StructureException.EmptyStructureException(structureName, structureBody[0], fixedLine);
+                structureName = structureName[0].toLowerCase() + structureName.slice(1);
+                tokens.push({ [structureName]: structureBody });
                 isInterpreteProccess.state = true;
                 continue;
             } else if (isInterpreteProccess.state) {
@@ -259,13 +244,20 @@ class Parser {
      * @returns a small abstract syntax tree.
      */
     static parseCallStatement(lineCode, row){
-        let ast = { call: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { call: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const unitName = lineCode.substring(lineCode.indexOf(' ') + 1, lineCode.indexOf('('));
-        const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
-        if (lineCode.substring(lineCode.indexOf(unitName), lineCode.lastIndexOf('(')).indexOf(' ').length > 2) return 'rejected';
-        ast['call']['name'] = unitName;
-        ast['call']['args'] = unitArguments;
+        let tokens = /\@[c|C]all\s+(\w+)\(([^]+)?\)/.exec(lineCode);
+
+        if (tokens == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['call']['name'] = tokens[1];
+        ast['call']['args'] = tokens[2] || '()';
         return ast;
     }
 
@@ -385,9 +377,9 @@ class Parser {
      * value of the stack address.
      */
     static parseStackStatement(lineCode, row){
-        let ast = { stack: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { stack: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const [StackToken, StackAddress] = lineCode.split(' ');
+        const [, StackAddress] = lineCode.split(' ');
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         if (lineCode.split(' ').length > 2) return 'rejected';
 
@@ -441,10 +433,10 @@ class Parser {
      * @returns An array of objects.
      */
     static parseSetStatement(lineCode, row){
-        let ast = { set: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { set: {}, parser: { code: lineCode, row: row } };
         let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const instructionPattern = /^@[s|S]et\s+([\w-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/;
+        const instructionPattern = /^@[s|S]et\s+([^-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/;
         let match = instructionPattern.exec(lineCode);
         
         if (match == null) {
@@ -732,6 +724,25 @@ class Parser {
         return ast;
     }
 
+
+    static parseLabelStatement(lineCode, row) {
+        let ast = { label: {}, parser: { code: lineCode, row: row } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        let match = lineCode.match(/^\@[L|l]abel\s+(\w+)(?=\s+\:|\:)/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['label']['name'] = match[1];
+        return ast;
+    }
 
     /**
      * This function parses the arguments of a given line of code in JavaScript.

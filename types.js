@@ -82,7 +82,6 @@ Type.new('String', /"[^']*"/);
 Type.new('Int', /([+-]?\d+$)/);
 Type.new('Float', /[/+-]?\d+(\.\d+)$/);
 
-
 module.exports = {
     Type,
     Tuple,

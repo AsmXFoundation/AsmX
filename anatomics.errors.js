@@ -1,3 +1,4 @@
+const ServerLog = require("./server/log");
 const Color = require("./utils/color");
 const highlightCLI = require("./utils/highlight");
 
@@ -254,6 +255,62 @@ class RegisterException {
 }
 
 
+class StructureException {
+    /**
+     * The function throws an exception if an attempt is made to create an empty data structure in
+     * JavaScript.
+     * @param structure - The type of data structure that is being checked for emptiness (e.g. label, unit).
+     * @param body - The body of the code where the exception occurred. It is used to provide
+     * additional context for the error message.
+     * @param line - The line number where the exception occurred.
+     */
+    static EmptyStructureException(structure, body, line) {
+        let message = `You can\'t create an empty ${structure}.`;
+        ServerLog.log(message, 'Exception');
+        new UnitError(body, `\n<soure:${line}:1>  ${message}`, { row: line });
+        ServerLog.log(`You need to remove this line, or add a ${structure}.`, 'Possible fixes');
+        process.exit(1);
+    }
+    
+
+    /**
+     * The function throws an exception if a nested structure is attempted in a structure where it is
+     * not allowed.
+     * @param structure - The type of structure that is being nested (e.g. "unit", "label").
+     * @param line - The line number where the error occurred in the code.
+     * @param sourceline - The sourceline parameter is the line number in the source code where the
+     * error occurred.
+     */
+    static NestedStructureException(structure, line, sourceline) {
+        let message = `you have no right to make a nested ${structure} in a ${structure}.`;
+        ServerLog.log(message, 'Exception');
+        new UnitError(line, `\n<source:${sourceline + 1}:1>  ${message}`, { row: sourceline });
+        ServerLog.log('You need to remove this line.', 'Possible fixes');
+        process.exit(1);
+    }
+
+    
+    /**
+     * This function logs an error message and exits the process if a nested structure is attempted to
+     * be created within another structure.
+     * @param structure - The name of the structure that is being nested within another structure.
+     * @param nestedstructure - The parameter "nestedstructure" refers to the type of structure in
+     * which the nested structure is being attempted to be created. For example, if the main structure
+     * is a "class" and someone is trying to create a nested "function" within that class, then "class"
+     * would be the nestedstructure
+     * @param line - The line number where the exception occurred.
+     * @param sourceline - The line number in the source code where the exception occurred.
+     */
+    static NestedStructureInStructureException(structure, nestedstructure, line, sourceline) {
+        let message = `you have no right to make a nested ${structure} in a ${nestedstructure}.`;
+        ServerLog.log(message, 'Exception');
+        new UnitError(line, `\n<source:${sourceline + 1}:1>  ${message}`, { row: sourceline });
+        ServerLog.log('You need to remove this line.', 'Possible fixes');
+        process.exit(1);
+    }
+}
+
+
 class StackTraceException {
     constructor() {
         let message = 'You have exceeded the stack trace limit';
@@ -313,5 +370,6 @@ module.exports = {
     InstructionException: InstructionException,
     RegisterException: RegisterException,
     ImportException: ImportException,
-    StackTraceException: StackTraceException
+    StackTraceException: StackTraceException,
+    StructureException: StructureException
 }

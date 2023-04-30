@@ -1,6 +1,7 @@
 const { UnitError, ArgumentError } = require("./anatomics.errors");
 const Lexer = require("./lexer");
 const Parser = require("./parser");
+const { Type } = require("./types");
 
 class UnitCall {
     constructor(){
@@ -18,10 +19,19 @@ class UnitCall {
      */
     #lexerFunctionArguments(lineCode, args, typesArgs, options){
         args = args.indexOf(',') ? args = args.trim().split(",").map(arg => arg.trim()) : args.trim();
-        
+
         for (let index = 0; index < args.length; index++) {
             const typeArgument = typesArgs[index];
-            Lexer.lexerAutonomyByType(lineCode, args[index], typeArgument, options);
+            if (typeArgument == 'Any') continue;
+
+            if (!Type.check(typeArgument, args[index])) {
+                new ArgumentError(ArgumentError.ARGUMENT_INVALID_TYPE_ARGUMENT, {
+                    ...options, select: args[index]
+                });
+
+                process.exit(1);
+            }
+            // Lexer.lexerAutonomyByType(lineCode, args[index], typeArgument, options);
         }
     }
 
