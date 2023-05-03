@@ -717,7 +717,7 @@ class Parser {
     static parseGetStatement(lineCode, row) {
         let ast = { get: {}, parser: { code: lineCode, row: row }  };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'] });
+        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'], brackets: ['{', '}', '(', ')'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [1, 1]);
         ast['get']['args'] = args[0];
@@ -725,6 +725,15 @@ class Parser {
     }
 
 
+    /**
+     * This function parses a label statement in JavaScript code and returns an abstract syntax tree
+     * (AST) object containing information about the label.
+     * @param lineCode - The code for a single line of a program.
+     * @param row - The row number of the line of code being parsed.
+     * @returns an object with a "label" property that contains a "name" property and a "parser"
+     * property that contains a "code" and "row" property. If the input line of code is invalid or does
+     * not contain the expected label syntax, the function returns the string "rejected".
+     */
     static parseLabelStatement(lineCode, row) {
         let ast = { label: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
@@ -741,6 +750,76 @@ class Parser {
         }
 
         ast['label']['name'] = match[1];
+        return ast;
+    }
+
+
+    /**
+     * This function parses an environment statement in JavaScript code and returns an abstract syntax
+     * tree (AST) object.
+     * @param lineCode - a string representing a line of code to be parsed as an environment statement
+     * @param row - The line number or row in the code where the statement is located.
+     * @returns an object with the parsed environment statement, which includes the environment name
+     * and parser information. If the input line of code is invalid or missing required arguments, the
+     * function will return the string 'rejected'.
+     */
+    static parseEnviromentStatement(lineCode, row) {
+        let ast = { enviroment: {}, parser: { code: lineCode, row: row } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        let match = lineCode.match(/^\@[E|e]nviroment\s+(\w+)(?=\s+\:|\:)/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['enviroment']['name'] = match[1];
+        return ast;
+    }
+
+
+    static parseSubprogramStatement(lineCode, row) {
+        let ast = { subprogram: {}, parser: { code: lineCode, row: row } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        let match = lineCode.match(/^\@[S|s]ubprogram\s+(\w+)(?=\s+\:|\:)/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['subprogram']['name'] = match[1];
+        return ast;
+    }
+
+
+    static parseUsingStatement(lineCode, row) {
+        let ast = { using: {}, parser: { code: lineCode, row: row } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode);
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        let match = lineCode.match(/^\@[U|u]sing\s+(\w+)\s+(\w+)/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['using']['structure'] = match[1];
+        ast['using']['name'] = match[2];
         return ast;
     }
 

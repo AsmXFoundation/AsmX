@@ -9,7 +9,7 @@ class Structure {
      */
     static is(line) {
         let is = false;
-    
+         
         for (let structure of this.structures) {
             let pattern = new RegExp(`^\@[${structure[0].toLowerCase()}|${structure[0].toUpperCase()}]${structure.slice(1)}`);
             if (pattern.test(line)) is = true;
@@ -45,5 +45,7 @@ class Structure {
 
 Structure.new('label');
 Structure.new('unit');
+Structure.new('subprogram');
+Structure.new('enviroment');
 
 module.exports = Structure;

@@ -13,5 +13,18 @@
     @Route [text]
     @Invoke 0x04
 
-@Unit text_for_read(text):
+
+@unit input(text):
     @Modify $text [text]
+    @Invoke 0x03
+    @Ret $input
+
+
+@Unit get_char(string: String, index: Int):
+    @get [string][[index]]
+    @Ret $get
+
+
+@Unit is_Empty(symbol):
+    @Execute eq [symbol] Empty
+    @Ret $eq

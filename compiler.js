@@ -6,7 +6,7 @@
 const fs = require('fs');
 
 // Components that compiler
-const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException } = require('./anatomics.errors');
+const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException } = require('./anatomics.errors');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -15,12 +15,13 @@ const Parser = require('./parser');
 const Route = require("./route");
 const Stack = require("./stack");
 const unitCall = require('./unit.call');
-const { Type } = require('./types');
+const { Type, List } = require('./types');
 const ServerLog = require('./server/log');
 const KernelOS = require('./kernelos');
 const Color = require('./utils/color');
 const Label = require('./label');
 const Labels = require('./label');
+const Structure = require('./structure');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -33,6 +34,9 @@ class Compiler {
         this.set = [];
         this.constants = [];
         this.labels = [];
+        this.subprograms = [];
+        this.enviroments = [];
+        this.usings = [];
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
         this.STACKTRACE_LIMIT = 10;
 
@@ -122,12 +126,15 @@ class Compiler {
             this.$name = this.options.registers['$name'];
             this.$ret = this.options.registers['$ret'];
             this.$urt = this.options.registers['$urt'];
-            this.set = this.options.registers['set'];
-            this.labels = this.options.registers['labels'];
-            this.This = this.options.registers['This'];
-            this.scope = this.options.registers['scope'];
             this.$math = this.options.registers['$math'];
             this.$count = this.options.registers['$count'];
+            this.set = this.options.registers['set'];
+            this.labels = this.options.registers['labels'];
+            this.enviroments = this.options.registers['enviroments'];
+            this.subprograms = this.options.registers['subprograms'];
+            this.stack = this.options.registers['stack'] || new Stack();
+            this.This = this.options.registers['This'];
+            this.scope = this.options.registers['scope'];
             this.type = this.options.registers['type'];
             // Logical registers
             this.$eq = this.options.registers['$eq'];
@@ -191,10 +198,10 @@ class Compiler {
        /* Checking if the argument is a hex, int, or float. If it is, it will return the argument. */
         args = args.map((arg) => {
             if (ValidatorByType.validateTypeNumber(arg)) {
-                return  +this.checkArgument(arg) || +arg;
+                return  +this.checkArgument(arg, trace?.parser.code, trace?.parser.row) || +arg;
             } else {
                 if (ValidatorByType.validateTypeNumber(arg)) return +this.checkArgument(arg) || +arg;
-                return this.checkArgument(arg) || arg;
+                return this.checkArgument(arg, trace?.parser.code, trace?.parser.row) || arg;
             }
         });
 
@@ -229,6 +236,11 @@ class Compiler {
         if (this.$arg0 == 'b_and')  this.$ret = this.$b_and = args[0] & args[1];
         if (this.$arg0 == 'b_or')   this.$ret = this.$b_or = args[0] | args[1];
         
+        if (this.$arg0 == 'rand') {
+            args[0] = +args[0] || 0;
+            this.$ret = this.$math = Math.floor(Math.random() * (args[1] - args[0] + 1) + args[0]);
+        }
+
         if (this.$arg0 == 'jmp') {
             let source = [];
             let compile;
@@ -268,7 +280,10 @@ class Compiler {
                         set: this.set,
                         labels: this.labels,
                         constants: this.constants,
+                        enviroments: this.enviroments,
+                        ubprograms: this.subprograms,
                         scope: this.scope,
+                        This: this.This,
                         argsScopeLocal: this.argsScopeLocal,
                         // Logical registers
                         $cmp: this.$cmp,
@@ -307,7 +322,10 @@ class Compiler {
                 this.set = compile.set;
                 this.labels = compile.labels;
                 this.constants = compile.constants;
+                this.subprograms = compile.subprograms;
+                this.enviroments = compile.enviroments;
                 this.scope = compile.scope;
+                this.This = compile.This;
                 this.argsScopeLocal = compile.argsScopeLocal;
                 this.type = compile.type;
 
@@ -315,34 +333,111 @@ class Compiler {
             }
         }
 
-        if (this.$arg0 == 'jmp_great' && this.$cmp == true) {
-            let labels = this.This['label'];
-            let label = labels.filter(label => Reflect.ownKeys(label)[0] == args[0]);
-            let registers = { set: this.set, constants: this.constants, This: this.This, scope: this.scope };
+        function labelNonExistent(trace, label) {
+            new ArgumentError(`[${Color.FG_RED}JmpExecute${Color.FG_WHITE}]: Non-existent label`, {
+                row: trace?.parser.row,
+                code: trace?.parser.code || `@label ${label}:`,
+                select: label,
+                position: 'end'
+            });
+
+            process.exit(1);
+        }
+
+        function labelExecute(globalThis, labelname) {
+            let labels = globalThis.This['label'];
+            let label = labels.filter(label => Reflect.ownKeys(label)[0] == labelname);
+            let registers = { set: globalThis.set, constants: globalThis.constants, This: globalThis.This, scope: globalThis.scope };
             
             if (label == null) {
-                // new ArgumentError(`[${Color.FG_RED}JmpExecute${Color.FG_WHITE}]: Non-existent label`, {
-                //     row: 0,
-                //     code: trace?.parser.code || `@label ${args[0]}:`,
-                //     select: args[0],
-                //     position: 'end'
-                // });
-
-                process.exit(1);
+                labelNonExistent(trace, label);
             } else {
-                label = label[0][args[0]].join('\n');
+                try {
+                    label = label[0][labelname].join('\n');
+                } catch {
+                    labelNonExistent(trace, labelname);
+                }
             }
 
-            for (const register of Object.getOwnPropertyNames(this)) {
-                if (register.match(/\$\w+/)) registers[register] = this[register];
+            for (const register of Object.getOwnPropertyNames(globalThis)) {
+                if (register.match(/\$\w+/)) registers[register] = globalThis[register];
             }
 
-            let compiler = new Compiler(Parser.parse(label), this.scope, { registers: registers });
+            let compiler = new Compiler(Parser.parse(label), globalThis.scope, { registers: registers });
 
             for (const register of Object.getOwnPropertyNames(compiler)) {
-                if (register.match(/\$\w+/)) this[register] = compiler[register];
+                if (register.match(/\$\w+/)) globalThis[register] = compiler[register];
             }
         }
+
+        function SubprogramExecute(globalThis, subprogramname) {
+            try {
+                let subprogram = globalThis.subprograms.filter(subprogram => Reflect.ownKeys(subprogram)[0] == subprogramname);
+
+                let registers = { 
+                    set: globalThis.set, 
+                    constants: globalThis.constants, 
+                    This: globalThis.This, 
+                    scope: globalThis.scope,
+                    labels: globalThis.labels,
+                    enviroments: globalThis.enviroments,
+                    subprograms: globalThis.subprograms,
+                    stack: globalThis.stack
+                };
+
+                for (const register of Object.getOwnPropertyNames(globalThis)) {
+                    if (register.match(/\$\w+/)) registers[register] = globalThis[register];
+                }
+    
+                let compiler = new Compiler(Parser.parse(subprogram[0][subprogramname].join('\n')), globalThis.scope, { registers: registers });
+    
+                for (const register of Object.getOwnPropertyNames(compiler)) {
+                    if (register.match(/\$\w+/)) globalThis[register] = compiler[register];
+                }
+
+                globalThis.set = compiler.set;
+                globalThis.constants = globalThis.constants;
+                globalThis.This = globalThis.This;
+                globalThis.scope = globalThis.scope;
+                globalThis.labels = globalThis.labels;
+                globalThis.enviroments = globalThis.enviroments;
+                globalThis.subprograms = globalThis.subprograms;
+                globalThis.stack = globalThis.stack;
+            } catch {
+                new ArgumentError(`[${Color.FG_RED}JmpExecute${Color.FG_WHITE}]: Non-existent subprogram`, {
+                    row: trace?.parser.row,
+                    code: trace?.parser.code || `@subprogram ${args[0]}:`,
+                    select: args[0],
+                    position: 'end'
+                });
+    
+                process.exit(1);
+            }
+        }
+
+        if ([this.$cmp, this.$eq].includes(false) && this.$arg0 == 'jmp_zero') labelExecute(this, args[0]);
+        if (this.$eq == true && this.$arg0 == 'jmp_equal') labelExecute(this, args[0]);
+        if (this.$eq == false && this.$arg0 == 'jmp_ne') labelExecute(this, args[0]);
+        if (this.$cmp == true && this.$arg0 == 'jmp_great') labelExecute(this, args[0]);
+        if (this.$arg0 == 'goto') labelExecute(this, args[0]);
+
+        if (this.$arg0 == 'goto_env') {
+            try {
+                let enviroment = this.enviroments.filter(enviroment => Reflect.ownKeys(enviroment)[0] == args[0]);
+                new Compiler(Parser.parse(enviroment[0][args[0]].join('\n')));
+            } catch (e) {
+                new ArgumentError(`[${Color.FG_RED}JmpExecute${Color.FG_WHITE}]: Non-existent enviroment`, {
+                    row: trace?.parser.row,
+                    code: trace?.parser.code || `@enviroment ${args[0]}:`,
+                    select: args[0],
+                    position: 'end'
+                });
+    
+                process.exit(1);
+            }
+        }
+
+        if (this.$arg0 == 'goto_sbp') SubprogramExecute(this, args[0]);
     }
 
 
@@ -360,7 +455,85 @@ class Compiler {
         let labelname = Parser.parseLabelStatement(statement[0], index);
         let labelbody = statement.slice(1);
         this.labels.push({ [labelname?.label.name]: labelbody });
-        Labels.new(labelname.label.name, labelbody);
+        //Labels.new(labelname.label.name, labelbody);
+    }
+
+
+    /**
+     * This function compiles an environment statement by parsing the name of the environment and
+     * adding it to a list of environments along with its associated statements.
+     * @param statement - The first parameter "statement" is an array that contains the environment
+     * statement to be parsed and added to the list of environments.
+     * @param index - The index parameter in the function is likely referring to the index of the
+     * current statement being processed. It is used as an argument in the call to the
+     * `Parser.parseEnviromentStatement()` function to parse the environment name from the statement.
+     */
+    compileEnviromentStatement(statement, index) {
+        let enviromentname = Parser.parseEnviromentStatement(statement[0], index);
+        this.enviroments.push({ [enviromentname?.enviroment.name]: statement.slice(1) });
+    }
+
+
+    compileSubprogramStatement(statement, index) {
+        let subprogramname = Parser.parseSubprogramStatement(statement[0], index);
+        this.subprograms.push({ [subprogramname?.subprogram.name]: statement.slice(1) });
+    }
+
+
+    compileUsingStatement(statement, index, trace) {
+        let structures = Structure.structures.filter(structure => structure != 'unit');
+        let currentAST = this.AbstractSyntaxTree;
+
+        if (this.usings.includes(statement.name)) {
+            new UsingException(UsingException.REPEAT_INIT_STRUCTURE, {
+                ...trace['parser'],
+                select: statement.name,
+                position: 'end'
+            });
+
+            process.exit(1);
+        }
+
+        Array.prototype.select = function select(to, from) {
+            let newlist = [];
+            for (let index = to; index < from; index++) newlist.push(this[index]);
+            return newlist;
+        }
+
+        if (!structures.includes(statement.structure)) {
+            new UsingException(UsingException.INVALID_STRUCTURE, {
+                ...trace['parser'],
+                select: statement.structure
+            });
+
+            process.exit(1);
+        }
+
+        let structureForParser = statement.structure[0].toUpperCase() + statement.structure.slice(1);
+
+        let indexStructure = this.AbstractSyntaxTree.findIndex((structure, index) => {
+            let struct = Reflect.ownKeys(structure).filter(token => token !== 'parser')[0];
+            
+            if (struct == statement.structure) {
+                let parsed = Parser[`parse${structureForParser}Statement`](structure[statement.structure][0], index);
+                if (parsed[statement.structure]['name'] == statement.name) return index;
+            }
+        });
+
+        if (indexStructure == -1) {
+            new UsingException(UsingException.INVALID_INIT_STRUCUTRE, {
+                ...trace['parser'],
+                select: statement.name,
+                position: 'end'
+            });
+
+            process.exit(1);
+        }
+
+        let part1 = this.AbstractSyntaxTree.select(0, indexStructure);
+        let part2 = this.AbstractSyntaxTree.select(indexStructure + 1, this.AbstractSyntaxTree.length);
+        this.AbstractSyntaxTree = [...part1, ...part2];
+        this[`compile${structureForParser}Statement`](currentAST[indexStructure][statement.structure]);
     }
 
 
@@ -402,9 +575,26 @@ class Compiler {
                     }
                 } else {
                     try {
-                        property = this.checkArgument(property) || property;
-                        this.$get = $this.filter(item => item.name == property)[0]['value'];
-                        this.$list['$get'].push(this.$get);
+                        if (/\w+\[.+\]/.test(property)) {
+                            let tokens = /(\w+)\[(.+)\]/.exec(property);
+                            let stuff = $this[0]['value'];
+
+                            if (Type.check('String', stuff)) stuff = stuff.slice(1, -1);
+
+                            const constexpr = (
+                                Array.isArray(stuff) ||
+                                Type.check('String', stuff) ||
+                                stuff instanceof List
+                            );
+                            
+                            if (constexpr) this.$get = stuff.slice(1, -1)[this.checkArgument(tokens[2]) || +tokens[2]];
+                            if (this.$get == undefined) this.$get = 'Empty';
+                            this.$list['$get'].push(this.$get);
+                        } else {
+                            property = this.checkArgument(property) || property;
+                            this.$get = $this.filter(item => item.name == property)[0]['value'];
+                            this.$list['$get'].push(this.$get);
+                        }
                     } catch {
                         NonExistent(trace, $this, property, 'start');
                     }
@@ -417,8 +607,30 @@ class Compiler {
                     this.$get = $this[property]();
                     this.$list['$get'].push(this.$get);
                 } catch (error) {
-                    $this = $this[property];
-                    if ($this == undefined) NonExistent(trace, this.This, property);
+                    if (/\[.+\]\[.+\]/.test(property)) {
+                        let tokens = property.match(/\[(.+)\]\[(.+)\]/);
+                        let stuff = this.checkArgument(`[${tokens[1]}]`);
+                        let index = +this.checkArgument(tokens[2], true);
+                        
+                        if(!ValidatorByType.validateTypeNumber(index)) {
+                            new ArgumentError('Invalid type argument', { ...trace, select: tokens[2]});
+                        }
+                        
+                        const constexpr = (
+                            Array.isArray(stuff) ||
+                            Type.check('String', stuff) ||
+                            stuff instanceof List
+                            );
+                            
+                            if (constexpr) {
+                                if (Type.check('String', stuff)) stuff = stuff.slice(1, -1);
+                                this.$get = stuff[index];
+                                if (typeof this.$get == 'undefined') this.$get = 'Empty';
+                            }
+                        } else {                       
+                            $this = $this[property];
+                            if ($this == undefined) NonExistent(trace, this.This, property);
+                        }
                 }
             }
         });
@@ -449,10 +661,16 @@ class Compiler {
     compileModifyStatement(statement) {
         this.$arg0 = statement.model;
         this.$arg1 = statement.value;
-        if (this.$arg0 == '$text') this.$text = this.$arg1;
+
+        if (this.$arg0 == '$text') {
+            this.$text = this.checkArgument(this.$arg1) || this.$arg1;
+            if (Type.check('String', this.$text)) this.$text = this.$text.slice(1, -1);
+        }
+    
         if (this.$arg0 == '$offset') this.$offset = this.$arg1;
         if (this.$arg0 == '$sp') this.$sp = this.$arg1;
         if (this.$arg0 == '$mov') this.$mov = this.$arg1;
+        if (this.$arg0 == '$math') this.$math = this.checkArgument(this.$arg1) || this.$arg1;
     }
 
 
@@ -666,8 +884,9 @@ class Compiler {
      */
     compileAddStatement(statement, index, trace) {
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
+        for (let i = 0, l = statement.args.length; i < l; i++) statement.args[i] = +this[`$arg${i}`];
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
-        this.$ret = 0;
+        this.$ret = 0x00;
         for (let index = 0; index < statement.args.length; index++) this.$ret += this[`$arg${[index]}`];
         this.$stack.push({ value: this.$ret });
     }
@@ -849,24 +1068,34 @@ class Compiler {
      */
     compileSetStatement(statement, index, trace) {
         let isType = false;
+        let typeInList = false;
         for (const T of Type.types) if (T.name == statement.type) isType = true;
-
+        
         let forReplace = { name: statement.name, value: statement.value };
         statement.name = this.checkArgument(statement.name, trace.parser.code, trace.parser.row) || statement.name;
         statement.value = this.checkArgument(statement.value, trace.parser.code, trace.parser.row) || statement.value;
         trace.parser.code = trace?.parser.code.replace(forReplace.name, statement.name);
         trace.parser.code = trace?.parser.code.replace(forReplace.value, statement.value);
+        
+        for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
-        if (statement.type == 'Auto') for (const T of Type.types) if (Type.check(T.name, statement.value)) isType = true;
-
-        if (isType == false && /[^]+/.test(statement.value) || /.+/.test(statement.value)) {
-            statement.value = `'${statement.value}'`;
+        if (this.checkArgument(forReplace.name) != undefined || this.checkArgument(forReplace.value) != undefined) {
             isType = true;
         }
 
-        if (isType == false) {
-            new TypeError(trace.parser?.code, statement.type, { row: trace.parser?.row });
-            process.exit(1);
+        if (statement.type == 'Auto') {
+            if (isType = false && /[_a-zA-Z][_a-zA-Z0-9]{0,30}/.test(forReplace.value)) {
+                statement.value = `'${statement.value}'`;
+            }
+
+            isType = true;
+        } else {
+            if (typeInList == false) {
+                new TypeError(trace.parser?.code, statement.type, { row: trace.parser?.row });
+                process.exit(1);
+            }
+
+            isType = Type.check(statement.type, statement.value);
         }
 
         if (isType == false) {
@@ -878,6 +1107,7 @@ class Compiler {
 
             process.exit(1);
         }
+
 
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.type;
@@ -943,7 +1173,7 @@ class Compiler {
      * @param arg - The argument to check.
      * @returns The value of the argument.
      */
-    checkArgument(arg, code, row) {
+    checkArgument(arg, code, row, strict = false) {
         let $al =  this.argsScopeLocal; // $al - arguments in local scope
         let $cl = this.constants; // $cl - constants list
         let $vl = this.set; // $vl - variables list
@@ -957,11 +1187,22 @@ class Compiler {
         function checkArgumentsUnit(arg) {
             let $edx = 0x00;
 
-            for (const key in $al) {
-                if (Object.hasOwnProperty.call($al, key)) {
-                    if (new RegExp(`\[${key}\]`).test(arg)) $edx = $al[key];
-                }
-            }
+            // for (const key in $al) {
+                //if (Object.hasOwnProperty.call($al, key)) {
+                    // if (new RegExp(`\[${key}\]`).test(arg)) {
+                    //     console.log('key: ', strict);
+                    //     if (strict == true)  {
+                    //         if (key == arg.slice(1, -1)) $edx = $al[key];
+                    //     // }
+                    //         break;
+                    //     } else {
+                    //        $edx = $al[key];
+                    //     }
+                    // }
+
+                    $edx = $al[arg.slice(1, -1)];
+              // }
+            // }
 
             return $edx;
         }
@@ -997,7 +1238,7 @@ class Compiler {
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkVariable(arg);
         if (/^[A-Z]+(_[A-Z]+)*$/.test(arg)) return checkConstant(arg);
 
-        if (arg.indexOf('::') > -1) {
+        if (typeof arg !== 'number' && arg.indexOf('::') > -1) {
             this.compileGetStatement({ args: arg }, 0, {
                 parser: { row: row, code: code }
             });

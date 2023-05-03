@@ -14,7 +14,14 @@ class Type {
         let check = false;
 
         if (Array.isArray(rules)) {
-            rules.forEach(rule => check = rule.rule.test(value));
+            for (let index = 0; index < rules.length; index++) {
+                if (rules[index].rule.test(value)) {
+                    check = true;
+                    break;
+                }
+            }  
+    
+            // rules.forEach(rule => check = rule.rule.test(value));
         } else {
             check = rules[0]['rule'].test(value);
         }
@@ -81,6 +88,7 @@ Type.new('String', /'[^"]*'/);
 Type.new('String', /"[^']*"/);
 Type.new('Int', /([+-]?\d+$)/);
 Type.new('Float', /[/+-]?\d+(\.\d+)$/);
+Type.new('Hex', /^0[xX][0-9a-fA-F]+/);
 
 module.exports = {
     Type,

@@ -311,6 +311,34 @@ class StructureException {
 }
 
 
+class UsingException {
+    constructor(message, options) {
+        this.options = options;
+
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine;
+
+        if (this.options.select) {
+            if (this.options.position == 'first') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+            } else if (this.options.position == 'end') {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.length - this.options.select.length)}^${'-'.repeat(this.options.select.length - 1)}${Color.RESET}\n`;
+            } else {
+                nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t${' '.repeat(this.options.code.indexOf(this.options.select))}^${'-'.repeat(this.options.select.length-1)}${Color.RESET}\n`;
+            }
+        }  else {
+            nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
+        }
+
+        process.stdout.write(`${Color.BRIGHT}${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+    }
+}
+
+
 class StackTraceException {
     constructor() {
         let message = 'You have exceeded the stack trace limit';
@@ -359,6 +387,15 @@ Object.defineProperty(FileError, 'FILE_EXTENSION_INVALID', { value: `[${Color.FG
 //================================================================================================
 
 
+//================================================================================================
+// Using Exception
+//================================================================================================
+UsingException.INVALID_INIT_STRUCUTRE = `[${Color.FG_RED}UsingException${Color.FG_WHITE}]: Invalid initialization structure`;
+UsingException.INVALID_STRUCTURE = `[${Color.FG_RED}UsingException${Color.FG_WHITE}]: Invalid structure`;
+UsingException.REPEAT_INIT_STRUCTURE = `[${Color.FG_RED}UsingException${Color.FG_WHITE}]: Are you using reinitialization`;
+//================================================================================================
+
+
 module.exports = {
     SymbolError: SymbolError,
     TypeError: TypeError,
@@ -371,5 +408,6 @@ module.exports = {
     RegisterException: RegisterException,
     ImportException: ImportException,
     StackTraceException: StackTraceException,
-    StructureException: StructureException
+    StructureException: StructureException,
+    UsingException: UsingException
 }
