@@ -226,9 +226,9 @@ class Compiler {
         
         if (this.$arg0 == 'mov')    this.$ret = this.$mov = args[0];
         
-        if (this.$arg0 == 'eq')     this.$ret = this.$eq = args[0] == args[1];
+        if (this.$arg0 == 'eq')     this.$ret = this.$eq = Number(args[0]) == Number(args[1]);
         if (this.$arg0 == 'seq')    this.$ret = this.$seq = args[0] === args[1];
-        if (this.$arg0 == 'cmp')    this.$ret = this.$cmp = +args[0] > +args[1];
+        if (this.$arg0 == 'cmp')    this.$ret = this.$cmp = Number(args[0]) > Number(args[1]);
         if (this.$arg0 == 'xor')    this.$ret = this.$xor = args[0] ^ args[1];
         if (this.$arg0 == 'not')    this.$ret = this.$not = +args[0] == 1 ? 0 : 1;
         if (this.$arg0 == 'and')    this.$ret = this.$and = args[0] && args[1];
@@ -347,7 +347,15 @@ class Compiler {
         function labelExecute(globalThis, labelname) {
             let labels = globalThis.This['label'];
             let label = labels.filter(label => Reflect.ownKeys(label)[0] == labelname);
-            let registers = { set: globalThis.set, constants: globalThis.constants, This: globalThis.This, scope: globalThis.scope };
+
+            let registers = { 
+                set: globalThis.set, 
+                constants: globalThis.constants,
+                This: globalThis.This, 
+                scope: globalThis.scope, 
+                subprograms: globalThis.subprograms, 
+                labels: globalThis.labels 
+            };
             
             if (label == null) {
                 labelNonExistent(trace, label);
@@ -474,12 +482,35 @@ class Compiler {
     }
 
 
+    /**
+     * This function compiles a subprogram statement by parsing the subprogram name and adding it to a
+     * list of subprograms along with its associated statements.
+     * @param statement - An array representing a subprogram statement in the code being parsed. The
+     * first element of the array is the subprogram name, and the remaining elements are the statements
+     * within the subprogram.
+     * @param index - The index parameter in the function `compileSubprogramStatement(statement,
+     * index)` is likely the index of the current statement being compiled within a larger program or
+     * script. It is used by the `Parser.parseSubprogramStatement()` function to help identify the name
+     * of the subprogram being defined in the statement.
+     */
     compileSubprogramStatement(statement, index) {
         let subprogramname = Parser.parseSubprogramStatement(statement[0], index);
         this.subprograms.push({ [subprogramname?.subprogram.name]: statement.slice(1) });
     }
 
 
+    /**
+     * The function compiles a "using" statement in JavaScript and handles exceptions.
+     * @param statement - The statement to be compiled, which is an object containing the name and
+     * structure of the using statement.
+     * @param index - The index parameter is the index of the current statement being compiled in the
+     * Abstract Syntax Tree.
+     * @param trace - The `trace` parameter is an object that contains information about the location
+     * of the code being executed, such as the file name, line number, and column number. It is used
+     * for error reporting and debugging purposes.
+     * @returns Nothing is being returned. The function is only modifying the state of the object it
+     * belongs to and may exit the process if certain conditions are met.
+     */
     compileUsingStatement(statement, index, trace) {
         let structures = Structure.structures.filter(structure => structure != 'unit');
         let currentAST = this.AbstractSyntaxTree;

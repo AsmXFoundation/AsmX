@@ -1,54 +1,38 @@
 # ./examples/software/number.asmX
 @import stream;
 
+@using label start;
+@using label small_int;
+@using label big_int;
+@using label int_check;
+@using label winner;
+@using label int_enter;
+
+@using subprogram v2;
+
+@subprogram v2:
+    @call input("Pls enter number: ")
+    @Execute eq $urt $math
+    @Route $urt
+    @Invoke 0x04
+    @Execute jmp_equal winner
+    @Execute cmp $urt set::randomize
+    @Execute jmp_great big_int
+    @Execute jmp_zero small_int
+    @Execute jmp_zero int_enter
+
 #----------------------------------------------------------------
 @Execute rand 1 100;
 @set randomize Int $math;
-@call input("Please enter int: ");
-@Execute cmp $urt 0x00;
-@Execute jmp_great start;
-@Execute jmp_zero small_int;
-#----------------------------------------------------------------
 
-#----------------------------------------------------------------
-# This Software game
-# Algorithm:
-#                                num = $rand
-#                                    |
-#                           ---  num == $rand ---
-#                   (no)    |                   |    (yes)
-#                       ----                     ----
-#               next_game                          winner
-#                  |
-#    (no)          |            (yes)
-#        ----  num > $rand -----
-#       |                       |
-#    small_int               big_int
-#
-#
-#
-# Code:
-#   print("Start game") :(start)*
-#
-#   print("number: ")   :(number)*
-#   @Execute cmp $input 0x01;
-#   @Execute jmp_great int_check;
-#
-#   label int_check:
-#   if num == $rand     (@Execute eq num $rand)
-#       winner()        (@Execute jmp_e winner)
-#   else                (@Execute jmp_zero next_game) 
-#
-#       if num > $rand  (@Execute cmp num $rand) :(next_game)*
-#           big_int()   (@Execute jmp_great big_int)
-#           number()    (@Execute jmp_great number)
-#       else            
-#           small_int() (@Execute jmp_zero small_int)
-#           number()    (@Execute jmp_great number)
-#
-#   winner(): print("winner"); @Invoke 0x01;
-#   big_int(): print("bif_int");
-#   small_int(): print("small_int");
+@call print($math);
+@set user_input Int $math;
+@Execute goto_sbp v2;
+
+#@call input("Please enter int: ");
+#@Execute cmp $urt 0x00;
+#@Execute jmp_great start;
+#@Execute jmp_zero small_int;
 #----------------------------------------------------------------
 
 
@@ -56,13 +40,12 @@
 # This labels for game
 #----------------------------------------------------------------
 @label start:
-    @call print("Starting game!")
-    @Execute jmp_label int_check;
+    #@call print("Starting game!")
+    #@Execute goto int_check;
+    @Execute goto_sbp v2;
 
 @label int_enter:
-    @call print("Please enter number: ")
-    @call read()
-    @Execute jmp_label int_check;
+    @Execute goto_sbp v2;
 
 @label big_int:
     @call print("Big int!")
@@ -72,11 +55,12 @@
 
 @label winner:
     @call print("Game winner!")
+    @Invoke 0x01
 
 @label int_check:
-    @Execute eq $urt $rdrand
-    @Execute jmp_great winner
-    @Execute cmp $input $rsrand
+    @Execute eq $urt set::user_input
+    @Execute jmp_equal winner
+    @Execute cmp $input set::user_input
     @Execute jmp_great big_int
     @Execute jmp_zero small_int
     @Execute jmp_zero int_enter;

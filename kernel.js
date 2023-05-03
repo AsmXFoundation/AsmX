@@ -12,6 +12,8 @@ const { FileError } = require('./anatomics.errors');
 const ServerLog = require('./server/log');
 const { getTotalSize } = require('./fs');
 
+let argv  = process.argv;
+
 log = (message, callback) => process.stdout.write(message, callback);
 
 let progressBar = new ProgressBar(`[${Color.FG_CYAN}:bar${Color.RESET}] :percent :etas`, {
@@ -77,25 +79,24 @@ class Fax {
     }
 }
 
-
-question('AsmX file compiler asmX ~' , (answer) => {
-    if (answer.endsWith('.asmx') || answer.endsWith('.asmX')) {
-        ServerLog.log(`COMPILING ${answer} FILE...\n`, 'Compiler');
+function callCompiler(pathfile) {
+    if (pathfile.endsWith('.asmx') || pathfile.endsWith('.asmX')) {
+        ServerLog.log(`COMPILING ${pathfile} FILE...\n`, 'Compiler');
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
         Fax.news();
 
         let timer = setInterval(() => {
             progressBar.tick();
-            progressBar.complete && new CompilerAsmX({ src: answer });
+            progressBar.complete && new CompilerAsmX({ src: pathfile });
             progressBar.complete && clearInterval(timer);
         }, 10);
     } else {
-        new FileError({
-            message: FileError.FILE_EXTENSION_INVALID
-        })
+        new FileError({ message: FileError.FILE_EXTENSION_INVALID });
     }
-});
+}
 
+if (argv.length == 2)  question('AsmX file compiler asmX ~' , (answer) => { callCompiler(answer); });
+if (argv.length == 3) callCompiler(argv[2]);
 
 class CompilerAsmX {
     constructor(config) {
