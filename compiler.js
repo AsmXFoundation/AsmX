@@ -226,9 +226,9 @@ class Compiler {
         
         if (this.$arg0 == 'mov')    this.$ret = this.$mov = args[0];
         
-        if (this.$arg0 == 'eq')     this.$ret = this.$eq = Number(args[0]) == Number(args[1]);
+        if (this.$arg0 == 'eq')     this.$ret = this.$eq = +args[0] ==+args[1];
         if (this.$arg0 == 'seq')    this.$ret = this.$seq = args[0] === args[1];
-        if (this.$arg0 == 'cmp')    this.$ret = this.$cmp = Number(args[0]) > Number(args[1]);
+        if (this.$arg0 == 'cmp')    this.$ret = this.$cmp = +args[0] > +args[1];
         if (this.$arg0 == 'xor')    this.$ret = this.$xor = args[0] ^ args[1];
         if (this.$arg0 == 'not')    this.$ret = this.$not = +args[0] == 1 ? 0 : 1;
         if (this.$arg0 == 'and')    this.$ret = this.$and = args[0] && args[1];
@@ -423,7 +423,7 @@ class Compiler {
             }
         }
 
-        if ([this.$cmp, this.$eq].includes(false) && this.$arg0 == 'jmp_zero') labelExecute(this, args[0]);
+        if (this.$cmp == false && this.$arg0 == 'jmp_zero') labelExecute(this, args[0]);
         if (this.$eq == true && this.$arg0 == 'jmp_equal') labelExecute(this, args[0]);
         if (this.$eq == false && this.$arg0 == 'jmp_ne') labelExecute(this, args[0]);
         if (this.$cmp == true && this.$arg0 == 'jmp_great') labelExecute(this, args[0]);
