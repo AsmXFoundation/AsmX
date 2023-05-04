@@ -22,7 +22,7 @@
 #----------------------------------------------------------------
 @Execute rand 1 100;
 @set randomize Int $math;
-@call print($math);
+# @call print($math); # for check rand int
 @call print("Start game!");
 @Execute goto_sbp start_v2;
 #----------------------------------------------------------------
