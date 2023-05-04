@@ -1,6 +1,6 @@
 *.asmx
 linguist-language=AsmX
-*.asmX language=./syntax/.tmLanguage
+*.asmX language=/syntax/.tmLanguage
 *.asmX linguist-language=asmX
 
 *.asmX linguist-detectable=true
