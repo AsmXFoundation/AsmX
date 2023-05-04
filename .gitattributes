@@ -1,5 +1,7 @@
+*.asmx
 *.asmX language=./syntax/AsmX.tmLAnguage
 linguist-language=AsmX
+*.asmX linguist-language=asm
 
 *.asmX linguist-detectable=true
 *.js linguist-detectable=false
