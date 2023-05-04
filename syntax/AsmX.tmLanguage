@@ -1,0 +1,70 @@
+{
+    "scopeName": "source.asmX",
+    "patterns": [
+        {
+            "name": "string.asmX",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.asmX",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        {
+            "name": "hex.asmX",
+            "match": "\\b(0[xX][0-9a-fA-F]+)\\b"
+        },
+        {
+            "name": "boolean.asmX",
+            "match": "\\b(true|false)\\b"
+        },
+        {
+            "name": "integer.asmX",
+            "match": "\\b\\d+\\b"
+        },
+        {
+            "name": "float.asmX",
+            "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+            "name": "instruction.asmX",
+            "match": "^\\s*@\\w+\\b",
+            "captures": {
+                "0": {
+                    "name": "keyword.control.asmX"
+                }
+            }
+        },
+        {
+            "name": "structure.asmX",
+            "match": "^\\s*@using\\s+([A-Za-z_][A-Za-z\\d_]*)\\b",
+            "captures": {
+                "1": {
+                    "name": "support.class.asmX"
+                }
+            }
+        },
+        {
+            "name": "type.asmx",
+            "match": "^\\s*@set ([A-Za-z_][A-Za-z\\d_]*)\\s+([A-Za-z_][A-Za-z\\d_]*)\\s+([A-Za-z_][A-Za-z\\d_]*)\\s*$",
+            "captures": {
+                "2": {
+                    "name": "support.type.asmx"
+                }
+            }
+        },
+        {
+            "name": "comment.asmx",
+            "begin": "^\\s*#\\s*",
+            "end": "$",
+            "patterns": [
+                {
+                    "name": "comment.asmx",
+                    "match": "#.*$"
+                }
+            ]
+        }
+    ]
+}
