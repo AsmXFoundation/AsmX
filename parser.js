@@ -271,7 +271,7 @@ class Parser {
     static parseAddStatement(lineCode, row){
         let ast = { add: {}, parser: { code: lineCode, row: row  } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'], operators: ['=', '+', '-', '*', '%', '/'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['add']['args'] = args;
@@ -288,7 +288,7 @@ class Parser {
     static parseSubStatement(lineCode, row){
         let ast = { sub: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'], operators: ['=', '+', '-', '*', '%', '/'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['sub']['args'] = args;
@@ -304,7 +304,7 @@ class Parser {
     static parseDivStatement(lineCode, row) {
         let ast = { div: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'], operators: ['=', '+', '-', '*', '%', '/'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['div']['args'] = args;
@@ -320,7 +320,7 @@ class Parser {
     static parseModStatement(lineCode, row) {
         let ast = { mod: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'], operators: ['=', '+', '-', '*', '%', '/'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['mod']['args'] = args;
@@ -336,7 +336,7 @@ class Parser {
     static parseImulStatement(lineCode, row){
         let ast = { imul: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
+        this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'], operators: ['=', '+', '-', '*', '%', '/'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [2, 6]);
         ast['imul']['args'] = args;
