@@ -1143,7 +1143,12 @@ class Compiler {
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.type;
         this.$arg2 = statement.value;
-        this.set.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+        
+        if (this.set.findIndex(cell => cell.name == this.$name) > -1) {
+            this.set = this.set.filter(cell => cell.name !== this.$name).push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+        } else {
+            this.set.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+        }
     }
 
 
