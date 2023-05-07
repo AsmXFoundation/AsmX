@@ -334,7 +334,7 @@ class Compiler {
         }
 
         function labelNonExistent(trace, label) {
-            new ArgumentError(`[${Color.FG_RED}JmpExecute${Color.FG_WHITE}]: Non-existent label`, {
+            new ArgumentError(`[${Color.FG_RED}StructureExecuteException${Color.FG_WHITE}]: Non-existent label`, {
                 row: trace?.parser.row,
                 code: trace?.parser.code || `@label ${label}:`,
                 select: label,
@@ -412,7 +412,7 @@ class Compiler {
                 globalThis.subprograms = globalThis.subprograms;
                 globalThis.stack = globalThis.stack;
             } catch {
-                new ArgumentError(`[${Color.FG_RED}JmpExecute${Color.FG_WHITE}]: Non-existent subprogram`, {
+                new ArgumentError(`[${Color.FG_RED}StructureExecuteException${Color.FG_WHITE}]: Non-existent subprogram`, {
                     row: trace?.parser.row,
                     code: trace?.parser.code || `@subprogram ${args[0]}:`,
                     select: args[0],
@@ -434,7 +434,7 @@ class Compiler {
                 let enviroment = this.enviroments.filter(enviroment => Reflect.ownKeys(enviroment)[0] == args[0]);
                 new Compiler(Parser.parse(enviroment[0][args[0]].join('\n')));
             } catch (e) {
-                new ArgumentError(`[${Color.FG_RED}JmpExecute${Color.FG_WHITE}]: Non-existent enviroment`, {
+                new ArgumentError(`[${Color.FG_RED}StructureExecuteException${Color.FG_WHITE}]: Non-existent enviroment`, {
                     row: trace?.parser.row,
                     code: trace?.parser.code || `@enviroment ${args[0]}:`,
                     select: args[0],
