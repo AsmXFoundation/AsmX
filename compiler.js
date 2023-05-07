@@ -281,7 +281,7 @@ class Compiler {
                         labels: this.labels,
                         constants: this.constants,
                         enviroments: this.enviroments,
-                        ubprograms: this.subprograms,
+                        subprograms: this.subprograms,
                         scope: this.scope,
                         This: this.This,
                         argsScopeLocal: this.argsScopeLocal,
