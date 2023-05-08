@@ -19,8 +19,6 @@ const { Type, List } = require('./types');
 const ServerLog = require('./server/log');
 const KernelOS = require('./kernelos');
 const Color = require('./utils/color');
-const Label = require('./label');
-const Labels = require('./label');
 const Structure = require('./structure');
 
 class Compiler {
@@ -463,7 +461,6 @@ class Compiler {
         let labelname = Parser.parseLabelStatement(statement[0], index);
         let labelbody = statement.slice(1);
         this.labels.push({ [labelname?.label.name]: labelbody });
-        //Labels.new(labelname.label.name, labelbody);
     }
 
 
