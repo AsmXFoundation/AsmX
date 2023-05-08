@@ -749,7 +749,11 @@ class Compiler {
             this.$arg1 = this.$arg1.slice(1, -1);
         }
 
-        this.constants.push({ name: this.$arg0, value: this.$arg1 });
+        if (this.constants.length > 0 && this.constants.findIndex(cell => cell.name == this.$name) > -1) {
+            this.constants = this.constants.filter(cell => cell.name !== this.$name).push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+        } else {
+            this.constants.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+        }
     }
 
 
@@ -1144,7 +1148,7 @@ class Compiler {
         this.$arg1 = statement.type;
         this.$arg2 = statement.value;
         
-        if (this.set.findIndex(cell => cell.name == this.$name) > -1) {
+        if (this.set.length > 0 && this.set.findIndex(cell => cell.name == this.$name) > -1) {
             this.set = this.set.filter(cell => cell.name !== this.$name).push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
         } else {
             this.set.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
