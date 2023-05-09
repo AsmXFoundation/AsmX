@@ -140,7 +140,7 @@ class Parser {
      * line of code does not meet certain criteria.
      */
     static parseDefineStatement(lineCode, row){
-        let ast = { define: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { define: {}, parser: { code: lineCode, row: row } };
         let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const instructionPattern = /^@[d|D]efine\s+([\w-]+)\s+(.+)$/;
@@ -210,7 +210,7 @@ class Parser {
      * @returns a small abstract syntax tree.
      */
     static parseRetStatement(lineCode, row){
-        let ast = { ret: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { ret: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args,ast.parser, [1, 1]);
@@ -400,7 +400,7 @@ class Parser {
      * @returns An array of objects.
      */
     static parseIssueStatement(lineCode, row){
-        let ast = { issue: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { issue: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode);
         if (lineCode.split(' ').length > 2) return 'rejected';
@@ -468,7 +468,7 @@ class Parser {
      * @returns An array of objects.
      */
     static parseInvokeStatement(lineCode, row){
-        let ast = { invoke: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { invoke: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         const [, InvokeAddress] = lineCode.split(' ');
         if (lineCode.split(' ').length > 2) return 'rejected';
@@ -563,7 +563,7 @@ class Parser {
      * @returns An array of three elements.
      */
     static parseUnitStatement(lineCode, row){
-        let ast = { unit: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { unit: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: false, operators: ['=', '+', '-', '*', '%', '/'] });
         if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
@@ -588,7 +588,7 @@ class Parser {
      * value of the address.
      */
     static parseOffsetStatement(lineCode, row){
-        let ast = { offset: {}, parser: { code: lineCode, row: row + 1 } };
+        let ast = { offset: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'] });
         const [, OffsetAddress] = lineCode.split(' ');

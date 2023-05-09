@@ -6,7 +6,7 @@
 const fs = require('fs');
 
 // Components that compiler
-const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException } = require('./anatomics.errors');
+const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException } = require('./anatomics.errors');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -20,6 +20,7 @@ const ServerLog = require('./server/log');
 const KernelOS = require('./kernelos');
 const Color = require('./utils/color');
 const Structure = require('./structure');
+const { decode } = require('punycode');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -332,7 +333,7 @@ class Compiler {
         }
 
         function labelNonExistent(trace, label) {
-            new ArgumentError(`[${Color.FG_RED}StructureExecuteException${Color.FG_WHITE}]: Non-existent label`, {
+            new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent label`, {
                 row: trace?.parser.row,
                 code: trace?.parser.code || `@label ${label}:`,
                 select: label,
@@ -410,7 +411,7 @@ class Compiler {
                 globalThis.subprograms = globalThis.subprograms;
                 globalThis.stack = globalThis.stack;
             } catch {
-                new ArgumentError(`[${Color.FG_RED}StructureExecuteException${Color.FG_WHITE}]: Non-existent subprogram`, {
+                new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent subprogram`, {
                     row: trace?.parser.row,
                     code: trace?.parser.code || `@subprogram ${args[0]}:`,
                     select: args[0],
@@ -431,8 +432,8 @@ class Compiler {
             try {
                 let enviroment = this.enviroments.filter(enviroment => Reflect.ownKeys(enviroment)[0] == args[0]);
                 new Compiler(Parser.parse(enviroment[0][args[0]].join('\n')));
-            } catch (e) {
-                new ArgumentError(`[${Color.FG_RED}StructureExecuteException${Color.FG_WHITE}]: Non-existent enviroment`, {
+            } catch {
+                new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent enviroment`, {
                     row: trace?.parser.row,
                     code: trace?.parser.code || `@enviroment ${args[0]}:`,
                     select: args[0],
@@ -735,7 +736,7 @@ class Compiler {
      * This function takes a statement and adds it to the set.
      * @param statement - The statement object that is being compiled.
      */
-    compileDefineStatement(statement) {
+    compileDefineStatement(statement, index, trace) {
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.value;
 
@@ -747,7 +748,8 @@ class Compiler {
         }
 
         if (this.constants.length > 0 && this.constants.findIndex(cell => cell.name == this.$name) > -1) {
-            this.constants = this.constants.filter(cell => cell.name !== this.$name).push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+           new ConstException(`[${Color.FG_RED}ConstException${Color.FG_WHITE}]: you have this define name`, { ...trace['parser'] });
+            process.exit(1);
         } else {
             this.constants.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
         }
@@ -864,7 +866,14 @@ class Compiler {
         this.$arg0 = this.checkArgument(statement.address, trace?.parser?.code, trace?.parser.row) || statement.address;
 
         // write
-        if (this.$arg0 == 0x04) FlowOutput.createOutputStream(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
+        if (this.$arg0 == 0x04) {
+            try {
+                let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
+                FlowOutput.createOutputStream(string);
+            } catch {
+                FlowOutput.createOutputStream(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
+            }
+        }
         // exit
         if (this.$arg0 == 0x01) process.exit(0);
         

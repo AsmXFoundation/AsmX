@@ -339,6 +339,21 @@ class UsingException {
 }
 
 
+class ConstException {
+    constructor(message, options) {
+        this.options = options;
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |\t${Color.FG_RED}^${'-'.repeat(this.options?.code.length - 1)}${Color.FG_WHITE}\n`;
+
+        process.stdout.write(`${Color.BRIGHT}${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+    }
+}
+
+
 class StackTraceException {
     constructor() {
         let message = 'You have exceeded the stack trace limit';
@@ -409,5 +424,6 @@ module.exports = {
     ImportException: ImportException,
     StackTraceException: StackTraceException,
     StructureException: StructureException,
-    UsingException: UsingException
+    UsingException: UsingException,
+    ConstException: ConstException
 }
