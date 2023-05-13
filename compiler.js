@@ -20,7 +20,6 @@ const ServerLog = require('./server/log');
 const KernelOS = require('./kernelos');
 const Color = require('./utils/color');
 const Structure = require('./structure');
-const { decode } = require('punycode');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -748,8 +747,8 @@ class Compiler {
         }
 
         if (this.constants.length > 0 && this.constants.findIndex(cell => cell.name == this.$name) > -1) {
-           new ConstException(`[${Color.FG_RED}ConstException${Color.FG_WHITE}]: you have this define name`, { ...trace['parser'] });
-            process.exit(1);
+           //new ConstException(`[${Color.FG_RED}ConstException${Color.FG_WHITE}]: you have this define name`, { ...trace['parser'] });
+          //  process.exit(1);
         } else {
             this.constants.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
         }
