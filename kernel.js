@@ -11,6 +11,8 @@ const Compiler = require('./compiler');
 const { FileError } = require('./anatomics.errors');
 const ServerLog = require('./server/log');
 const { getTotalSize } = require('./fs');
+const config = require('./config');
+const Analysis = require('./analysis');
 
 let argv  = process.argv;
 
@@ -87,9 +89,23 @@ function callCompiler(pathfile) {
 
         let timer = setInterval(() => {
             progressBar.tick();
-            progressBar.complete && new CompilerAsmX({ src: pathfile });
-            progressBar.complete && clearInterval(timer);
+            if (progressBar.complete){
+                new CompilerAsmX({ src: pathfile });
+                clearInterval(timer); 
+                if (config.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
+            }
         }, 10);
+    } else if (pathfile == "analysis") {
+        question(`${Color.BRIGHT}[${Color.FG_GREEN}Question${Color.FG_WHITE}][y/n]: Are you sure you want to change? : ` , (answer) => {
+            if (answer == "yes" || answer == "y") {
+                config.print('ANALYSIS', !config.INI_VARIABLES.ANALYSIS);
+                config.commit();
+                console.log('Analysis: ' ,config.INI_VARIABLES.ANALYSIS);
+            } else if (answer == "no" || answer == "n") {
+                process.exit();
+            }
+        });
+
     } else {
         new FileError({ message: FileError.FILE_EXTENSION_INVALID });
     }
@@ -109,7 +125,7 @@ class CompilerAsmX {
             new Compiler(parser);
         } catch (e) {
             new FileError({ message: FileError.FILE_NOT_FOUND });
-            console.log(e);
+            // console.log(e);
         }
     }
 }

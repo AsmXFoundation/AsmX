@@ -20,6 +20,8 @@ const ServerLog = require('./server/log');
 const KernelOS = require('./kernelos');
 const Color = require('./utils/color');
 const Structure = require('./structure');
+const config = require('./config');
+const Analysis = require('./analysis');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -180,6 +182,11 @@ class Compiler {
             const trace = this.AbstractSyntaxTree[index];
             let statement = Reflect.ownKeys(trace).filter(stmt => stmt != 'parser')[0];
             this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
+
+            if (config.INI_VARIABLES?.ANALYSIS) {
+                Analysis.createModel(statement);
+                Analysis.counterModel('new', statement);
+            }
         };
     }
 
