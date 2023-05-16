@@ -61,7 +61,7 @@ node kernel.js
 
 Откройте VS Code и сохраните пустой файл AsmX (**File -> Save As**) с именем *hello_world.asmX* в папке *AsmX_workspace.*После того как файл будет сохранен, введите следующую строку в текстовом редакторе:
 ```asmX
-@call print("Hello AsmX world!");
+@call print("Hello world!");
 ```
 # Запуск AsmX в терминале
 
@@ -79,7 +79,7 @@ C:\ > cd Desktop/AsmX_workspace
 C:\Desktop\AsmX_workspace> dir
 hello_world.asmX
 C:\Desktop\AsmX_workspace> node asmx/kernel.js hello_world.asmX
-Hello AsmX world!
+Hello world!
 ```
 Команда *cd* используется для перехода к папке *asmX_workspace,* находящейся в папке *Desktop*. Затем команда *dir* проверяет, что файл hello_world.asmX действительно находится в этой папке. Далее файл запускается командой node asmx/kernel.js hello_world.asmX. Где asmx это папка скачанного AsmX с GitHub.
 
@@ -96,7 +96,7 @@ Hello AsmX world!
 \~Desktop/AsmX_worspace/$ ls
   hello_world.asmX
 \~Desktop/AsmX_worspace/$ node asmx/kernel.js hello_world.asmX
-Hello AsmX world!
+Hello world!
 ```
 Команда *cd* используется для перехода к папке *asmX_workspace,* находящейся в папке *Desktop*. Затем команда *ls* проверяет, что файл hello_world.asmX действительно находится в этой папке. Далее файл запускается командой node asmx/kernel.js hello_world.asmX. Где asmx это папка скачанного AsmX с GitHub.
 
@@ -129,3 +129,34 @@ AsmX должен нормально работать на любом совре
 ## Глава 2. Переменные и простые типы данных
 
 В этой главе представлены разные виды данных, с которыми вы будете работать в своих программах AsmX. Вы также научитесь использовать переменные для представления данных в своих программах.
+
+## Что происходит при запуске hello_world.asmX
+
+Давайте повнимательнее разберемся с тем, что же делает AsmX при запуске *hello_world.asmX*. Оказывается, даже для такой простой программы AsmX выполняет серьезную работу:
+
+**hello_world.asmX**:
+```asmX
+@call print("Hello world!");
+```
+При выполнении этого кода выводится следущий текст:
+```
+Hello world!
+```
+Суффикс .asmX в имени файла *hello_world.asmX* указывает, что файл является программой AsmX.
+
+## Переменные
+
+Попробуем использовать переменную в программе *hello_world.asmX*. Добавьте новую строку в начало файла и измените вторую строку:
+
+**hello_world.asmX**
+```asmX
+@set message String "Hello world!";
+@call print(set::message);
+```
+Запустите программу и посмотрите, что получится. Программа выводит уже знакомый результат:
+```
+Hello world!
+```
+В программу добавилась *переменная* с именем **message**. В каждой переменной хранится *значение*, то есть данные, связанные с переменной. В нашем случае значением является текст **"Hello world!"**.
+
+Добавление переменной немного усложняет задачу AsmX. Во время обработки первой строки он связывает текст **"Hello world!"** с переменной **message**. А когда AsmX доберется до второй строки, он ыводит на экран значение, связанное с именем **message**.
