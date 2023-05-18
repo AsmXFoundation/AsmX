@@ -334,7 +334,7 @@ class Parser {
      * @returns an object.
      */
     static parseMulStatement(lineCode, row){
-        let ast = { imul: {}, parser: { code: lineCode, row: row } };
+        let ast = { mul: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'], operators: ['=', '+', '-', '*', '%', '/'] });
         let args = this.parserArgumentsInstruction(lineCode);

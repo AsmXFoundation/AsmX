@@ -14,7 +14,7 @@
 #----------------------------------------------------------------
 @Unit pow(x: Int, n: Int):  # create unit from x and n and return the result of the $ret register
     @Execute mov 0x01       # $mov = 0x01 AND $ret = 0x01
-    @Imul $ret [x]          # $ret = $ret * [x] -> $ret *= [x]
+    @mul $ret [x]          # $ret = $ret * [x] -> $ret *= [x]
     @Execute jmp 0x01 [n]   # jmp 0x01 (top) [n] (count)
     @Ret $ret               # return $ret
 #----------------------------------------------------------------
@@ -30,7 +30,7 @@
 #----------------------------------------------------------------
 @Unit factorial(x: Int):    # factorial of the result of the $urt register to the stack
     @Execute mov 0x01       # $mov = 0x01 AND $ret = 0x01
-    @Imul $count $ret       # $ret = $count * $ret
+    @mul $count $ret       # $ret = $count * $ret
     @Execute jmp 0x01 [x]   # jmp 0x01 (top) [x] (count)
     @Ret $ret               # return $ret
 #----------------------------------------------------------------
@@ -45,7 +45,7 @@
 
 #----------------------------------------------------------------
 @Execute mov 0x01           #   $mov = 0x01 AND $ret = 0x01
-@Imul $ret 0x03             #   $ret = 0x03 * $ret
+@mul $ret 0x03             #   $ret = 0x03 * $ret
 @Execute jmp 0x01 0x03      #   jmp 0x01 (top) 0x03 (count)
 @Route $ret                 #   write $ret in stack
 @Invoke 0x04                #   write lis (last item stack)
