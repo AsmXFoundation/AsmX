@@ -1003,18 +1003,18 @@ class Compiler {
 
 
     /**
-     * This function compiles an imul statement in JavaScript by checking the type of arguments and
+     * This function compiles an mul statement in JavaScript by checking the type of arguments and
      * multiplying them together.
-     * @param statement - The statement object that contains information about the "imul" statement
+     * @param statement - The statement object that contains information about the "mul" statement
      * being compiled, such as the name of the statement and its arguments.
-     * @param index - The index parameter in the function `compileImulStatement` is used as a loop
+     * @param index - The index parameter in the function `compileMulStatement` is used as a loop
      * counter to iterate over the arguments passed to the function. It is not used for any other
      * purpose within the function.
      * @param trace - The `trace` parameter is an optional object that contains information about the
      * current execution context, such as the code being executed and the current row in the code. It
      * is used to provide more detailed error messages and debugging information.
      */
-    compileImulStatement(statement, index, trace) {
+    compileMulStatement(statement, index, trace) {
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = 1;

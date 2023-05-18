@@ -333,13 +333,13 @@ class Parser {
      * @param lineCode - the line of code that is being parsed
      * @returns an object.
      */
-    static parseImulStatement(lineCode, row){
+    static parseMulStatement(lineCode, row){
         let ast = { imul: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         this.lexerSymbol(lineCode, { brackets: ['(', ')', '{', '}'], operators: ['=', '+', '-', '*', '%', '/'] });
         let args = this.parserArgumentsInstruction(lineCode);
         this.checkLimitArguments(args, ast.parser, [2, 6]);
-        ast['imul']['args'] = args;
+        ast['mul']['args'] = args;
         return ast;
     }
 
