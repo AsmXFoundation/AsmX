@@ -11,7 +11,8 @@ class Parser {
         let tokens = [];
         let newLines = [];
         let isInterpreteProccess = { state: true };
-        lines = lines.map(line => line.indexOf(';') >= 0 ? line.split(';') : line);
+        lines = lines.map(line => line.trim());
+        lines = lines.map(line => line.indexOf(';') >= 0 ? line.split(';').filter(l => l.trim() != '') : line);
 
         lines.forEach((line, index) => {
             if (this.parseAndDeleteEmptyCharacters(line) != '') {
@@ -44,6 +45,7 @@ class Parser {
         });
 
         lines = newLines;
+        // console.log(lines);
 
         ParserCycle: for (let index = 0; index < lines.length; index++) {
             const line = lines[index].trim();

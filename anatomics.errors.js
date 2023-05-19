@@ -354,6 +354,21 @@ class ConstException {
 }
 
 
+class SystemCallException {
+    constructor(message, options) {
+        this.options = options;
+        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
+        let middleLine = `${this.options.row + 1} |\t`;
+        let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |\t${' '.repeat(this.options.code.indexOf(this.options.select))}${Color.FG_RED}^${'-'.repeat(this.options?.select.length - 1)}${Color.FG_WHITE}\n`;
+
+        process.stdout.write(`${Color.BRIGHT}${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+    }
+}
+
+
 class StackTraceException {
     constructor() {
         let message = 'You have exceeded the stack trace limit';
@@ -411,6 +426,13 @@ UsingException.REPEAT_INIT_STRUCTURE = `[${Color.FG_RED}UsingException${Color.FG
 //================================================================================================
 
 
+//================================================================================================
+// System calls Exception
+//================================================================================================
+SystemCallException.SYSTEM_CALL_NOT_FOUND = `[${Color.FG_RED}SystemCallException${Color.FG_WHITE}]: System call not found`;
+//================================================================================================
+
+
 module.exports = {
     SymbolError: SymbolError,
     TypeError: TypeError,
@@ -425,5 +447,6 @@ module.exports = {
     StackTraceException: StackTraceException,
     StructureException: StructureException,
     UsingException: UsingException,
-    ConstException: ConstException
+    ConstException: ConstException,
+    SystemCallException: SystemCallException
 }

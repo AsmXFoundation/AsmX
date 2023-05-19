@@ -6,7 +6,7 @@
 const fs = require('fs');
 
 // Components that compiler
-const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException } = require('./anatomics.errors');
+const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException } = require('./anatomics.errors');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -871,7 +871,6 @@ class Compiler {
     compileInvokeStatement(statement, index, trace) {
         this.$arg0 = this.checkArgument(statement.address, trace?.parser?.code, trace?.parser.row) || statement.address;
 
-        // write
         if (this.$arg0 == 0x04) {
             try {
                 let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
@@ -879,15 +878,15 @@ class Compiler {
             } catch {
                 FlowOutput.createOutputStream(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
             }
-        }
-        // exit
-        if (this.$arg0 == 0x01) process.exit(0);
-        
-        // read
-        if (this.$arg0 == 0x03) {
+        } else if (this.$arg0 == 0x01) {
+            process.exit(0);
+        } else if (this.$arg0 == 0x03) {
             this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
             this.$list['$input'].push(this.$input);
             this.$stack.push({ value: this.$arg0 });
+        } else {
+            new SystemCallException(SystemCallException.SYSTEM_CALL_NOT_FOUND, { ...trace['parser'], select: this.$arg0 });
+            process.exit(1);
         }
     }
 
