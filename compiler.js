@@ -874,19 +874,26 @@ class Compiler {
     compileInvokeStatement(statement, index, trace) {
         this.$arg0 = this.checkArgument(statement.address, trace?.parser?.code, trace?.parser.row) || statement.address;
 
-        if (this.$arg0 == 0x04) {
+        if (this.$arg0 == 0x01) {
+            process.exit(0);
+        } else if (this.$arg0 == 0x03) {
+            this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
+            this.$list['$input'].push(this.$input);
+            this.$stack.push({ value: this.$arg0 });
+        } else if (this.$arg0 == 0x04) {
             try {
                 let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
                 FlowOutput.createOutputStream(string);
             } catch {
                 FlowOutput.createOutputStream(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
             }
-        } else if (this.$arg0 == 0x01) {
-            process.exit(0);
-        } else if (this.$arg0 == 0x03) {
-            this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
-            this.$list['$input'].push(this.$input);
-            this.$stack.push({ value: this.$arg0 });
+        } else if (this.$arg0 == 0x05) {
+            try {
+                let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
+                process.stdout.write(string);
+            } catch {
+                process.stdout.write(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
+            }
         } else {
             new SystemCallException(SystemCallException.SYSTEM_CALL_NOT_FOUND, { ...trace['parser'], select: this.$arg0 });
             process.exit(1);
@@ -1075,7 +1082,7 @@ class Compiler {
             this.$stack.push({ address: this.$arg1, value: value });
             this.route.setPoint(this.$arg0, this.$arg1);
         } else {
-            this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row);
+            this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
             if (Type.check('String', this.$arg0)) this.$arg0 = this.$arg0.slice(1, -1);
             this.$stack.push({ value: this.$arg0 });
         }
