@@ -247,7 +247,7 @@ class Parser {
      */
     static parseCallStatement(lineCode, row){
         let ast = { call: {}, parser: { code: lineCode, row: row } };
-        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        // lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         let tokens = /\@[c|C]all\s+(\w+)\(([^]+)?\)/.exec(lineCode);
 
         if (tokens == null) {

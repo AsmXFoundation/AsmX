@@ -57,10 +57,7 @@ class Compiler {
             },
 
             local: {
-                unit: {
-                    set: null,
-                    const: null
-                }
+                unit: {}
             }
         }
         
@@ -613,18 +610,18 @@ class Compiler {
                         if (/\w+\[.+\]/.test(property)) {
                             let tokens = /(\w+)\[(.+)\]/.exec(property);
                             let stuff = $this[0]['value'];
-
+                            
                             if (Type.check('String', stuff)) stuff = stuff.slice(1, -1);
-
+                            
                             const constexpr = (
                                 Array.isArray(stuff) ||
                                 Type.check('String', stuff) ||
                                 stuff instanceof List
-                            );
-                            
-                            if (constexpr) this.$get = stuff.slice(1, -1)[this.checkArgument(tokens[2]) || +tokens[2]];
-                            if (this.$get == undefined) this.$get = 'Empty';
-                            this.$list['$get'].push(this.$get);
+                                );
+                                
+                                if (constexpr) this.$get = stuff.slice(1, -1)[this.checkArgument(tokens[2]) || +tokens[2]];
+                                if (this.$get == undefined) this.$get = 'Empty';
+                                this.$list['$get'].push(this.$get);
                         } else {
                             property = this.checkArgument(property) || property;
                             this.$get = $this.filter(item => item.name == property)[0]['value'];
@@ -662,7 +659,7 @@ class Compiler {
                                 this.$get = stuff[index];
                                 if (typeof this.$get == 'undefined') this.$get = 'Empty';
                             }
-                        } else {                       
+                        } else {
                             $this = $this[property];
                             if ($this == undefined) NonExistent(trace, this.This, property);
                         }
@@ -757,7 +754,8 @@ class Compiler {
            //new ConstException(`[${Color.FG_RED}ConstException${Color.FG_WHITE}]: you have this define name`, { ...trace['parser'] });
           //  process.exit(1);
         } else {
-            this.constants.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+            this.constants.push({ name: this.$name, value: this.$arg1 });
+            // console.log(this.constants);
         }
     }
 
@@ -865,8 +863,13 @@ class Compiler {
 
 
     /**
-     * It's a function that compiles a statement that invokes a function
-     * @param statement - The statement that is being compiled.
+     * This function handles different types of system calls in JavaScript.
+     * @param statement - The statement being compiled and executed.
+     * @param index - The index parameter is a numerical value representing the index of the current
+     * statement being executed in the code.
+     * @param trace - The `trace` parameter is an optional object that contains information about the
+     * current execution context, such as the code being executed and the current line number. It is
+     * used to provide more detailed error messages in case of exceptions.
      */
     compileInvokeStatement(statement, index, trace) {
         this.$arg0 = this.checkArgument(statement.address, trace?.parser?.code, trace?.parser.row) || statement.address;

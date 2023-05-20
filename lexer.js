@@ -196,7 +196,7 @@ class Lexer {
             process.exit(1);
         }
 
-        if (string.startsWith('"') || string.startsWith("'")) string = string.replace(/^"(.*)"$/, '$1');
+        // if (string.startsWith('"') || string.startsWith("'")) string = string.replace(/^"(.*)"$/, '$1');
 
         if (string.startsWith('"')) {
             if (string.endsWith("'")) {
