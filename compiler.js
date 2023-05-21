@@ -406,13 +406,13 @@ class Compiler {
                 }
 
                 globalThis.set = compiler.set;
-                globalThis.constants = globalThis.constants;
-                globalThis.This = globalThis.This;
-                globalThis.scope = globalThis.scope;
-                globalThis.labels = globalThis.labels;
-                globalThis.enviroments = globalThis.enviroments;
-                globalThis.subprograms = globalThis.subprograms;
-                globalThis.stack = globalThis.stack;
+                globalThis.constants = compiler.constants;
+                globalThis.This = compiler.This;
+                globalThis.scope = compiler.scope;
+                globalThis.labels = compiler.labels;
+                globalThis.enviroments = compiler.enviroments;
+                globalThis.subprograms = compiler.subprograms;
+                globalThis.stack = compiler.stack;
             } catch {
                 new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent subprogram`, {
                     row: trace?.parser.row,
