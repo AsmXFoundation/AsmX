@@ -1307,6 +1307,35 @@ class Compiler {
             return this.$get;
         }
 
+        if (/\$[A-Z][A-Z\d]+/.test(arg)) {
+            if (Reflect.has(this, `${arg.toLowerCase()}`)) {
+                return this[`${arg.toLowerCase()}`];
+            } else if (/\$[A-Z][A-Z\d]+)(\?)?\[([^])\]/.test(arg)) {
+                let match = arg.match(/(\$[A-Z][A-Z\d]+)(\?)?\[([^])\]/);
+                let item = this.$list[match[1].toLowerCase()][match[3]];
+                let is = match[2] == '?';
+
+                if (item == undefined && !is) {
+                    new ArgumentError(`[ArgumentException]: Non-existent item`, {
+                        code: code || ' ',
+                        row: row || 0,
+                        select: arg
+                    });
+
+                    process.exit(1);
+                }
+
+                return item;
+            } else {
+                new RegisterException('Non-existent register', {
+                    row: row || 0,
+                    code: code || ' ',
+                    select: arg
+                });
+                process.exit(1);
+            }
+        }
+
         if (/\$\w+/.test(arg)) {
             if (Reflect.has(this, `${arg}`)){
                 return this[`${arg}`];

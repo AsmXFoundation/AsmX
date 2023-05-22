@@ -10,6 +10,9 @@
 @Define INVOKE_WRITE   0x04
 @Define INVOKE_LOG     0x05
 
+@Define TRUE true;
+@Define FALSE false;
+
 @Unit print(text):
     @Route [text]
     @Invoke 0x04
