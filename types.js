@@ -89,6 +89,7 @@ Type.new('String', /"[^']*"/);
 Type.new('Int', /([+-]?\d+$)/);
 Type.new('Float', /[/+-]?\d+(\.\d+)$/);
 Type.new('Hex', /^0[xX][0-9a-fA-F]+/);
+Type.new('Bool', /true|false/);
 
 module.exports = {
     Type,

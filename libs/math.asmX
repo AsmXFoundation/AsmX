@@ -1,7 +1,7 @@
 ################################################################################################
-                                COPYRIGHT (c) 2023
-        LISCENSE (c) AsmX (https://github.com/langprogramming-AsmX/AsmX/blob/main/LICENSE)
-                                LIBRARY NAME (math.asmX)
+#                                COPYRIGHT (c) 2023
+#        LISCENSE (c) AsmX (https://github.com/langprogramming-AsmX/AsmX/blob/main/LICENSE)
+#                                LIBRARY NAME (math.asmX)
 ################################################################################################
 @Define     MATH_E          2.718281828459045
 @Define     MATH_LN10       2.302585092994046

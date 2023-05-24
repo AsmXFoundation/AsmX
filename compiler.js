@@ -157,23 +157,20 @@ class Compiler {
             
         }
 
-        const alias = Parser.parse(fs.readFileSync(`${PATH_TO_SYSTEMS_DIRECTORY}/syscalls.asmX`, {encoding: 'utf-8' }));
+        const alias = Parser.parse(fs.readFileSync(`${PATH_TO_SYSTEMS_DIRECTORY}/index.asmX`, {encoding: 'utf-8' }));
             if (alias && alias instanceof Array)
                 for (let index = 0; index < alias.length; index++) this.AbstractSyntaxTree.unshift(alias[index]);
 
-                
-        this.AbstractSyntaxTree.map(trace => {
-            if (trace?.import){
-                Switching.state && process.stdout.write(Issues.IMPORT_EVENT);
-                const alias = this.compileImportStatement(trace.import, trace);
+        let imports = this.AbstractSyntaxTree.filter(tree => tree?.import);
 
-                if (alias && alias instanceof Array)
-                    for (let index = 0; index < alias.length; index++) this.AbstractSyntaxTree.unshift(alias[index]);
-            }
-
-            if (trace?.const) this.compileDefineStatement(trace.const);
+        imports.forEach(module => {
+            const alias = this.compileImportStatement(module.import, module);
+            
+            if (alias instanceof Array)
+                for (const tree of alias) this.AbstractSyntaxTree.unshift(tree);
         });
 
+        this.AbstractSyntaxTree.forEach(tree => tree?.const && this.compileDefineStatement(tree.const));
 
         for (let index = 0; index < this.AbstractSyntaxTree.length; index++) {
             const trace = this.AbstractSyntaxTree[index];
@@ -962,6 +959,8 @@ class Compiler {
      */
     compileSubStatement(statement, index, trace) {
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
+        // statement.args = statement.args.map(argument => this.checkArgument(argument) ?? argument);
+        // console.log(statement.args);
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = this.$arg0;
         for (let index = 1; index < statement.args.length; index++) this.$ret -= this[`$arg${[index]}`];

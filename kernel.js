@@ -125,7 +125,7 @@ class CompilerAsmX {
             new Compiler(parser);
         } catch (e) {
             new FileError({ message: FileError.FILE_NOT_FOUND });
-            // console.log(e);
+            console.log(e);
         }
     }
 }
