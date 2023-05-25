@@ -123,9 +123,14 @@ class CompilerAsmX {
             let file = fs.readFileSync(this.config.src, { encoding: 'utf8' });
             let parser = Parser.parse(file);
             new Compiler(parser);
-        } catch (e) {
+        } catch (exception) {
+            if (exception instanceof RangeError) {
+                new Error('[StackException]: You must specify a range before calling this function');
+            }
+
+            // console.log(exception);
+
             new FileError({ message: FileError.FILE_NOT_FOUND });
-            console.log(e);
         }
     }
 }

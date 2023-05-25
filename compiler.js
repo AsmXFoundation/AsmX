@@ -87,6 +87,9 @@ class Compiler {
         this.$name = 0x00;
         this.$text = ''; // Text to display
         this.$math = 0x00;
+        // File control
+        this.$file = '';
+        this.$content = '';
         // jmp
         this.$count = 0x01;
         // return
@@ -225,7 +228,7 @@ class Compiler {
         
         if (this.$arg0 == 'mov')    this.$ret = this.$mov = args[0];
         
-        if (this.$arg0 == 'eq')     this.$ret = this.$eq = +args[0] ==+args[1];
+        if (this.$arg0 == 'eq')     this.$ret = this.$eq = +args[0] == +args[1];
         if (this.$arg0 == 'seq')    this.$ret = this.$seq = args[0] === args[1];
         if (this.$arg0 == 'cmp')    this.$ret = this.$cmp = +args[0] > +args[1];
         if (this.$arg0 == 'xor')    this.$ret = this.$xor = args[0] ^ args[1];
@@ -427,6 +430,7 @@ class Compiler {
         if (this.$eq == false && this.$arg0 == 'jmp_ne') labelExecute(this, args[0]);
         if (this.$cmp == true && this.$arg0 == 'jmp_great') labelExecute(this, args[0]);
         if (this.$arg0 == 'goto') labelExecute(this, args[0]);
+        if (this.$arg0 == 'exit' && (args[0] == 'true' || args[0] == 1)) process.exit();
 
         if (this.$arg0 == 'goto_env') {
             try {
@@ -607,18 +611,18 @@ class Compiler {
                         if (/\w+\[.+\]/.test(property)) {
                             let tokens = /(\w+)\[(.+)\]/.exec(property);
                             let stuff = $this[0]['value'];
-                            
-                            if (Type.check('String', stuff)) stuff = stuff.slice(1, -1);
-                            
-                            const constexpr = (
-                                Array.isArray(stuff) ||
-                                Type.check('String', stuff) ||
-                                stuff instanceof List
-                                );
-                                
-                                if (constexpr) this.$get = stuff.slice(1, -1)[this.checkArgument(tokens[2]) || +tokens[2]];
-                                if (this.$get == undefined) this.$get = 'Empty';
-                                this.$list['$get'].push(this.$get);
+        
+                            const constexpr = (Array.isArray(stuff) || stuff instanceof List);
+
+                            if (Type.check('String', stuff)) {
+                                stuff = stuff.slice(1, -1);
+                                this.$get = stuff[this.checkArgument(tokens[2]) || +tokens[2]];
+                            } else if (constexpr) {
+                                this.$get = stuff.slice(1, -1)[this.checkArgument(tokens[2]) || +tokens[2]];
+                            } 
+
+                            if (this.$get == undefined) this.$get = 'Empty';
+                            this.$list['$get'].push(this.$get);
                         } else {
                             property = this.checkArgument(property) || property;
                             this.$get = $this.filter(item => item.name == property)[0]['value'];
@@ -700,6 +704,7 @@ class Compiler {
         if (this.$arg0 == '$sp') this.$sp = this.$arg1;
         if (this.$arg0 == '$mov') this.$mov = this.$arg1;
         if (this.$arg0 == '$math') this.$math = this.checkArgument(this.$arg1) || this.$arg1;
+        if (this.$arg0 == '$file') this.$file = this.checkArgument(this.$arg1) || this.$arg1;
     }
 
 
@@ -891,6 +896,16 @@ class Compiler {
             } catch {
                 process.stdout.write(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
             }
+        } else if(this.$arg0 == 0x06) {
+            if (this.$file != '') {
+                if (Type.check('String', this.$file)) {
+                    this.$file = this.$file.slice(1, -1);
+                    console.log(fs.readdirSync('/'), __dirname);
+                    this.$content = fs.readFileSync('/' + this.$file);
+                }
+            } else {
+
+            }
         } else {
             new SystemCallException(SystemCallException.SYSTEM_CALL_NOT_FOUND, { ...trace['parser'], select: this.$arg0 });
             process.exit(1);
@@ -959,9 +974,8 @@ class Compiler {
      */
     compileSubStatement(statement, index, trace) {
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
-        // statement.args = statement.args.map(argument => this.checkArgument(argument) ?? argument);
-        // console.log(statement.args);
-        this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
+        statement.args = statement.args.map(argument => this.checkArgument(argument) ?? argument);
+        // this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = this.$arg0;
         for (let index = 1; index < statement.args.length; index++) this.$ret -= this[`$arg${[index]}`];
         this.$stack.push({ value: this.$ret });
@@ -1246,24 +1260,7 @@ class Compiler {
          */
         function checkArgumentsUnit(arg) {
             let $edx = 0x00;
-
-            // for (const key in $al) {
-                //if (Object.hasOwnProperty.call($al, key)) {
-                    // if (new RegExp(`\[${key}\]`).test(arg)) {
-                    //     console.log('key: ', strict);
-                    //     if (strict == true)  {
-                    //         if (key == arg.slice(1, -1)) $edx = $al[key];
-                    //     // }
-                    //         break;
-                    //     } else {
-                    //        $edx = $al[key];
-                    //     }
-                    // }
-
-                    $edx = $al[arg.slice(1, -1)];
-              // }
-            // }
-
+            $edx = $al[arg.slice(1, -1)];
             return $edx;
         }
 
