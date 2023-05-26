@@ -13,6 +13,10 @@
 @Define TRUE true;
 @Define FALSE false;
 
+@register $EQ $EQUAL;
+@register $URT $RETURN;
+@register $CMP $COMPARE;
+
 @Unit print(text):
     @Route [text]
     @Invoke 0x04

@@ -825,6 +825,33 @@ class Parser {
         return ast;
     }
 
+
+    /**
+     * The function parses a register statement in JavaScript and returns an abstract syntax tree.
+     * @param lineCode - The code for a single line of a program that is being parsed.
+     * @param row - The row number of the line of code being parsed.
+     * @returns The function `parseRegisterStatement` returns an object `ast` that contains a
+     * `register` property which is an object with `name` and `ref` properties, and a `parser` property
+     * which is an object with `code` and `row` properties.
+     */
+    static parseRegisterStatement(lineCode, row) {
+        let ast = { register: {}, parser: {code: lineCode, row } };
+        let match = lineCode.match(/^\@[R|r]egister\s+(\$[a-zA-Z_][a-zA-Z0-9_]*)\s+(\$[a-zA-Z_][a-zA-Z0-9_]*)$/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['register']['ref'] = match[1];
+        ast['register']['name'] = match[2];
+        return ast;
+    }
+
+
     /**
      * This function parses the arguments of a given line of code in JavaScript.
      * @param lineCode - The code line that contains the instruction and its arguments.

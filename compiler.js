@@ -37,6 +37,7 @@ class Compiler {
         this.subprograms = [];
         this.enviroments = [];
         this.usings = [];
+        this.registers = {};
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
         this.STACKTRACE_LIMIT = 10;
 
@@ -132,6 +133,7 @@ class Compiler {
             this.labels = this.options.registers['labels'];
             this.enviroments = this.options.registers['enviroments'];
             this.subprograms = this.options.registers['subprograms'];
+            this.registers = this.options.registers['registers'];
             this.stack = this.options.registers['stack'] || new Stack();
             this.This = this.options.registers['This'];
             this.scope = this.options.registers['scope'];
@@ -227,8 +229,21 @@ class Compiler {
         if (this.$arg0 == 'atan2')  this.$ret = this.$math = Math.atan2(args[0]);
         
         if (this.$arg0 == 'mov')    this.$ret = this.$mov = args[0];
-        
-        if (this.$arg0 == 'eq')     this.$ret = this.$eq = +args[0] == +args[1];
+
+        if (this.$arg0 == 'eq') {
+            if (Type.check('Int', args[0]) && Type.check('Int', args[1])) {
+                this.$ret = this.$eq = +args[0] == +args[1];
+            } else if (Type.check('String', args[0]) && Type.check('String', args[1])) {
+                this.$ret = this.$eq = args[0] == args[1];
+            } else if ( /[a-zA-Z_][a-zA-Z0-9_]*/.test(args[0]) && Type.check('String', args[1])) {
+                this.$ret = this.$eq = args[0] == args[1].slice(1, -1);
+            } else if ( /[a-zA-Z_][a-zA-Z0-9_]*/.test(args[1]) && Type.check('String', args[0])) {
+                this.$ret = this.$eq = args[0] == args[1].slice(1, -1);
+            } else {
+                this.$ret = this.$eq = args[0] == args[1];
+            }
+        }
+
         if (this.$arg0 == 'seq')    this.$ret = this.$seq = args[0] === args[1];
         if (this.$arg0 == 'cmp')    this.$ret = this.$cmp = +args[0] > +args[1];
         if (this.$arg0 == 'xor')    this.$ret = this.$xor = args[0] ^ args[1];
@@ -356,7 +371,8 @@ class Compiler {
                 This: globalThis.This, 
                 scope: globalThis.scope, 
                 subprograms: globalThis.subprograms, 
-                labels: globalThis.labels 
+                labels: globalThis.labels,
+                registers: globalThis.registers
             };
             
             if (label == null) {
@@ -392,7 +408,8 @@ class Compiler {
                     labels: globalThis.labels,
                     enviroments: globalThis.enviroments,
                     subprograms: globalThis.subprograms,
-                    stack: globalThis.stack
+                    stack: globalThis.stack,
+                    registers: globalThis.registers
                 };
 
                 for (const register of Object.getOwnPropertyNames(globalThis)) {
@@ -413,6 +430,7 @@ class Compiler {
                 globalThis.enviroments = compiler.enviroments;
                 globalThis.subprograms = compiler.subprograms;
                 globalThis.stack = compiler.stack;
+                globalThis.registers = compiler.registers;
             } catch {
                 new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent subprogram`, {
                     row: trace?.parser.row,
@@ -571,6 +589,32 @@ class Compiler {
 
 
     /**
+     * This function checks if a register exists and assigns its value to a new register.
+     * @param statement - The statement parameter is an object that contains information about the
+     * register statement being compiled. It likely includes properties such as the name of the
+     * register being assigned to and the reference to the register being copied from.
+     * @param index - The index parameter is not used in the given code snippet. It is not necessary
+     * for the execution of the function.
+     * @param trace - The `trace` parameter is an object that contains information about the location
+     * of the code being executed. It is used for debugging purposes and typically includes properties
+     * such as `file`, `line`, and `column`. In this specific code snippet, the `trace` parameter is
+     * being used to provide additional context
+     */
+    compileRegisterStatement(statement, index, trace) {
+        if (!Reflect.ownKeys(this).includes(statement.ref.toLowerCase())) {
+            new RegisterException('Non-existent register', {
+                ...trace['parser'],
+                select: statement.name
+            });
+
+            process.exit(1);
+        } else {
+            this.registers[statement.name.toLowerCase()] = statement.ref.toLowerCase().slice(1);
+        }
+    }
+
+
+    /**
      * The function compiles a JavaScript get statement and checks for non-existent properties.
      * @param statement - The statement being compiled, which includes the arguments to be parsed and
      * executed.
@@ -674,7 +718,14 @@ class Compiler {
      * @param statement - The statement object that is being compiled.
      */
     compilePushStatement(statement, index, trace) {
-        this.$arg0 = this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row) || statement.args[0];
+        if (typeof this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row) === 'boolean') {
+            this.$arg0 = this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row);
+        } else if (typeof this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row) === 'number') {
+            this.$arg0 = this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row);
+        } else {
+            this.$arg0 = this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row) || statement.args[0];
+        }
+
         this.$stack.push(this.$arg0);
     }
 
@@ -713,8 +764,24 @@ class Compiler {
      * @param statement - The statement object.
      */
     compileUnsetStatement(statement, index, trace) {
-        this.$arg0 = this.checkArgument(statement.model, trace?.parser.code, trace?.parser.row) || statement.model;
-        
+        function invalidTypeArgument(value, { row, code }) {
+            new ArgumentError(ArgumentError.ARGUMENT_INVALID_VALUE_ARGUMENT, {
+                row: row,
+                code: code,
+                select: value
+            });
+
+            process.exit(1);
+        }
+
+        if (typeof this.checkArgument(statement.model, trace?.parser?.code, trace?.parser.row) === 'boolean') {
+            invalidTypeArgument(statement.model, trace['parser']);
+        } else if (typeof this.checkArgument(statement.model, trace?.parser?.code, trace?.parser.row) === 'number') {
+            invalidTypeArgument(statement.model, trace['parser']);    
+        } else {
+            this.$arg0 = this.checkArgument(statement.model, trace?.parser?.code, trace?.parser.row) || statement.model;
+        }
+    
         if (this.$arg0 == 'mem') {
             Memory.unset();
             MemoryVariables.unsett();
@@ -723,7 +790,15 @@ class Compiler {
             else if (this.$arg0 == '$text')  this.$text = ''
             else if (this.$arg0 == '$sp') this.$sp = 0x00
             else if (this.$arg0 == '$get') this.$get = 0x00, this.$list['$get'] = []
-            else if (this.$arg0 == '$urt') this.$urt = 0x00, this.$list['$urt'] = [];
+            else if (this.$arg0 == '$urt') this.$urt = 0x00, this.$list['$urt'] = []
+        else {
+            new ArgumentError(`[${Color.FG_RED}TaskException${Color.FG_WHITE}]: Unknown model / structure`, {
+                ...trace['parser'],
+                select: statement.value
+            });
+
+            process.exit(1);
+        }
     }
 
 
@@ -820,7 +895,6 @@ class Compiler {
         }
 
         if (unitCall.has(statement.name)) {
-            // let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args.slice(1, -1), options);
             let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args, options);
 
             for (const argument of Object.keys(argsMap))
@@ -895,16 +969,6 @@ class Compiler {
                 process.stdout.write(string);
             } catch {
                 process.stdout.write(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
-            }
-        } else if(this.$arg0 == 0x06) {
-            if (this.$file != '') {
-                if (Type.check('String', this.$file)) {
-                    this.$file = this.$file.slice(1, -1);
-                    console.log(fs.readdirSync('/'), __dirname);
-                    this.$content = fs.readFileSync('/' + this.$file);
-                }
-            } else {
-
             }
         } else {
             new SystemCallException(SystemCallException.SYSTEM_CALL_NOT_FOUND, { ...trace['parser'], select: this.$arg0 });
@@ -1095,7 +1159,14 @@ class Compiler {
             this.$stack.push({ address: this.$arg1, value: value });
             this.route.setPoint(this.$arg0, this.$arg1);
         } else {
-            this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
+            if (typeof this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) === 'boolean') {
+                this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row);
+            } else if (typeof this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) === 'number') {
+                this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row);
+            } else {
+                this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
+            }
+        
             if (Type.check('String', this.$arg0)) this.$arg0 = this.$arg0.slice(1, -1);
             this.$stack.push({ value: this.$arg0 });
         }
@@ -1306,6 +1377,8 @@ class Compiler {
         if (/\$[A-Z][A-Z\d]+/.test(arg)) {
             if (Reflect.has(this, `${arg.toLowerCase()}`)) {
                 return this[`${arg.toLowerCase()}`];
+            } else if (Reflect.ownKeys(this.registers).includes(arg.toLowerCase())) {
+                return this[`$${this.registers[arg.toLowerCase()]}`];
             } else if (/\$[A-Z][A-Z\d]+)(\?)?\[([^])\]/.test(arg)) {
                 let match = arg.match(/(\$[A-Z][A-Z\d]+)(\?)?\[([^])\]/);
                 let item = this.$list[match[1].toLowerCase()][match[3]];
