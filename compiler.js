@@ -22,6 +22,7 @@ const Color = require('./utils/color');
 const Structure = require('./structure');
 const config = require('./config');
 const Analysis = require('./analysis');
+const Garbage = require('./garbage');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -443,17 +444,18 @@ class Compiler {
             }
         }
 
-        if (this.$cmp == false && this.$arg0 == 'jmp_zero') labelExecute(this, args[0]);
-        if (this.$eq == true && this.$arg0 == 'jmp_equal') labelExecute(this, args[0]);
-        if (this.$eq == false && this.$arg0 == 'jmp_ne') labelExecute(this, args[0]);
-        if (this.$cmp == true && this.$arg0 == 'jmp_great') labelExecute(this, args[0]);
-        if (this.$arg0 == 'goto') labelExecute(this, args[0]);
+        if (this.$cmp == false && this.$arg0 == 'jmp_zero') labelExecute(this, args[0]), Garbage.setMatrix('label', this.labels.map(label => Reflect.ownKeys(label)[0])), Garbage.usage('label', args[0]);
+        if (this.$eq == true && this.$arg0 == 'jmp_equal') labelExecute(this, args[0]),  Garbage.setMatrix('label', this.labels.map(label => Reflect.ownKeys(label)[0])), Garbage.usage('label', args[0]);
+        if (this.$eq == false && this.$arg0 == 'jmp_ne') labelExecute(this, args[0]),    Garbage.setMatrix('label', this.labels.map(label => Reflect.ownKeys(label)[0])), Garbage.usage('label', args[0]);
+        if (this.$cmp == true && this.$arg0 == 'jmp_great') labelExecute(this, args[0]), Garbage.setMatrix('label', this.labels.map(label => Reflect.ownKeys(label)[0])), Garbage.usage('label', args[0]);
+        if (this.$arg0 == 'goto') labelExecute(this, args[0]), Garbage.setMatrix('label', this.labels.map(label => Reflect.ownKeys(label)[0])), Garbage.usage('label', args[0]);
         if (this.$arg0 == 'exit' && (args[0] == 'true' || args[0] == 1)) process.exit();
 
         if (this.$arg0 == 'goto_env') {
             try {
                 let enviroment = this.enviroments.filter(enviroment => Reflect.ownKeys(enviroment)[0] == args[0]);
                 new Compiler(Parser.parse(enviroment[0][args[0]].join('\n')));
+                Garbage.usage('enviroment', args[0]);
             } catch {
                 new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent enviroment`, {
                     row: trace?.parser.row,
@@ -466,7 +468,7 @@ class Compiler {
             }
         }
 
-        if (this.$arg0 == 'goto_sbp') SubprogramExecute(this, args[0]);
+        if (this.$arg0 == 'goto_sbp') SubprogramExecute(this, args[0]), Garbage.setMatrix('subprogram', this.subprograms.map(subprogram => Reflect.ownKeys(subprogram)[0])), Garbage.usage('subprogram', args[0]);
     }
 
 
@@ -609,7 +611,13 @@ class Compiler {
 
             process.exit(1);
         } else {
-            this.registers[statement.name.toLowerCase()] = statement.ref.toLowerCase().slice(1);
+            try {
+                this.registers[statement.name.toLowerCase()] = statement.ref.toLowerCase().slice(1);
+            } catch (exception) {
+                if (exception instanceof TypeError) {
+                    throw exception;
+                }
+            }
         }
     }
 
@@ -1358,6 +1366,8 @@ class Compiler {
         function checkConstant(arg) {
             let $edx = 0x00;
             $cl.forEach(constant => constant.name == arg ? $edx = constant.value : $edx);
+            Garbage.setMatrix('define', $cl.map($c => $c.name));
+            Garbage.usage('define', arg);
             return $edx;
         }
 

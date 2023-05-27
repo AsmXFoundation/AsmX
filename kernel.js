@@ -13,6 +13,7 @@ const ServerLog = require('./server/log');
 const { getTotalSize } = require('./fs');
 const config = require('./config');
 const Analysis = require('./analysis');
+const Garbage = require('./garbage');
 
 let argv  = process.argv;
 
@@ -93,9 +94,11 @@ function callCompiler(pathfile) {
                 new CompilerAsmX({ src: pathfile });
                 clearInterval(timer); 
                 if (config.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
+                if (config.INI_VARIABLES?.GARBAGE) Garbage.protocol();
             }
         }, 10);
     } else if (pathfile == "analysis") {
+        ServerLog.log(`Status: ${config.INI_VARIABLES.ANALYSIS ? 'on' : 'off'}\n`, 'Info');
         question(`${Color.BRIGHT}[${Color.FG_GREEN}Question${Color.FG_WHITE}][y/n]: Are you sure you want to change? : ` , (answer) => {
             if (answer == "yes" || answer == "y") {
                 config.print('ANALYSIS', !config.INI_VARIABLES.ANALYSIS);
@@ -105,7 +108,17 @@ function callCompiler(pathfile) {
                 process.exit();
             }
         });
-
+    } else if (pathfile == "garbage") {
+        ServerLog.log(`Status: ${config.INI_VARIABLES.GARBAGE ? 'on' : 'off'}\n`, 'Info');
+        question(`${Color.BRIGHT}[${Color.FG_GREEN}Question${Color.FG_WHITE}][y/n]: Are you sure you want to change? : ` , (answer) => {
+            if (answer == "yes" || answer == "y") {
+                config.print('GARBAGE', !config.INI_VARIABLES.GARBAGE);
+                config.commit();
+                console.log('Garbage: ' ,config.INI_VARIABLES.GARBAGE);
+            } else if (answer == "no" || answer == "n") {
+                process.exit();
+            }
+        });
     } else {
         new FileError({ message: FileError.FILE_EXTENSION_INVALID });
     }
