@@ -168,12 +168,17 @@ class Compiler {
                 for (let index = 0; index < alias.length; index++) this.AbstractSyntaxTree.unshift(alias[index]);
 
         let imports = this.AbstractSyntaxTree.filter(tree => tree?.import);
+        let exececuted_imports = [];
 
         imports.forEach(module => {
-            const alias = this.compileImportStatement(module.import, module);
-            
-            if (alias instanceof Array)
-                for (const tree of alias) this.AbstractSyntaxTree.unshift(tree);
+            if (!exececuted_imports.includes(module.import.alias)) {
+                const alias = this.compileImportStatement(module.import, module);
+                
+                if (alias instanceof Array)
+                    for (const tree of alias) this.AbstractSyntaxTree.unshift(tree);
+
+                exececuted_imports.push(module.import.alias);
+            }
         });
 
         this.AbstractSyntaxTree.forEach(tree => tree?.const && this.compileDefineStatement(tree.const));
@@ -212,8 +217,6 @@ class Compiler {
 
         let $idx = index || 1;
         
-        if (this.$arg0 == 'inc')    this.$ret = this.$math = args[0] + 1;
-        if (this.$arg0 == 'dec')    this.$ret = this.$math = args[0] - 1;
         if (this.$arg0 == 'div')    this.$ret = this.$math = args[0] / args[1];
         if (this.$arg0 == 'ceil')   this.$ret = this.$math = Math.ceil(args[0]);
         if (this.$arg0 == 'floor')  this.$ret = this.$math = Math.floor(args[0]);
@@ -227,7 +230,7 @@ class Compiler {
         if (this.$arg0 == 'acos')   this.$ret = this.$math = Math.acos(args[0]);
         if (this.$arg0 == 'atan')   this.$ret = this.$math = Math.atan(args[0]);
         if (this.$arg0 == 'round')  this.$ret = this.$math = Math.round(args[0]);
-        if (this.$arg0 == 'atan2')  this.$ret = this.$math = Math.atan2(args[0]);
+        if (this.$arg0 == 'atan2')  this.$ret = this.$math = Math.atan2(args[0], args[1]);
         
         if (this.$arg0 == 'mov')    this.$ret = this.$mov = args[0];
 

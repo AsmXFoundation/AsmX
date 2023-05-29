@@ -8,7 +8,6 @@
 @import "./bin/bash/generate.asmX";
 #================================================================
 
-
 @using subprogram startlogger;
 @using subprogram finnishlogger;
 
