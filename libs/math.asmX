@@ -89,3 +89,12 @@
 @Unit atan2(x: Int):
     @Execute atan2 [x]
     @Ret $ret
+
+
+#----------------------------------------------------------------
+@Unit pow(x: Int, n: Int):  # create unit from x and n and return the result of the $ret register
+    @Execute mov 0x01       # $mov = 0x01 AND $ret = 0x01
+    @mul $ret [x]          # $ret = $ret * [x] -> $ret *= [x]
+    @Execute jmp 0x01 [n]   # jmp 0x01 (top) [n] (count)
+    @Ret $ret               # return $ret
+#----------------------------------------------------------------
