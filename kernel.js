@@ -83,7 +83,7 @@ class Fax {
 }
 
 function callCompiler(pathfile) {
-    if (pathfile.endsWith('.asmx') || pathfile.endsWith('.asmX')) {
+    if (pathfile.endsWith('.asmx') || pathfile.endsWith('.asmX') || pathfile.endsWith('.🚀')) {
         ServerLog.log(`COMPILING ${pathfile} FILE...\n`, 'Compiler');
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
         Fax.news();
