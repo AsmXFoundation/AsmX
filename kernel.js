@@ -11,9 +11,10 @@ const Compiler = require('./compiler');
 const { FileError } = require('./anatomics.errors');
 const ServerLog = require('./server/log');
 const { getTotalSize } = require('./fs');
-const config = require('./config');
+const configSettings = require('./config');
 const Analysis = require('./analysis');
 const Garbage = require('./garbage');
+const ValidatorByType = require('./checker');
 
 let argv  = process.argv;
 
@@ -93,28 +94,30 @@ function callCompiler(pathfile) {
             if (progressBar.complete){
                 new CompilerAsmX({ src: pathfile });
                 clearInterval(timer); 
-                if (config.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
-                if (config.INI_VARIABLES?.GARBAGE) Garbage.protocol();
+                if (configSettings.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
+                if (configSettings.INI_VARIABLES?.GARBAGE) Garbage.protocol();
             }
         }, 10);
-    } else if (pathfile == "analysis") {
-        ServerLog.log(`Status: ${config.INI_VARIABLES.ANALYSIS ? 'on' : 'off'}\n`, 'Info');
+    } else if (['garbage', 'analysis'].includes(pathfile)) {
+        pathfile = pathfile.toUpperCase();
+        ServerLog.log(`Status: ${configSettings.INI_VARIABLES[pathfile] ? 'on' : 'off'}\n`, 'Info');
         question(`${Color.BRIGHT}[${Color.FG_GREEN}Question${Color.FG_WHITE}][y/n]: Are you sure you want to change? : ` , (answer) => {
             if (answer == "yes" || answer == "y") {
-                config.print('ANALYSIS', !config.INI_VARIABLES.ANALYSIS);
-                config.commit();
-                console.log('Analysis: ' ,config.INI_VARIABLES.ANALYSIS);
+                configSettings.print(pathfile, !configSettings.INI_VARIABLES[pathfile]);
+                configSettings.commit();
+                console.log(`${pathfile}: `, configSettings.INI_VARIABLES[pathfile]);
             } else if (answer == "no" || answer == "n") {
                 process.exit();
             }
         });
-    } else if (pathfile == "garbage") {
-        ServerLog.log(`Status: ${config.INI_VARIABLES.GARBAGE ? 'on' : 'off'}\n`, 'Info');
+    } else if(['print-modules'].includes(pathfile)) {
+        pathfile = pathfile.replace('-', '_').toUpperCase();
+        ServerLog.log(`Status: ${configSettings.INI_VARIABLES[pathfile] ? 'on' : 'off'}\n`, 'Info');
         question(`${Color.BRIGHT}[${Color.FG_GREEN}Question${Color.FG_WHITE}][y/n]: Are you sure you want to change? : ` , (answer) => {
             if (answer == "yes" || answer == "y") {
-                config.print('GARBAGE', !config.INI_VARIABLES.GARBAGE);
-                config.commit();
-                console.log('Garbage: ' ,config.INI_VARIABLES.GARBAGE);
+                configSettings.print(pathfile, !configSettings.INI_VARIABLES[pathfile]);
+                configSettings.commit();
+                console.log(`${pathfile}: `, configSettings.INI_VARIABLES[pathfile]);
             } else if (answer == "no" || answer == "n") {
                 process.exit();
             }
@@ -136,6 +139,25 @@ class CompilerAsmX {
             let file = fs.readFileSync(this.config.src, { encoding: 'utf8' });
             let parser = Parser.parse(file);
             new Compiler(parser);
+
+            if (configSettings.INI_VARIABLES?.PRINT_MODULES) {
+                let imports = parser.filter(tree => tree?.import);
+
+                console.log(`${Color.BRIGHT} (${Color.FG_GREEN}Modules Collection${Color.FG_WHITE}) {`);
+                    imports.forEach(module => {
+                        let m = ValidatorByType.validateByTypeString(module.import.alias) ? module.import.alias.slice(1, -1) : module.import.alias;
+                        let typeAlias;
+
+                        if (ValidatorByType.validateByTypeString(module.import.alias)) {
+                            typeAlias = 'module';
+                        } else if (ValidatorByType.validateTypeIdentifier(module.import.alias)) {
+                            typeAlias = 'library';
+                        }
+
+                        console.log(`  ${typeAlias} => ${m}`);
+                    })
+                console.log(` }\n`);
+            }
         } catch (exception) {
             if (exception instanceof RangeError) {
                 new Error('[StackException]: You must specify a range before calling this function');
