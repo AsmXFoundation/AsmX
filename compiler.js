@@ -23,11 +23,11 @@ const Structure = require('./structure');
 const config = require('./config');
 const Analysis = require('./analysis');
 const Garbage = require('./garbage');
+const Task = require('./task');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
         this.AbstractSyntaxTree = AbstractSyntaxTree; // <Type> - array
-        const Switching = { state: false };
         this.options = arguments[2];
         this.scope = arguments[1] || 'global'; // or 'local'
         this.type = this.options?.registers?.type || 'Program';
@@ -41,6 +41,7 @@ class Compiler {
         this.registers = {};
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
         this.STACKTRACE_LIMIT = 10;
+        this._task = Task;
 
         /* 
             The above code is defining an object called "This" with two properties: "global" and
@@ -139,6 +140,7 @@ class Compiler {
             this.This = this.options.registers['This'];
             this.scope = this.options.registers['scope'];
             this.type = this.options.registers['type'];
+            this._task = this.options.registers['_task'] || [];
             // Logical registers
             this.$eq = this.options.registers['$eq'];
             this.$seq = this.options.registers['$seq'];
@@ -404,7 +406,7 @@ class Compiler {
             try {
                 let subprogram = globalThis.subprograms.filter(subprogram => Reflect.ownKeys(subprogram)[0] == subprogramname);
 
-                let registers = { 
+                let registers = {
                     set: globalThis.set, 
                     constants: globalThis.constants, 
                     This: globalThis.This, 
@@ -413,7 +415,8 @@ class Compiler {
                     enviroments: globalThis.enviroments,
                     subprograms: globalThis.subprograms,
                     stack: globalThis.stack,
-                    registers: globalThis.registers
+                    registers: globalThis.registers,
+                    _task: globalThis._task
                 };
 
                 for (const register of Object.getOwnPropertyNames(globalThis)) {
@@ -435,7 +438,8 @@ class Compiler {
                 globalThis.subprograms = compiler.subprograms;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
-            } catch {
+                globalThis._task = compiler._task;
+            } catch (exception) {
                 new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent subprogram`, {
                     row: trace?.parser.row,
                     code: trace?.parser.code || `@subprogram ${args[0]}:`,
@@ -839,11 +843,8 @@ class Compiler {
         }
 
         if (this.constants.length > 0 && this.constants.findIndex(cell => cell.name == this.$name) > -1) {
-           //new ConstException(`[${Color.FG_RED}ConstException${Color.FG_WHITE}]: you have this define name`, { ...trace['parser'] });
-          //  process.exit(1);
         } else {
             this.constants.push({ name: this.$name, value: this.$arg1 });
-            // console.log(this.constants);
         }
     }
 
@@ -967,6 +968,7 @@ class Compiler {
             this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
             this.$list['$input'].push(this.$input);
             this.$stack.push({ value: this.$arg0 });
+            Task.new('input', this.$arg0, 'proccess');
         } else if (this.$arg0 == 0x04) {
             try {
                 let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
@@ -1221,7 +1223,6 @@ class Compiler {
         let isType = false;
         let typeInList = false;
         for (const T of Type.types) if (T.name == statement.type) isType = true;
-        
         let forReplace = { name: statement.name, value: statement.value };
         statement.name = this.checkArgument(statement.name, trace.parser.code, trace.parser.row) || statement.name;
         statement.value = this.checkArgument(statement.value, trace.parser.code, trace.parser.row) || statement.value;
@@ -1229,6 +1230,10 @@ class Compiler {
         trace.parser.code = trace?.parser.code.replace(forReplace.value, statement.value);
         
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
+
+        if (Task.last()['value'] == statement.value && Task.last()['name'] == 'input') {
+            statement.value = `'${statement.value}'`;
+        }
 
         if (this.checkArgument(forReplace.name) != undefined || this.checkArgument(forReplace.value) != undefined) {
             isType = true;

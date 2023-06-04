@@ -149,12 +149,12 @@ class CompilerAsmX {
                         let typeAlias;
 
                         if (ValidatorByType.validateByTypeString(module.import.alias)) {
-                            typeAlias = 'module';
+                            typeAlias = `${Color.FG_GRAY}module${Color.FG_WHITE}`;
                         } else if (ValidatorByType.validateTypeIdentifier(module.import.alias)) {
-                            typeAlias = 'library';
+                            typeAlias = `${Color.FG_MAGENTA}library${Color.FG_WHITE}`;
                         }
 
-                        console.log(`  ${typeAlias} => ${m}`);
+                        if (!m.startsWith('./systems/')) console.log(`  ${typeAlias} => ${m}`);
                     })
                 console.log(` }\n`);
             }
