@@ -122,6 +122,17 @@ function callCompiler(pathfile) {
                 process.exit();
             }
         });
+    } else if (pathfile == "nowcode") {
+        let isprompt = true;
+
+        while (isprompt) {
+            question('> ', (source) => {
+                new Compiler(Parser.parse(source));
+                isprompt = true;
+            });
+
+            isprompt = false;
+        }
     } else {
         new FileError({ message: FileError.FILE_EXTENSION_INVALID });
     }
