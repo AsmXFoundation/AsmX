@@ -4,6 +4,8 @@
 
 const fs = require('fs');
 const ProgressBar = require('progress');
+const { exec } = require('child_process');
+const dns = require('dns');
 
 const Parser = require('./parser');
 const Color = require('./utils/color');
@@ -15,6 +17,7 @@ const configSettings = require('./config');
 const Analysis = require('./analysis');
 const Garbage = require('./garbage');
 const ValidatorByType = require('./checker');
+const Task = require('./task');
 
 let argv  = process.argv;
 
@@ -138,8 +141,150 @@ function callCompiler(pathfile) {
     }
 }
 
+
+class Cli {
+    static task = Task;
+    static flagUsage = true;
+    static commandUsage = true;
+    static doctorData = null;
+
+
+    //============================================================================================
+    // Main function
+    //============================================================================================
+    static execute(args) {
+        if (args[0] = 'asmx-cli') {
+            let flags = ['ls', 'graph', 'o', 'i'];
+            let counter = 0;
+
+            for (const argument of args.slice(1)) {
+                if (counter == 0 && flags.includes(argument.slice(1)))
+                    throw { error: 'Invalid argument ' + argument + ' in command ' };
+        
+                if (Reflect.ownKeys(this).includes(argument)) this[argument]();
+
+                if (counter >= 1) {
+                    if(this.flagUsage == false || this.commandUsage == false) {
+                        console.log('Unexpected argument ' + argument);
+                        process.exit(1);
+                    }
+                }
+
+                if (flags.includes(argument.slice(1))) this[argument.slice(1)]();
+                counter++;
+            }
+
+            if (counter == 0) console.log('get more information: asmx-cli usage');
+        }
+    }
+    //============================================================================================
+
+
+    //============================================================================================
+    // CLI COMMANDS
+    //============================================================================================
+    static usage() {
+        let { log } = console;
+
+        log('');
+        log('USAGE: ');
+        log('\tasmx-cli [cmd] [options] [flags] [options]');
+        log('\tasmx-cli usage');
+        log('\tasmx-cli start');
+        log('\tasmx-cli doctor');
+        log('\tasmx-cli update');
+        log('FLAGS:');
+        log('\t-ls');
+        log('');
+    }
+
+
+    static start() {
+        this.doctor();
+        let properties = this.task.last()['value'];
+
+        if (properties['isAsmXGlobal']) {
+            ServerLog.log('AsmX is already in the global system', 'Notify');
+        } else {
+            // if (process.platform === 'win32') {
+                exec('clear', (exception, stdout, stdexception) => {
+                    if (exception) console.log(exception);
+                    if (stdout) console.log(stdout);
+                    // if (exception) throw exception;
+                });
+
+            // }
+
+            ServerLog.log('AsmX has been successfully entered into the global system', 'Successfuly');
+        }
+
+        this.commandUsage = false;
+        this.flagUsage = false;
+    }
+
+
+    static doctor() {
+        let isAsmXGlobal = false;
+
+        if (process.platform === 'win32') {
+            exec('echo %PATH% | findstr /i "\\asmx"', (exception, stdout, stdexcept) => {
+                if (stdout && stdout.length > 0) isAsmXGlobal = true;
+            });
+        } else if (process.platform === 'linux' || process.platform === 'darwin') {
+            exec('echo $PATH | grep -q "\\asmx"', (exception, stdout, stdexcept) => {
+                if (stdout && stdout.length > 0) isAsmXGlobal = true;
+            });
+        }
+
+        this.doctorData = {
+            isAsmXGlobal: isAsmXGlobal
+        }
+
+        this.task.new('doctor', this.doctorData, 'watch');
+    }
+
+
+    static update() {
+        exec('git pull', (exception, stdout) => {
+            if (stdout) console.log('AsmX updated!');
+            if (exception) {
+                dns.lookup('github.com', (except) => {
+                    if (except && except.code === 'ENOTFOUND') 
+                    console.log(`
+                        \x1b[1F${Color.BRIGHT}[${Color.FG_RED}RequestException${Color.FG_WHITE}]: Internet is not avaliable ${Color.RESET}
+                    `);
+                });
+
+                ServerLog.log('If you have an internet connection, you probably deleted your git account.', 'Possible fixes');
+            }
+        });
+    }
+    //============================================================================================
+
+
+    //============================================================================================
+    // CLI FLAGS
+    //============================================================================================
+    static ls() {
+        if (this.task.last()['name'] === 'doctor') {
+            let properties = this.task.last()['value'];
+            console.log(
+                Color.BRIGHT
+                , properties?.isAsmXGlobal ? `${Color.FG_GREEN}+${Color.BRIGHT}` : `${Color.FG_RED}-${Color.BRIGHT}` ,`${Color.FG_WHITE} AsmX Global System`
+                , Color.RESET
+            );
+        }
+
+        this.flagUsage = false;
+        this.commandUsage = false;
+    }
+    //============================================================================================
+}
+
+
 if (argv.length == 2)  question('AsmX file compiler asmX ~' , (answer) => { callCompiler(answer); });
-if (argv.length == 3) callCompiler(argv[2]);
+if (argv[2] !== 'asmx-cli'  && argv.length == 3) callCompiler(argv[2]);
+if (argv.length >=  3) Cli.execute(argv.slice(2));
 
 class CompilerAsmX {
     constructor(config) {
