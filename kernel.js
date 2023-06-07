@@ -18,6 +18,7 @@ const Analysis = require('./analysis');
 const Garbage = require('./garbage');
 const ValidatorByType = require('./checker');
 const Task = require('./task');
+const highlightCLI = require('./utils/highlight');
 
 let argv  = process.argv;
 
@@ -259,6 +260,19 @@ class Cli {
             }
         });
     }
+
+    static vim() {
+        process.stdin.resume();
+        process.stdin.setEncoding('utf8');
+        let sourceVim = [];
+
+        process.stdin.on('data', function (data) {
+            sourceVim.push(data);
+            console.clear();
+            for (const code of sourceVim) process.stdout.write(highlightCLI.light(code));
+        });
+    }
+
     //============================================================================================
 
 
@@ -285,6 +299,7 @@ class Cli {
 if (argv.length == 2)  question('AsmX file compiler asmX ~' , (answer) => { callCompiler(answer); });
 if (argv[2] !== 'asmx-cli'  && argv.length == 3) callCompiler(argv[2]);
 if (argv.length >=  3) Cli.execute(argv.slice(2));
+
 
 class CompilerAsmX {
     constructor(config) {

@@ -1,7 +1,7 @@
 @echo off
 
 setlocal enableextensions
-set "asmx=%USERPROFILE%/AsmX/installer/windows/asmx.bat"
+set "asmx=%USERPROFILE%\AsmX\installer\windows\asmx.bat"
 
 if not exist "%asmx%" (
     echo "asmx" command not found!
