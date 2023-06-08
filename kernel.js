@@ -19,6 +19,8 @@ const Garbage = require('./garbage');
 const ValidatorByType = require('./checker');
 const Task = require('./task');
 const highlightCLI = require('./utils/highlight');
+const CortexMARM = require('./bin/arm/arm');
+const MiddlewareSoftware = require('./middleware.software');
 
 let argv  = process.argv;
 
@@ -142,29 +144,53 @@ function callCompiler(pathfile) {
     }
 }
 
+// VARNING: Experimental mode
+class History {
+    static print(history) {
+        this.read();
+        let fmt = `${new Date().getUTCDate()}:${new Date().getMonth()}:${new Date().getFullYear()}::`;
+        let historyData = Buffer.from(Buffer.from(fmt + history).toString('hex'), 'hex');
+        fs.writeFileSync('./data/.hdata', historyData.toString('hex'));
+    }
+
+    static read(){
+        let history = fs.readFileSync('./data/.hdata');
+        // console.log(history.toString('hex'));
+    }
+}
+
 
 class Cli {
     static task = Task;
     static flagUsage = true;
     static commandUsage = true;
     static doctorData = null;
+    static counter = 0;
+    static beforeCounter = 0;
+    static isexit = false;
+    static cli_args = [];
 
 
     //============================================================================================
     // Main function
     //============================================================================================
     static execute(args) {
+        this.cli_args = args;
+
         if (args[0] = 'asmx-cli') {
             let flags = ['ls', 'graph', 'o', 'i'];
-            let counter = 0;
+            History.print(args.join(' '));
 
             for (const argument of args.slice(1)) {
-                if (counter == 0 && flags.includes(argument.slice(1)))
+                this.beforeCounter++;
+                if (this.isexit) process.exit(1);
+
+                if (this.counter == 0 && flags.includes(argument.slice(1)))
                     throw { error: 'Invalid argument ' + argument + ' in command ' };
         
                 if (Reflect.ownKeys(this).includes(argument)) this[argument]();
 
-                if (counter >= 1) {
+                if (this.counter >= 1) {
                     if(this.flagUsage == false || this.commandUsage == false) {
                         console.log('Unexpected argument ' + argument);
                         process.exit(1);
@@ -172,10 +198,10 @@ class Cli {
                 }
 
                 if (flags.includes(argument.slice(1))) this[argument.slice(1)]();
-                counter++;
+                this.counter++;
             }
 
-            if (counter == 0) console.log('get more information: asmx-cli usage');
+            if (this.counter == 0) console.log('get more information: asmx-cli usage');
         }
     }
     //============================================================================================
@@ -194,6 +220,7 @@ class Cli {
         log('\tasmx-cli start');
         log('\tasmx-cli doctor');
         log('\tasmx-cli update');
+        log('asmx-cli build <Architecture> <filename> <output filename>');
         log('FLAGS:');
         log('\t-ls');
         log('');
@@ -261,6 +288,7 @@ class Cli {
         });
     }
 
+
     static vim() {
         process.stdin.resume();
         process.stdin.setEncoding('utf8');
@@ -273,6 +301,32 @@ class Cli {
         });
     }
 
+
+    static build(){
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        if (parameters.length > 3) { 
+            ServerLog.log("too many parameters", 'Exception');
+            process.exit(1);
+        };
+
+        const architecture = parameters[0];
+        const file = parameters[1];
+        let outputfile = parameters[2];
+        const sourceparse =  Parser.parse(fs.readFileSync(file, { encoding: 'utf8' }));
+        new Compiler(sourceparse);
+
+        if (architecture === 'arm') {
+            if (!outputfile.endsWith('.s')) outputfile = outputfile + '.s';
+            new CortexMARM(outputfile, MiddlewareSoftware.source);
+        } else {
+            ServerLog.log('Unknow architecture', 'Exception');
+            process.exit(1);
+        }
+
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
+    }
     //============================================================================================
 
 

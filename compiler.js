@@ -24,6 +24,7 @@ const config = require('./config');
 const Analysis = require('./analysis');
 const Garbage = require('./garbage');
 const Task = require('./task');
+const MiddlewareSoftware = require('./middleware.software');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -1033,6 +1034,13 @@ class Compiler {
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = 0x00;
         for (let index = 0; index < statement.args.length; index++) this.$ret += this[`$arg${[index]}`];
+
+        // WARNING: Experimental mode
+        let argumentsMiddleware = [];
+        for (let index = 0; index < statement.args.length; index++) argumentsMiddleware.push(this[`$arg${[index]}`]);
+        MiddlewareSoftware.compileStatement({ instruction: 'add', r0: '$ret', arguments: argumentsMiddleware });
+        //
+        
         this.$stack.push({ value: this.$ret });
     }
 
