@@ -160,6 +160,15 @@ class History {
 }
 
 
+class ReadmeCLI {
+    static moreBuild(){
+        process.stdout.write('asmx-cli build <Architecture> <filename> <output filename>\n');
+        process.stdout.write('This command allows you to compile the AsmX program according to the desired architecture. After compilation, it will give you a file.');
+        process.stdout.write('\n');
+    }
+}
+
+
 class Cli {
     static task = Task;
     static flagUsage = true;
@@ -304,10 +313,11 @@ class Cli {
 
     static build(){
         const parameters = this.cli_args.slice(this.beforeCounter + 1);
+
         if (parameters.length > 3) { 
             ServerLog.log("too many parameters", 'Exception');
             process.exit(1);
-        };
+        }
 
         const architecture = parameters[0];
         const file = parameters[1];
@@ -320,6 +330,32 @@ class Cli {
             new CortexMARM(outputfile, MiddlewareSoftware.source);
         } else {
             ServerLog.log('Unknow architecture', 'Exception');
+            process.exit(1);
+        }
+
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
+    }
+
+
+    static readme() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const command = parameters[0];
+
+        if (parameters.length > 1) { 
+            ServerLog.log("too many parameters", 'Exception');
+            process.exit(1);
+        };
+
+        try {
+            if (command != '--all') {
+                ReadmeCLI[`more${command[0].toUpperCase() + command.substring(1)}`]();
+            } else {
+                for (const readme of Reflect.ownKeys(ReadmeCLI).filter(readme => readme.startsWith('more'))) ReadmeCLI[readme]();
+            }
+        } catch {
+            ServerLog.log("Unknown command for get readme", 'Exception');
             process.exit(1);
         }
 
