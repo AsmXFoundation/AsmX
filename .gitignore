@@ -1,3 +1,4 @@
 /examples/tests/*
 tests/*
 *.hdata
+*.html
