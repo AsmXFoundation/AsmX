@@ -1239,7 +1239,7 @@ class Compiler {
         
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
-        if (Task.last()['value'] == statement.value && Task.last()['name'] == 'input') {
+        if (Task.last() && Task.last()['value'] == statement.value && Task.last()['name'] == 'input') {
             statement.value = `'${statement.value}'`;
         }
 
@@ -1282,6 +1282,9 @@ class Compiler {
         } else {
             this.set.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
         }
+
+        // WARNING: Experimental mode
+        MiddlewareSoftware.compileStatement({ instruction: 'variable', variable: { name: this.$name, type: this.$arg1, value: this.$arg2 } });
     }
 
 

@@ -30,22 +30,52 @@ class CortexMARM {
         this.filename = filename;
         this.compileSource = [];
         ServerLog.log('Compile source code: Cortex-M ARM', 'Compiler');
+        const SECTION_RODATA_SIGNATURE = '.rodata';
+        const SECTION_DATA_SIGNATURE = '.data';
+        this.IS_SECTION_DATA_RESOURCES = false;
+        this.IS_SECTION_RODATA_RESOURCES = false;
+        this.SECTION_RODATA = [];
+        this.SECTION_DATA = [];
+        
+        const SECTION_RESOURCES_INSTRUCTIONS = ['variable', 'constant'];
+        function isresource(o) { return SECTION_RESOURCES_INSTRUCTIONS.includes(o['instruction']) };
 
+        let resources = this.ast.filter(tree => isresource(tree));
+        
+        resources.forEach(resource => {
+            if (resource['instruction'] === 'variable') this.IS_SECTION_DATA_RESOURCES = true;
+            if (resource['instruction'] === 'constant') this.IS_SECTION_RODATA_RESOURCES = true;
+            this[`compile${resource['instruction'][0].toUpperCase() + resource['instruction'].substring(1)}Statement`](resource);
+        });
+        
+
+        this.SECTION_RESOURCES = [
+            this.IS_SECTION_DATA_RESOURCES ? SECTION_DATA_SIGNATURE : '',
+            ...this.SECTION_DATA,
+            this.IS_SECTION_RODATA_RESOURCES ? SECTION_RODATA_SIGNATURE : '',
+            this.SECTION_RODATA,
+        ];
+        
         const startSource = [
-            '.text',
-            '.global start',
+            '.global _start',
             '',
+            ...this.SECTION_RESOURCES,
+            '.text'
         ];
 
+        this.IS_SECTION_DATA_RESOURCES = false;
+        this.IS_SECTION_RODATA_RESOURCES = false;
+        this.ast = this.ast.filter(tree => !isresource(tree));
+        
         for (const code of startSource) this.compileSource.push(code);
-        this.compileSource.push('start:');
+        this.compileSource.push('_start:');
         this.islabel = true;
-
+        
         for (let index = 0; index < this.ast.length; index++) {
             const tree = this.ast[index];
             this[`compile${tree['instruction'][0].toUpperCase() + tree['instruction'].substring(1)}Statement`](tree);
         }
-
+        
         this.compileSource.push('\nstop: b start');
         this.islabel = false;
         this.compileSource.length > 0 && fs.writeFileSync(filename, this.compileSource.join('\n'));
@@ -66,6 +96,35 @@ class CortexMARM {
         let value = variable.value;
         if (!isNaN(value)) value = `#${value}`;
         this.compileSource.push(`${this._isTab()}mov ${name} ${value}`);
+    }
+
+
+    compileConstantStatement(tree) {
+        let constant = tree.constant;
+        let name = constant.name;
+        let value = constant.value;
+    }
+
+
+    compileVariableStatement(tree) {
+        let variable = tree.variable;
+        let name = variable.name;
+        let type = variable.type;
+        let value = variable.value;
+        let DIRECTIVE = '.ascii';
+
+        if (type ==  'String')  DIRECTIVE = '.ascii';
+        if (type ==  'Float')  DIRECTIVE = '.float';
+        if (type == 'Int')  DIRECTIVE = '.word';
+    
+        if (type == 'Bool') {
+            DIRECTIVE = 'db';
+            if (value == 'true') value = 1;
+            else if (value == 'false') value = 0;
+            else value = 0;
+        }
+
+        this.SECTION_DATA.push(`${this.IS_SECTION_DATA_RESOURCES ? '\t': ''}${name}: ${DIRECTIVE} ${value}`);
     }
 
     

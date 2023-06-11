@@ -1,7 +1,15 @@
-.text
-.global start
+.global _start
 
-start:
+.data
+	name: .ascii "Mask"
+	isAge: db 1
+	rating: .float 10.0
+	age: .word 51
+	isOnline: db 0
+
+
+.text
+_start:
 	mov $arg0 #0
 	mov $arg1 #0
 	mov $arg2 #0
