@@ -144,21 +144,6 @@ function callCompiler(pathfile) {
     }
 }
 
-// VARNING: Experimental mode
-class History {
-    static print(history) {
-        this.read();
-        let fmt = `${new Date().getUTCDate()}:${new Date().getMonth()}:${new Date().getFullYear()}::`;
-        let historyData = Buffer.from(Buffer.from(fmt + history).toString('hex'), 'hex');
-        fs.writeFileSync('./data/.hdata', historyData.toString('hex'));
-    }
-
-    static read(){
-        let history = fs.readFileSync('./data/.hdata');
-        // console.log(history.toString('hex'));
-    }
-}
-
 
 class ReadmeCLI {
     static moreBuild(){
