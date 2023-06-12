@@ -45,9 +45,9 @@ function question(message, callback) {
 }
 
 
-class Fax {
+class Fact {
     static news() {
-        const faxs = {
+        const facts = {
             instructions: Object.getOwnPropertyNames(Parser),
             registers: Object.getOwnPropertyNames(Compiler),
             sentence: [
@@ -56,24 +56,24 @@ class Fax {
             ],
         }
 
-        faxs.instructions = faxs.instructions.filter(instruction => /parse\w+Statement/.test(instruction)).length;
-        faxs.registers = faxs.registers.filter(register => /\$\w+/.test(register)).length;
+        facts.instructions = facts.instructions.filter(instruction => /parse\w+Statement/.test(instruction)).length;
+        facts.registers = facts.registers.filter(register => /\$\w+/.test(register)).length;
 
         let randomize = (struct) => {
             let call = (structure) => Math.floor(Math.random()* (structure - 0) + 0);
             return (struct instanceof Object) ? call(Reflect.ownKeys(struct).length) : call(struct.length - 1);
         }
 
-        let faxsKeys = Reflect.ownKeys(faxs);
-        const fax = faxsKeys[randomize(faxs)];
-        const tag = 'Fun faxs';
+        let faxsKeys = Reflect.ownKeys(facts);
+        const fact = faxsKeys[randomize(facts)];
+        const tag = 'Fun facts';
         ServerLog.newTag(tag, Color.FG_CYAN);
 
-        if (fax == 'sentence' && Array.isArray(faxs[fax])) {
-            const faxsV2 = faxs[fax];
-            ServerLog.log(faxsV2[randomize(faxs[fax])], tag);
+        if (fact == 'sentence' && Array.isArray(facts[fact])) {
+            const factsV2 = facts[fact];
+            ServerLog.log(factsV2[randomize(facts[fact])], tag);
         } else {
-            ServerLog.log(`fun fax: AsmX have ${faxs[fax]} ${fax}\n`, tag);
+            ServerLog.log(`fun fax: AsmX have ${facts[fact]} ${fact}\n`, tag);
         }
     }
 }
@@ -82,7 +82,7 @@ function callCompiler(pathfile) {
     if (pathfile.endsWith('.asmx') || pathfile.endsWith('.asmX') || pathfile.endsWith('.🚀')) {
         ServerLog.log(`COMPILING ${pathfile} FILE...\n`, 'Compiler');
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
-        Fax.news();
+        Fact.news();
 
         let timer = setInterval(() => {
             new CompilerAsmX({ src: pathfile });
