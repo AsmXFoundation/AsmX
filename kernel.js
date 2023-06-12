@@ -158,12 +158,13 @@ class Cli {
         this.cli_args = args;
 
         if (args[0] = 'asmx-cli') {
-            let flags = ['ls', 'graph', 'o', 'i'];
+            let flags = ['ls', 'graph', 'o', 'i', 'v'];
 
             for (const argument of args.slice(1)) {
                 this.beforeCounter++;
                 if (this.isexit) process.exit(1);
 
+                if (argument.slice(1) !== 'v')
                 if (this.counter == 0 && flags.includes(argument.slice(1)))
                     throw { error: 'Invalid argument ' + argument + ' in command ' };
         
@@ -352,12 +353,22 @@ class Cli {
         this.flagUsage = false;
         this.commandUsage = false;
     }
+
+
+    /**
+     * @returns the AsmX version
+     */
+    static v() {
+        process.stdout.write('AsmX v3.0');
+        this.flagUsage = false;
+        this.commandUsage = false;
+    }
     //============================================================================================
 }
 
 
 if (argv.length == 2)  question('AsmX file compiler asmX ~' , (answer) => { callCompiler(answer); });
-if (argv[2] !== 'asmx-cli'  && argv.length == 3) callCompiler(argv[2]);
+if (argv[2] !== 'asmx-cli' || argv[2] !== 'asmx' && argv.length == 3) callCompiler(argv[2]);
 if (argv.length >=  3) Cli.execute(argv.slice(2));
 
 
