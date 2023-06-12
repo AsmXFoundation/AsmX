@@ -1,9 +1,7 @@
 //===========================================================================================
 //      The Kernel is responsible for loading and executing the functions in the Kernel
 //===========================================================================================
-
 const fs = require('fs');
-const ProgressBar = require('progress');
 const { exec } = require('child_process');
 const dns = require('dns');
 
@@ -23,16 +21,7 @@ const CortexMARM = require('./bin/arm/arm');
 const MiddlewareSoftware = require('./middleware.software');
 
 let argv  = process.argv;
-
 log = (message, callback) => process.stdout.write(message, callback);
-
-let progressBar = new ProgressBar(`[${Color.FG_CYAN}:bar${Color.RESET}] :percent :etas`, {
-    complete: '#',
-    incomplete: ' ',
-    width: 20,
-    total: 100
-});
-
 log('COMPILER AsmX \n');
 
 
@@ -95,15 +84,9 @@ function callCompiler(pathfile) {
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
         Fax.news();
 
-        let timer = setInterval(() => {
-            progressBar.tick();
-            if (progressBar.complete){
-                new CompilerAsmX({ src: pathfile });
-                clearInterval(timer); 
-                if (configSettings.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
-                if (configSettings.INI_VARIABLES?.GARBAGE) Garbage.protocol();
-            }
-        }, 10);
+        new CompilerAsmX({ src: pathfile });
+        if (configSettings.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
+        if (configSettings.INI_VARIABLES?.GARBAGE) Garbage.protocol();
     } else if (['garbage', 'analysis'].includes(pathfile)) {
         pathfile = pathfile.toUpperCase();
         ServerLog.log(`Status: ${configSettings.INI_VARIABLES[pathfile] ? 'on' : 'off'}\n`, 'Info');
@@ -173,7 +156,6 @@ class Cli {
 
         if (args[0] = 'asmx-cli') {
             let flags = ['ls', 'graph', 'o', 'i'];
-            History.print(args.join(' '));
 
             for (const argument of args.slice(1)) {
                 this.beforeCounter++;
