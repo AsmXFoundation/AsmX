@@ -9,5 +9,3 @@
 @Route  txt 0x01        #   route
 @Stack  0x01            #   stack set point with address
 @Invoke 0x04            #   write lis (last item stack)
-
-@Invoke 0x80            #   call kernel

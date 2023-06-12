@@ -84,9 +84,12 @@ function callCompiler(pathfile) {
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
         Fax.news();
 
-        new CompilerAsmX({ src: pathfile });
-        if (configSettings.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
-        if (configSettings.INI_VARIABLES?.GARBAGE) Garbage.protocol();
+        let timer = setInterval(() => {
+            new CompilerAsmX({ src: pathfile });
+            clearInterval(timer);
+            if (configSettings.INI_VARIABLES?.ANALYSIS) Analysis.protocol();
+            if (configSettings.INI_VARIABLES?.GARBAGE) Garbage.protocol();
+        });
     } else if (['garbage', 'analysis'].includes(pathfile)) {
         pathfile = pathfile.toUpperCase();
         ServerLog.log(`Status: ${configSettings.INI_VARIABLES[pathfile] ? 'on' : 'off'}\n`, 'Info');
