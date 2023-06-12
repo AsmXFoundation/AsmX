@@ -73,7 +73,7 @@ class Fact {
             const factsV2 = facts[fact];
             ServerLog.log(factsV2[randomize(facts[fact])], tag);
         } else {
-            ServerLog.log(`fun fax: AsmX have ${facts[fact]} ${fact}\n`, tag);
+            ServerLog.log(`fun fact: AsmX have ${facts[fact]} ${fact}\n`, tag);
         }
     }
 }
