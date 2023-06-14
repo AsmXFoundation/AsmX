@@ -3,11 +3,62 @@ const ServerLog = require('../../server/log');
 const MiddlewareSoftware = require('../../middleware.software');
 
 
-function addition(items) {
-    let result = 0;
-    for (const int of items) result += int;
-    return result;
+class SuperMath extends Math {
+    /**
+     * The function takes an array of integers and returns their sum.
+     * @param items - The parameter "items" is an array of integers that the function "adder" will
+     * iterate through and add up all the values to return the total sum.
+     * @returns The function `adder` is returning the sum of all the integers in the `items` array.
+     */
+    static adder(items) {
+        let result = 0;
+        for (const int of items) result += int;
+        return result;
+    }
+
+
+    /**
+     * The function performs subtraction on an array of integers and returns the result.
+     * @param items - The parameter "items" is an array of integers that will be used to perform
+     * subtraction operation.
+     * @returns The function `subtraction` is returning the result of subtracting all the integers in
+     * the `items` array.
+     */
+    static subtraction(items) {
+        let result = 0;
+        for (const int of items) result -= int;
+        return result;
+    }
+
+
+    /**
+     * The function multiplies all the integers in an array and returns the result.
+     * @param items - The parameter "items" is an array of integers that will be multiplied together to
+     * get the final result.
+     * @returns The function `multiplication` is returning the product of all the numbers in the
+     * `items` array.
+     */
+    static multiplication(items) {
+        let result = 1;
+        for (const int of items) result *= int;
+        return result;
+    }
+
+
+    /**
+     * The function divides all the numbers in an array and returns the result.
+     * @param items - The parameter "items" is an array of numbers that will be used to perform
+     * division operation.
+     * @returns The function `divide` is returning the result of dividing all the elements in the
+     * `items` array.
+     */
+    static divide(items) {
+        let result = 1;
+        for (const int of items) result /= int;
+        return result;
+    }
 }
+
 
 for (let index = 0; index < 6; index++)
     MiddlewareSoftware.compileStatement({ instruction: 'mov', variable: { name: `$arg${index}`, value: 0 } });
@@ -84,9 +135,33 @@ class CortexMARM {
 
     compileAddStatement(tree) {
         let r0 = tree.r0;
-        let r1 = addition(tree.arguments);
+        let r1 = SuperMath.adder(tree.arguments);
         let r2 = 0;
         this.compileSource.push(`${this._isTab()}add ${r0} #${r1} #${r2}`);
+    }
+
+
+    compileSubStatement(tree) {
+        let r0 = tree.r0;
+        let r1 = SuperMath.subtraction(tree.arguments);
+        let r2 = 0;
+        this.compileSource.push(`${this._isTab()}sub ${r0} #${r1} #${r2}`);
+    }
+
+
+    compileDivStatement(tree) {
+        let r0 = tree.r0;
+        let r1 = SuperMath.divide(tree.arguments);
+        let r2 = 0;
+        this.compileSource.push(`${this._isTab()}div ${r0} #${r1} #${r2}`);
+    }
+
+
+    compileMulStatement(tree) {
+        let r0 = tree.r0;
+        let r1 = SuperMath.divide(tree.arguments);
+        let r2 = 0;
+        this.compileSource.push(`${this._isTab()}mul ${r0} #${r1} #${r2}`);
     }
 
 

@@ -299,6 +299,8 @@ class Cli {
         if (architecture === 'arm') {
             if (!outputfile.endsWith('.s')) outputfile = outputfile + '.s';
             new CortexMARM(outputfile, MiddlewareSoftware.source);
+        } else if (architecture === 'x86') {
+            if (!outputfile.endsWith('.asm')) outputfile = outputfile + '.asm';
         } else {
             ServerLog.log('Unknow architecture', 'Exception');
             process.exit(1);
