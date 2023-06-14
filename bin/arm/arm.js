@@ -3,7 +3,7 @@ const ServerLog = require('../../server/log');
 const MiddlewareSoftware = require('../../middleware.software');
 
 
-class SuperMath extends Math {
+class SuperMath {
     /**
      * The function takes an array of integers and returns their sum.
      * @param items - The parameter "items" is an array of integers that the function "adder" will
