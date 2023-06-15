@@ -1,4 +1,6 @@
 const fs = require('fs');
+const Color = require('../../utils/color');
+const { FileError } = require('../../anatomics.errors');
 
 /*
  * TYPES:
@@ -149,12 +151,51 @@ class EXE {
     static View() {
         return class {
             static view(src) {
-                let content = fs.readFileSync(src, { encoding: 'hex' });
-                let view = [];
-                const bytes = content.byteLength / 2;
-                const size_rows = bytes / 16;
-                const ViewRows = '00 01 02 03-04 05 06-07 08 09-0a 0b 0c-0d 0e 0f';
-                const LeftRow = 0x00000000;
+                try {
+                    let content = fs.readFileSync(src);
+                    let view = [];
+                    const ViewColumns = ' 00  01  02  03  04  05  06  07  08  09  0a  0b  0c  0d  0e  0f';
+                    let Shift = 0x00000000;
+                    const formatebuf = content.toString('hex').match(/../g).join(' ');
+                    const hexList = formatebuf.match(/(\s?.{2})/g);
+                    const rows = Math.ceil(hexList.length / 16);
+                    let counter = 0;
+
+                    for (let index = 0; index < rows; index++) {
+                        view.push(hexList.slice(counter, counter + 16));
+                        counter += 16;
+                    }
+
+                    const rowsForViewValue = view;
+                    view = view.map(row => row.join(' '));
+                    view[0] = ` ${view[0]}`;
+                    process.stdout.write('\tVIEW ELF FILE\n');
+                    process.stdout.write(`\t${Color.FG_GRAY}${'-'.repeat(96)}\n`);
+                    process.stdout.write(`\t${parseInt(Shift, 10).toString(10).padStart(8, 0)}:`);
+                    process.stdout.write(`${ViewColumns}\n`);
+                    process.stdout.write(`\t${'-'.repeat(96)}\n`);
+
+                    view.forEach((row, index) => {
+                        Shift += 10;
+                        process.stdout.write(`\t${parseInt(Shift, 10).toString(10).padStart(8, 0)}:`);
+                        process.stdout.write(row);
+                        index > 0 && process.stdout.write(' '.repeat(view[index - 1].length - row.length));
+                        process.stdout.write('\t');
+                        let rowValue = rowsForViewValue[index].map(hex => hex.trim());
+
+                        for (const hex of rowValue) {
+                            let stringf;
+                            if (hex == '00') process.stdout.write('.');
+                            stringf = String.fromCharCode(parseInt(hex.toString().charAt(0) + hex.toString().charAt(1), 16));
+
+                            process.stdout.write(stringf.toString('ascii'));
+                        }
+
+                        process.stdout.write('\n');
+                    });
+                } catch {
+                    new FileError({ message: FileError.FILE_NOT_FOUND });
+                }
             }
         }
     }
@@ -174,7 +215,7 @@ class EXE {
 }
 
 
-new EXE('win32', 'x32', './test.exe', '');
+// new EXE('win32', 'x32', './test.exe', '');
 // EXE.View().view('./test.exe');
 
 module.exports = EXE;

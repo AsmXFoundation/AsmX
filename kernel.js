@@ -19,6 +19,7 @@ const Task = require('./task');
 const highlightCLI = require('./utils/highlight');
 const CortexMARM = require('./bin/arm/arm');
 const MiddlewareSoftware = require('./middleware.software');
+const EXE = require('./bin/exe/exe');
 
 let argv  = process.argv;
 log = (message, callback) => process.stdout.write(message, callback);
@@ -201,6 +202,7 @@ class Cli {
         log('\tasmx-cli doctor');
         log('\tasmx-cli update');
         log('asmx-cli build <Architecture> <filename> <output filename>');
+        log('asmx-cli view exe <path>');
         log('FLAGS:');
         log('\t-ls');
         log('');
@@ -311,7 +313,29 @@ class Cli {
         this.isexit = true;
     }
 
+    
+    /**
+     * asmx-cli view exe <path>
+     */
+    static view() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
 
+        if (parameters.length > 2 || parameters.length < 2) { 
+            ServerLog.log("not enough arguments / too many arguments or parameters", 'Exception');
+            process.exit(1);
+        }
+
+        if (parameters[0] == 'exe') EXE.View().view(parameters[1]);
+
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
+    }
+
+
+    /**
+     * asmx-cli readme <command>
+     */
     static readme() {
         const parameters = this.cli_args.slice(this.beforeCounter + 1);
         const command = parameters[0];
