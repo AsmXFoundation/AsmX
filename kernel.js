@@ -17,6 +17,7 @@ const Garbage = require('./garbage');
 const ValidatorByType = require('./checker');
 const Task = require('./task');
 const highlightCLI = require('./utils/highlight');
+
 const CortexMARM = require('./bin/arm/arm');
 const MiddlewareSoftware = require('./middleware.software');
 const EXE = require('./bin/exe/exe');
@@ -183,6 +184,8 @@ class Cli {
             }
 
             if (this.counter == 0) console.log('get more information: asmx-cli usage');
+        } else if (args[0] == 'exe-cli') {
+
         }
     }
     //============================================================================================
@@ -192,19 +195,21 @@ class Cli {
     // CLI COMMANDS
     //============================================================================================
     static usage() {
-        let { log } = console;
+        let log = (message, params) => console.log(`\t${message}`, params ? params : '');
 
-        log('');
-        log('USAGE: ');
-        log('\tasmx-cli [cmd] [options] [flags] [options]');
-        log('\tasmx-cli usage');
-        log('\tasmx-cli start');
-        log('\tasmx-cli doctor');
-        log('\tasmx-cli update');
+        log(Color.FG_GRAY);
+        log('USAGE:');
+        log('-'.repeat(96));
+        log('asmx-cli [cmd] [options] [flags] [options]');
+        log('asmx-cli usage');
+        log('asmx-cli start');
+        log('asmx-cli doctor - check AsmX tools');
+        log('asmx-cli update');
         log('asmx-cli build <Architecture> <filename> <output filename>');
         log('asmx-cli view exe <path>');
         log('FLAGS:');
-        log('\t-ls');
+        log('-ls');
+        log(`${'-'.repeat(96)}`);
         log('');
     }
 
@@ -216,14 +221,15 @@ class Cli {
         if (properties['isAsmXGlobal']) {
             ServerLog.log('AsmX is already in the global system', 'Notify');
         } else {
-            // if (process.platform === 'win32') {
-                exec('clear', (exception, stdout, stdexception) => {
+            if (process.platform === 'win32') {
+                exec(`setx AsmX "${__dirname}\\installer\\windows\\asmx"`, (exception, stdout, stdexception) => {
                     if (exception) console.log(exception);
-                    if (stdout) console.log(stdout);
-                    // if (exception) throw exception;
                 });
 
-            // }
+                exec(`set PATH=%PATH%;${__dirname}\\AsmX\\installer\\windows\\asmx`, (exception, stdout, stdexception) => {
+                    if (exception) console.log(exception);
+                });
+            }
 
             ServerLog.log('AsmX has been successfully entered into the global system', 'Successfuly');
         }
@@ -247,7 +253,8 @@ class Cli {
         }
 
         this.doctorData = {
-            isAsmXGlobal: isAsmXGlobal
+            isAsmXGlobal: isAsmXGlobal,
+            isAsmXCli: true
         }
 
         this.task.new('doctor', this.doctorData, 'watch');
@@ -367,13 +374,18 @@ class Cli {
     // CLI FLAGS
     //============================================================================================
     static ls() {
-        if (this.task.last()['name'] === 'doctor') {
-            let properties = this.task.last()['value'];
+        function printCheckTools(o, prop, tools) {
             console.log(
                 Color.BRIGHT
-                , properties?.isAsmXGlobal ? `${Color.FG_GREEN}+${Color.BRIGHT}` : `${Color.FG_RED}-${Color.BRIGHT}` ,`${Color.FG_WHITE} AsmX Global System`
+                , Reflect.ownKeys(o).includes(prop) && o[prop] ? `${Color.FG_GREEN}+${Color.BRIGHT}` : `${Color.FG_RED}-${Color.BRIGHT}` ,`${Color.FG_WHITE} ${tools}`
                 , Color.RESET
             );
+        }
+
+        if (this.task.last()['name'] === 'doctor') {
+            let properties = this.task.last()['value'];
+            printCheckTools(properties, 'isAsmXGlobal', 'AsmX Global System');
+            printCheckTools(properties, 'isAsmXCli', 'AsmX CLI');
         }
 
         this.flagUsage = false;
