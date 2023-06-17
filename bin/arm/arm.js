@@ -103,8 +103,10 @@ class CortexMARM {
         this.SECTION_RESOURCES = [
             this.IS_SECTION_DATA_RESOURCES ? SECTION_DATA_SIGNATURE : '',
             ...this.SECTION_DATA,
+            '',
             this.IS_SECTION_RODATA_RESOURCES ? SECTION_RODATA_SIGNATURE : '',
-            this.SECTION_RODATA,
+            ...this.SECTION_RODATA,
+            '',
         ];
         
         const startSource = [
@@ -152,7 +154,7 @@ class CortexMARM {
     compileDivStatement(tree) {
         let r0 = tree.r0;
         let r1 = SuperMath.divide(tree.arguments);
-        let r2 = 0;
+        let r2 = 1;
         this.compileSource.push(`${this._isTab()}div ${r0} #${r1} #${r2}`);
     }
 
@@ -160,7 +162,7 @@ class CortexMARM {
     compileMulStatement(tree) {
         let r0 = tree.r0;
         let r1 = SuperMath.divide(tree.arguments);
-        let r2 = 0;
+        let r2 = 1;
         this.compileSource.push(`${this._isTab()}mul ${r0} #${r1} #${r2}`);
     }
 
@@ -177,7 +179,17 @@ class CortexMARM {
     compileConstantStatement(tree) {
         let constant = tree.constant;
         let name = constant.name;
+        let type = constant.type;
         let value = constant.value;
+        let DIRECTIVE = this._getTypeMacros(type);
+
+        if (type == 'Bool') {
+            if (value == 'true') value = 1;
+            else if (value == 'false') value = 0;
+            else value = 0;
+        }
+
+        this.SECTION_RODATA.push(`${this.IS_SECTION_RODATA_RESOURCES ? '\t': ''}${name}: ${DIRECTIVE} ${value}`);
     }
 
 
@@ -186,14 +198,9 @@ class CortexMARM {
         let name = variable.name;
         let type = variable.type;
         let value = variable.value;
-        let DIRECTIVE = '.ascii';
-
-        if (type ==  'String')  DIRECTIVE = '.ascii';
-        if (type ==  'Float')  DIRECTIVE = '.float';
-        if (type == 'Int')  DIRECTIVE = '.word';
-    
+        let DIRECTIVE = this._getTypeMacros(type);
+ 
         if (type == 'Bool') {
-            DIRECTIVE = 'db';
             if (value == 'true') value = 1;
             else if (value == 'false') value = 0;
             else value = 0;
@@ -205,6 +212,15 @@ class CortexMARM {
     
     _isTab() {
         return this.islabel ? '\t' : '';
+    }
+
+
+    _getTypeMacros(type) {
+        if (type ==  'String') return '.ascii';
+        if (type ==  'Float') return '.float';
+        if (type ==  'Int') return '.word';
+        if (type == 'Bool') return 'db';
+        return '.ascii';
     }
 }
 

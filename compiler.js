@@ -843,10 +843,18 @@ class Compiler {
             this.$arg1 = this.$arg1.slice(1, -1);
         }
 
-        if (this.constants.length > 0 && this.constants.findIndex(cell => cell.name == this.$name) > -1) {
-        } else {
+        if (this.constants.length > 0 && this.constants.findIndex(cell => cell.name == this.$name) > -1) { } else {
             this.constants.push({ name: this.$name, value: this.$arg1 });
         }
+
+        let type;
+
+        for (const T of Type.types) {
+            if (Type.check(T.name, this.$arg1)) type = T.name;
+        }
+
+        // WARNING: Experimental mode
+        MiddlewareSoftware.compileStatement({ instruction: 'constant', constant: { name: this.$name, type: type, value: this.$arg1 } });
     }
 
 
@@ -1063,6 +1071,13 @@ class Compiler {
         // this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = this.$arg0;
         for (let index = 1; index < statement.args.length; index++) this.$ret -= this[`$arg${[index]}`];
+
+        // WARNING: Experimental mode
+        let argumentsMiddleware = [];
+        for (let index = 0; index < statement.args.length; index++) argumentsMiddleware.push(this[`$arg${[index]}`]);
+        MiddlewareSoftware.compileStatement({ instruction: 'sub', r0: '$ret', arguments: argumentsMiddleware });
+        //
+
         this.$stack.push({ value: this.$ret });
     }
 
@@ -1084,6 +1099,13 @@ class Compiler {
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = this.$arg0;
         for (let index = 1; index < statement.args.length; index++) this.$ret /= this[`$arg${[index]}`];
+
+        // WARNING: Experimental mode
+        let argumentsMiddleware = [];
+        for (let index = 0; index < statement.args.length; index++) argumentsMiddleware.push(this[`$arg${[index]}`]);
+        MiddlewareSoftware.compileStatement({ instruction: 'div', r0: '$ret', arguments: argumentsMiddleware });
+        //
+
         this.$stack.push({ value: this.$ret });
     }
 
@@ -1126,6 +1148,13 @@ class Compiler {
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = 1;
         for (let index = 0; index < statement.args.length; index++) this.$ret *= this[`$arg${[index]}`];
+
+        // WARNING: Experimental mode
+        let argumentsMiddleware = [];
+        for (let index = 0; index < statement.args.length; index++) argumentsMiddleware.push(this[`$arg${[index]}`]);
+        MiddlewareSoftware.compileStatement({ instruction: 'mul', r0: '$ret', arguments: argumentsMiddleware });
+        //
+
         this.$stack.push({ value: this.$ret });
     }
 
