@@ -3,7 +3,7 @@
 - [ ] Header
     - [x] DOS header
         - [x] Stub DOS
-    - [ ] PE header
+    - [X] PE header
     - [ ] Optional header
     - [ ] Directories Data
     - [ ] Table of section
