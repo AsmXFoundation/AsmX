@@ -1437,7 +1437,7 @@ class Compiler {
                 return this[`${arg.toLowerCase()}`];
             } else if (Reflect.ownKeys(this.registers).includes(arg.toLowerCase())) {
                 return this[`$${this.registers[arg.toLowerCase()]}`];
-            } else if (/\$[A-Z][A-Z\d]+)(\?)?\[([^])\]/.test(arg)) {
+            } else if (/\$([A-Z][A-Z\d]+)(\?)?\[([^])\]/.test(arg)) {
                 let match = arg.match(/(\$[A-Z][A-Z\d]+)(\?)?\[([^])\]/);
                 let item = this.$list[match[1].toLowerCase()][match[3]];
                 let is = match[2] == '?';
