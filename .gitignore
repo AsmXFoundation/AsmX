@@ -6,3 +6,5 @@ bin/*
 /examples/tests/*
 tests/*
 *.html
+
+termux/
