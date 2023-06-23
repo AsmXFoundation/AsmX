@@ -11,6 +11,10 @@
     </a>
 </p>
 
+
+Who tried it? (famous People, personalities)
+1. Linus Torvalds
+
 # AsmX Academy
 
 # Для кого написана эта книга?
