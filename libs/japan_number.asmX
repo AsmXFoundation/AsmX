@@ -16,3 +16,4 @@
 @Define SIXTEEN '十六';
 @Define SEVENTEEN '十七';
 @Define EIGHTEEN '十八';
+@Define NINETEEN '十九';
