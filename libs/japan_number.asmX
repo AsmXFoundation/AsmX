@@ -7,3 +7,4 @@
 @Define SEVEN '七';
 @Define EIGHT '八';
 @Define NINE '九';
+@Define TEN '十';
