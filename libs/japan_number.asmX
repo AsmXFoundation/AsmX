@@ -40,3 +40,4 @@
 @Define FORTY '四十';
 @Define FORTY_ONE '四十一';
 @Define FORTY_TWO '四十二';
+@Define FORTY_THREE '四十三';
