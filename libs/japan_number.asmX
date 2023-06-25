@@ -94,3 +94,4 @@
 @Define NINETY_FOUR '九十四';
 @Define NINETY_FIVE '九十五';
 @Define NINETY_SIX '九十六';
+@Define NINETY_SEVEN '九十七';
