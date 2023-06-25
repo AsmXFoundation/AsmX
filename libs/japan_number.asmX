@@ -86,3 +86,4 @@
 @Define EIGHTY_SIX '八十六';
 @Define EIGHTY_SEVEN '八十七';
 @Define EIGHTY_EIGHT '八十八';
+@Define EIGHTY_NINE '八十九';
