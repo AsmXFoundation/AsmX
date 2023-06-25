@@ -6,3 +6,4 @@
 @Define SIX '六';
 @Define SEVEN '七';
 @Define EIGHT '八';
+@Define NINE '九';
