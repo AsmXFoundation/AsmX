@@ -1,10 +1,16 @@
+# Ignore NodeJS files
 node_modules
 
 bin/*
 !bin/utils
 
 /examples/tests/*
+
+# Tests
 tests/*
+
+# Ignore HTML files (web)
 *.html
 
+# Beta test
 termux/
