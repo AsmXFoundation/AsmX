@@ -36,3 +36,4 @@
 @Define THIRTY_SIX '三十六';
 @Define THIRTY_SEVEN '三十七';
 @Define THIRTY_EIGHT '三十八';
+@Define THIRTY_NINE '三十九';
