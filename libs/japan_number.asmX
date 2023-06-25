@@ -10,3 +10,4 @@
 @Define TEN '十';
 @Define ELEVEN '十一';
 @Define TWELVE '十二';
+@Define THIRTEEN '十三';
