@@ -8,3 +8,4 @@
 @Define EIGHT '八';
 @Define NINE '九';
 @Define TEN '十';
+@Define ELEVEN '十一';
