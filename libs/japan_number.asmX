@@ -13,3 +13,4 @@
 @Define THIRTEEN '十三';
 @Define FOURTEEN '十四';
 @Define FIFTEEN '十五';
+@Define SIXTEEN '十六';
