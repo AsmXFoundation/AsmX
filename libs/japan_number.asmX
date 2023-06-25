@@ -97,3 +97,4 @@
 @Define NINETY_SEVEN '九十七';
 @Define NINETY_EIGHT '九十八';
 @Define NINETY_NINE '九十九';
+@Define ONE_HUNDRED '百';
