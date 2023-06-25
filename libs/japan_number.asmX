@@ -38,3 +38,4 @@
 @Define THIRTY_EIGHT '三十八';
 @Define THIRTY_NINE '三十九';
 @Define FORTY '四十';
+@Define FORTY_ONE '四十一';
