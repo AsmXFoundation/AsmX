@@ -18,3 +18,4 @@
 @Define EIGHTEEN '十八';
 @Define NINETEEN '十九';
 @Define TWENTY '二十';
+@Define TWENTY_ONE '二十一';
