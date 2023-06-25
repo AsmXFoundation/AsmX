@@ -32,3 +32,4 @@
 @Define THIRTY_TWO '三十二';
 @Define THIRTY_THREE '三十三';
 @Define THIRTY_FOUR '三十四';
+@Define THIRTY_FIVE '三十五';
