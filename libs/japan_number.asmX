@@ -12,3 +12,4 @@
 @Define TWELVE '十二';
 @Define THIRTEEN '十三';
 @Define FOURTEEN '十四';
+@Define FIFTEEN '十五';
