@@ -50,3 +50,4 @@
 @Define FIFTY '五十';
 @Define FIFTY_ONE '五十一';
 @Define FIFTY_TWO '五十二';
+@Define FIFTY_THREE '五十三';
