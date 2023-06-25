@@ -69,3 +69,4 @@
 @Define SIXTY_NINE '六十九';
 @Define SEVENTY '七十';
 @Define SEVENTY_ONE '七十一';
+@Define SEVENTY_TWO '七十二';
