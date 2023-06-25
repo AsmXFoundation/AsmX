@@ -27,3 +27,4 @@
 @Define TWENTY_SEVEN '二十七';
 @Define TWENTY_EIGHT '二十八';
 @Define TWENTY_NINE '二十九';
+@Define THIRTY '三十';
