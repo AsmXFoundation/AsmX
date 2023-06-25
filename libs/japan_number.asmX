@@ -17,3 +17,4 @@
 @Define SEVENTEEN '十七';
 @Define EIGHTEEN '十八';
 @Define NINETEEN '十九';
+@Define TWENTY '二十';
