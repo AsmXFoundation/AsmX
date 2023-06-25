@@ -56,3 +56,4 @@
 @Define FIFTY_SIX '五十六';
 @Define FIFTY_SEVEN '五十七';
 @Define FIFTY_EIGHT '五十八';
+@Define FIFTY_NINE '五十九';
