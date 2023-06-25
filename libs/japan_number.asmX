@@ -78,3 +78,4 @@
 @Define SEVENTY_EIGHT '七十八';
 @Define SEVENTY_NINE '七十九';
 @Define EIGHTY '八十';
+@Define EIGHTY_ONE '八十一';
