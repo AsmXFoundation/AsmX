@@ -29,3 +29,4 @@
 @Define TWENTY_NINE '二十九';
 @Define THIRTY '三十';
 @Define THIRTY_ONE '三十一';
+@Define THIRTY_TWO '三十二';
