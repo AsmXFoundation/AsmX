@@ -66,3 +66,4 @@
 @Define SIXTY_SIX '六十六';
 @Define SIXTY_SEVEN '六十七';
 @Define SIXTY_EIGHT '六十八';
+@Define SIXTY_NINE '六十九';
