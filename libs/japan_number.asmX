@@ -47,3 +47,4 @@
 @Define FORTY_SEVEN '四十七';
 @Define FORTY_EIGHT '四十八';
 @Define FORTY_NINE '四十九';
+@Define FIFTY '五十';
