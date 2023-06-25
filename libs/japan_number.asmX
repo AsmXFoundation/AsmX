@@ -49,3 +49,4 @@
 @Define FORTY_NINE '四十九';
 @Define FIFTY '五十';
 @Define FIFTY_ONE '五十一';
+@Define FIFTY_TWO '五十二';
