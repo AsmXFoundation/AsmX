@@ -75,3 +75,4 @@
 @Define SEVENTY_FIVE '七十五';
 @Define SEVENTY_SIX '七十六';
 @Define SEVENTY_SEVEN '七十七';
+@Define SEVENTY_EIGHT '七十八';
