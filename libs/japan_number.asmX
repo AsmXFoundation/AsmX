@@ -95,3 +95,4 @@
 @Define NINETY_FIVE '九十五';
 @Define NINETY_SIX '九十六';
 @Define NINETY_SEVEN '九十七';
+@Define NINETY_EIGHT '九十八';
