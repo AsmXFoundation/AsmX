@@ -91,3 +91,4 @@
 @Define NINETY_ONE '九十一';
 @Define NINETY_TWO '九十二';
 @Define NINETY_THREE '九十三';
+@Define NINETY_FOUR '九十四';
