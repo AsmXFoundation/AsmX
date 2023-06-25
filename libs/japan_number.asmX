@@ -4,3 +4,4 @@
 @Define FOUR '四';
 @Define FIVE '五';
 @Define SIX '六';
+@Define SEVEN '七';
