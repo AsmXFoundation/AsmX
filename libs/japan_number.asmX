@@ -25,3 +25,4 @@
 @Define TWENTY_FIVE '二十五';
 @Define TWENTY_SIX '二十六';
 @Define TWENTY_SEVEN '二十七';
+@Define TWENTY_EIGHT '二十八';
