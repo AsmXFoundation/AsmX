@@ -62,3 +62,4 @@
 @Define SIXTY_TWO '六十二';
 @Define SIXTY_THREE '六十三';
 @Define SIXTY_FOUR '六十四';
+@Define SIXTY_FIVE '六十五';
