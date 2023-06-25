@@ -54,3 +54,4 @@
 @Define FIFTY_FOUR '五十四';
 @Define FIFTY_FIVE '五十五';
 @Define FIFTY_SIX '五十六';
+@Define FIFTY_SEVEN '五十七';
