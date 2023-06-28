@@ -25,6 +25,7 @@ const Analysis = require('./analysis');
 const Garbage = require('./garbage');
 const Task = require('./task');
 const MiddlewareSoftware = require('./middleware.software');
+const NeuralNetwork = require('./tools/neural');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -1488,6 +1489,12 @@ class Compiler {
                     code: code || ' ',
                     select: arg
                 });
+
+                const registers = Reflect.ownKeys(this).filter(property => /\$\w+/.test(property));
+                const coincidences = NeuralNetwork.coincidence(registers, [arg]);
+                const presumably = NeuralNetwork.presumably(coincidences);
+                ServerLog.log(`Perhaps you wanted to write some of these registers: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
+
                 process.exit(1);
             }
         }
