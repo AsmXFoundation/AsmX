@@ -51,5 +51,6 @@ ServerLog.newTag('Exception', Color.FG_RED);
 ServerLog.newTag('Notify', Color.FG_CYAN);
 ServerLog.newTag('Info', Color.FG_MAGENTA);
 ServerLog.newTag('Possible fixes', Color.FG_GREEN);
+ServerLog.newTag('Neural Log', Color.FG_YELLOW);
 
 module.exports = ServerLog;

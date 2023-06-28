@@ -3,6 +3,7 @@ const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
 const ServerLog = require("./server/log");
 const Structure = require("./structure");
+const NeuralNetwork = require("./tools/neural");
 const Color = require("./utils/color");
 
 class Parser {
@@ -113,6 +114,12 @@ class Parser {
             ServerLog.log('This instruction does not exist', 'Exception');
             new SyntaxError(`\n<source:${index+1}:1>  This instruction does not exist`, { code: line, row: index });
             ServerLog.log('You need to remove this instruction.', 'Possible fixes');
+
+            const instructions = Reflect.ownKeys(this).filter(property => /parse\w+Statement/.test(property)).map(token => /parse(\w+)Statement/.exec(token)).map(list => list[1]);
+            const coincidences = NeuralNetwork.coincidence(instructions, stmt);
+            const presumably = NeuralNetwork.presumably(coincidences);
+            ServerLog.log(`Perhaps you wanted to write some of these instructions: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
+
             process.exit(1);
         }
 
