@@ -6,7 +6,7 @@
 const fs = require('fs');
 
 // Components that compiler
-const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException } = require('./anatomics.errors');
+const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException } = require('./exception');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -39,6 +39,7 @@ class Compiler {
         this.labels = [];
         this.subprograms = [];
         this.enviroments = [];
+        this.fors = [];
         this.usings = [];
         this.registers = {};
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
@@ -117,12 +118,14 @@ class Compiler {
         this.$arch = "AsmX";
 
         if (this.options?.registers && typeof arguments[2] != 'undefined' && typeof arguments[2] == 'object') {
+            // Arguments instruction
             this.$arg0 = this.options.registers['$arg0'];
             this.$arg1 = this.options.registers['$arg1'];
             this.$arg2 = this.options.registers['$arg2'];
             this.$arg3 = this.options.registers['$arg3'];
             this.$arg4 = this.options.registers['$arg4'];
             this.$arg5 = this.options.registers['$arg5'];
+            //
             this.$mov = this.options.registers['$mov'];
             this.$get = this.options.registers['$get'];
             this.$sp = this.options.registers['$sp'];
@@ -137,6 +140,7 @@ class Compiler {
             this.labels = this.options.registers['labels'];
             this.enviroments = this.options.registers['enviroments'];
             this.subprograms = this.options.registers['subprograms'];
+            this.fors = this.options.registers['fors'];
             this.registers = this.options.registers['registers'];
             this.stack = this.options.registers['stack'] || new Stack();
             this.This = this.options.registers['This'];
@@ -307,6 +311,7 @@ class Compiler {
                         constants: this.constants,
                         enviroments: this.enviroments,
                         subprograms: this.subprograms,
+                        fors: this.fors,
                         scope: this.scope,
                         This: this.This,
                         argsScopeLocal: this.argsScopeLocal,
@@ -349,6 +354,7 @@ class Compiler {
                 this.constants = compile.constants;
                 this.subprograms = compile.subprograms;
                 this.enviroments = compile.enviroments;
+                this.fors = compile.fors;
                 this.scope = compile.scope;
                 this.This = compile.This;
                 this.argsScopeLocal = compile.argsScopeLocal;
@@ -358,13 +364,18 @@ class Compiler {
             }
         }
 
-        function labelNonExistent(trace, label) {
+        function labelNonExistent(trace, label, context) {
             new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent label`, {
                 row: trace?.parser.row,
                 code: trace?.parser.code || `@label ${label}:`,
                 select: label,
                 position: 'end'
             });
+
+            const labels = context.labels.map(l => Reflect.ownKeys(l)[0]);
+            const coincidences = NeuralNetwork.coincidence(labels, label);
+            const presumably = NeuralNetwork.presumably(coincidences);
+            ServerLog.log(`Perhaps you wanted to write some of these labels: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
 
             process.exit(1);
         }
@@ -380,16 +391,17 @@ class Compiler {
                 scope: globalThis.scope, 
                 subprograms: globalThis.subprograms, 
                 labels: globalThis.labels,
+                fors: globalThis.fors,
                 registers: globalThis.registers
             };
             
             if (label == null) {
-                labelNonExistent(trace, label);
+                labelNonExistent(trace, label, globalThis);
             } else {
                 try {
                     label = label[0][labelname].join('\n');
                 } catch {
-                    labelNonExistent(trace, labelname);
+                    labelNonExistent(trace, labelname, globalThis);
                 }
             }
 
@@ -416,6 +428,7 @@ class Compiler {
                     labels: globalThis.labels,
                     enviroments: globalThis.enviroments,
                     subprograms: globalThis.subprograms,
+                    fors: globalThis.fors,
                     stack: globalThis.stack,
                     registers: globalThis.registers,
                     _task: globalThis._task
@@ -438,6 +451,7 @@ class Compiler {
                 globalThis.labels = compiler.labels;
                 globalThis.enviroments = compiler.enviroments;
                 globalThis.subprograms = compiler.subprograms;
+                globalThis.fors = compiler.fors;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
                 globalThis._task = compiler._task;
@@ -448,10 +462,72 @@ class Compiler {
                     select: args[0],
                     position: 'end'
                 });
+
+                const subprograms = globalThis.subprograms.map(s => Reflect.ownKeys(s)[0]);
+                const coincidences = NeuralNetwork.coincidence(subprograms, args[0]);
+                const presumably = NeuralNetwork.presumably(coincidences);
+                ServerLog.log(`Perhaps you wanted to write some of these subprograms: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
     
                 process.exit(1);
             }
         }
+
+        function ForExecute(globalThis, forname) {
+            try {
+                let loop = globalThis.fors.filter(loop => Reflect.ownKeys(loop)[0] == forname);
+
+                let registers = {
+                    set: globalThis.set, 
+                    constants: globalThis.constants, 
+                    This: globalThis.This, 
+                    scope: globalThis.scope,
+                    labels: globalThis.labels,
+                    enviroments: globalThis.enviroments,
+                    subprograms: globalThis.subprograms,
+                    fors: globalThis.fors,
+                    stack: globalThis.stack,
+                    registers: globalThis.registers,
+                    _task: globalThis._task
+                };
+
+                for (const register of Object.getOwnPropertyNames(globalThis)) {
+                    if (register.match(/\$\w+/)) registers[register] = globalThis[register];
+                }
+    
+                let compiler = new Compiler(Parser.parse(loop[0][forname].join('\n')), globalThis.scope, { registers: registers });
+    
+                for (const register of Object.getOwnPropertyNames(compiler)) {
+                    if (register.match(/\$\w+/)) globalThis[register] = compiler[register];
+                }
+
+                globalThis.set = compiler.set;
+                globalThis.constants = compiler.constants;
+                globalThis.This = compiler.This;
+                globalThis.scope = compiler.scope;
+                globalThis.labels = compiler.labels;
+                globalThis.enviroments = compiler.enviroments;
+                globalThis.subprograms = compiler.subprograms;
+                globalThis.fors = compiler.fors;
+                globalThis.stack = compiler.stack;
+                globalThis.registers = compiler.registers;
+                globalThis._task = compiler._task;
+            } catch {
+                new ArgumentError(`[${Color.FG_RED}StructureNotFoundException${Color.FG_WHITE}]: Non-existent for`, {
+                    row: trace?.parser.row,
+                    code: trace?.parser.code || `@subprogram ${args[0]}:`,
+                    select: args[0],
+                    position: 'end'
+                });
+
+                const fors = globalThis.fors.map(f => Reflect.ownKeys(f)[0]);
+                const coincidences = NeuralNetwork.coincidence(fors, args[0]);
+                const presumably = NeuralNetwork.presumably(coincidences);
+                ServerLog.log(`Perhaps you wanted to write some of these fors: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
+    
+                process.exit(1);
+            }
+        }
+
 
         if (this.$cmp == false && this.$arg0 == 'jmp_zero') labelExecute(this, args[0]), Garbage.setMatrix('label', this.labels.map(label => Reflect.ownKeys(label)[0])), Garbage.usage('label', args[0]);
         if (this.$eq == true && this.$arg0 == 'jmp_equal') labelExecute(this, args[0]),  Garbage.setMatrix('label', this.labels.map(label => Reflect.ownKeys(label)[0])), Garbage.usage('label', args[0]);
@@ -478,6 +554,21 @@ class Compiler {
         }
 
         if (this.$arg0 == 'goto_sbp') SubprogramExecute(this, args[0]), Garbage.setMatrix('subprogram', this.subprograms.map(subprogram => Reflect.ownKeys(subprogram)[0])), Garbage.usage('subprogram', args[0]);
+
+        if (this.$arg0 == 'for') {
+            if (args[2] == undefined) {
+                for (let index = 0; index < args[1]; index++) {
+                    this.$count += 0X01;
+                    ForExecute(this, args[0]), Garbage.setMatrix('for', this.fors.map(loop => Reflect.ownKeys(loop)[0])), Garbage.usage('for', args[0]);
+                }
+            } else {
+                this.$count = args[1] - 1;
+                for (let index = args[1]; index < args[2]; index++) {
+                    this.$count += 1;
+                    ForExecute(this, args[0]), Garbage.setMatrix('for', this.fors.map(loop => Reflect.ownKeys(loop)[0])), Garbage.usage('for', args[0]);
+                }
+            }
+        }
     }
 
 
@@ -527,6 +618,12 @@ class Compiler {
     compileSubprogramStatement(statement, index) {
         let subprogramname = Parser.parseSubprogramStatement(statement[0], index);
         this.subprograms.push({ [subprogramname?.subprogram.name]: statement.slice(1) });
+    }
+
+
+    compileForStatement(statement, index) {
+        let forname = Parser.parseForStatement(statement[0], index);
+        this.fors.push({ [forname.for.name]: statement.slice(1) });
     }
 
 
@@ -1460,6 +1557,12 @@ class Compiler {
                     code: code || ' ',
                     select: arg
                 });
+
+                const registers = Reflect.ownKeys(this).filter(property => /\$\w+/.test(property));
+                const coincidences = NeuralNetwork.coincidence(registers, [arg]);
+                const presumably = NeuralNetwork.presumably(coincidences);
+                ServerLog.log(`Perhaps you wanted to write some of these registers: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
+
                 process.exit(1);
             }
         }

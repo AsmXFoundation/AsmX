@@ -14,87 +14,17 @@
 ################################################################################################
 
 
-@Unit add(a, b):
-    @Add [a], [b]
-    @Ret $ret
-
-@Unit sub(a, b):
-    @Sub [a, b]
-    @Ret $ret
-
-@Unit mod(a, b):
-    @Mod [a, b]
-    @Ret $ret
-
-@Unit inc(x: int)
-    @Add [x], 0x01
-    @Ret $ret
-
-@Unit dec(x: int)
-    @Sub [x], 0x01
-    @Ret $ret
-
-@Unit div(a, b):
-    @Div [a, b]
-    @Ret $ret
-
-@Unit ceil(x: Int):
-    @Execute ceil [x]
-    @Ret $ret
-
-@Unit floor(x: Int):
-    @Execute floor [x]
-    @Ret $ret
-
-@Unit sqrt(x: Int):
-    @Execute sqrt [x]
-    @Ret $ret
-
-@Unit exp(x: Int):
-    @Execute exp [x]
-    @Ret $ret
-
-@Unit log(x: Int):
-    @Execute log [x]
-    @Ret $ret
-    
-@Unit sin(x: Int):
-    @Execute sin [x]
-    @Ret $ret
-
-@Unit log10(x: Int):
-    @Execute log10 [x]
-    @Ret $ret
-
-@Unit cos(x: Int):
-    @Execute cos [x]
-    @Ret $ret
-
-@Unit tan(x: Int):
-    @Execute tan [x]
-    @Ret $ret
-
-@Unit acos(x: Int):
-    @Execute acos [x]
-    @Ret $ret
-
-@Unit atan(x: Int):
-    @Execute atan [x]
-    @Ret $ret
-
-@Unit round(x: Int):
-    @Execute round [x]
-    @Ret $ret
-
-@Unit atan2(x: Int):
-    @Execute atan2 [x]
-    @Ret $ret
-
-
 #----------------------------------------------------------------
 @Unit pow(x: Int, n: Int):  # create unit from x and n and return the result of the $ret register
     @Execute mov 0x01       # $mov = 0x01 AND $ret = 0x01
-    @mul $ret [x]          # $ret = $ret * [x] -> $ret *= [x]
+    @mul $ret [x]           # $ret = $ret * [x] -> $ret *= [x]
     @Execute jmp 0x01 [n]   # jmp 0x01 (top) [n] (count)
     @Ret $ret               # return $ret
+#----------------------------------------------------------------
+
+
+#----------------------------------------------------------------
+@unit square(x: Int):
+    @mul [x], [x]
+    @ret $ret
 #----------------------------------------------------------------

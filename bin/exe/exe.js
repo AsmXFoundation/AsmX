@@ -1,6 +1,6 @@
 const fs = require('fs');
 const Color = require('../../utils/color');
-const { FileError } = require('../../anatomics.errors');
+const { FileError } = require('../../exception');
 const { Word, DWord } = require('../utils/hex-types');
 const SuperBuffer = require('../utils/superbuffer');
 

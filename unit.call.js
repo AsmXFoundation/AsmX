@@ -1,4 +1,4 @@
-const { UnitError, ArgumentError } = require("./anatomics.errors");
+const { UnitError, ArgumentError } = require("./exception");
 const Lexer = require("./lexer");
 const Parser = require("./parser");
 const { Type } = require("./types");

@@ -47,5 +47,6 @@ Structure.new('label');
 Structure.new('unit');
 Structure.new('subprogram');
 Structure.new('enviroment');
+Structure.new('for');
 
 module.exports = Structure;

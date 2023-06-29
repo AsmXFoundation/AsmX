@@ -1,4 +1,4 @@
-const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException } = require("./anatomics.errors");
+const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException } = require("./exception");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
 const ServerLog = require("./server/log");
@@ -105,7 +105,17 @@ class Parser {
             stmt = this.parseAndDeleteEmptyCharacters(line).substring(line.indexOf('@') + 1, line.indexOf(' '))
             : stmt = line.substring(1);
 
-        stmt = stmt[0].toUpperCase() + stmt.substring(1);
+        // stmt = stmt[0].toUpperCase() + stmt.substring(1);
+
+        // Experemental mode
+        if (stmt.substring(1) == stmt.substring(1).toUpperCase()) {
+            if (stmt[0] == stmt[0].toUpperCase() && stmt.substring(1) == stmt.substring(1).toUpperCase()) stmt = stmt[0].toUpperCase() + stmt.substring(1).toLowerCase();
+            line = `@${stmt} ${line.slice(line.indexOf(' '))}`;
+        } else {
+            stmt = stmt[0].toUpperCase() + stmt.substring(1);
+        }
+        //
+
         let ast;
 
         if (this.isStatement(stmt)) {
@@ -167,7 +177,7 @@ class Parser {
             process.exit(1);
         }
         
-        if (!/^[A-Z]+(_[A-Z]+)*$/.test(match[1])) {
+        if (!/^[A-Z]+(_[A-Z]+)*$/.test(match[1]) && !/[0-9]*$/.test(match[1])) {
             new CodeStyleException('Invalid constant name style', {
                 row: row, code: originalLine, select: match[1]
             });
@@ -855,6 +865,26 @@ class Parser {
 
         ast['register']['ref'] = match[1];
         ast['register']['name'] = match[2];
+        return ast;
+    }
+    
+    
+    static parseForStatement(lineCode, row) {
+        let ast = { for: {}, parser: { code: lineCode, row: row } };
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
+        let match = lineCode.match(/^\@[F|f]or\s+(\w+)(?=\s+\:|\:)/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['for']['name'] = match[1];
         return ast;
     }
 

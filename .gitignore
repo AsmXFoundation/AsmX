@@ -13,5 +13,7 @@ tests/*
 # Ignore HTML files (web)
 *.html
 
+test.*
+
 # Beta test
 termux/

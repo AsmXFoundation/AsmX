@@ -8,7 +8,7 @@ const dns = require('dns');
 const Parser = require('./parser');
 const Color = require('./utils/color');
 const Compiler = require('./compiler');
-const { FileError } = require('./anatomics.errors');
+const { FileError } = require('./exception');
 const ServerLog = require('./server/log');
 const { getTotalSize } = require('./fs');
 const configSettings = require('./config');
@@ -51,7 +51,7 @@ class Fact {
     static news() {
         const facts = {
             instructions: Object.getOwnPropertyNames(Parser),
-            registers: Object.getOwnPropertyNames(Compiler),
+            registers: Object.getOwnPropertyNames(new Compiler([])),
             sentence: [
                 '✨ The first version of the AsmX programming language was released on February 23, 2023\n',
                 `The AsmX core size is ${Math.floor(getTotalSize('./') / (1024 * 1024))} megabytes (mb) \n`

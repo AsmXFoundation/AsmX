@@ -1,4 +1,4 @@
-const { ArgumentError } = require("./anatomics.errors");
+const { ArgumentError } = require("./exception");
 
 class Type {
     static types = [];

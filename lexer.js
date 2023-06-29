@@ -1,4 +1,4 @@
-const { SymbolError, TypeError, SyntaxError } = require('./anatomics.errors');
+const { SymbolError, TypeError, SyntaxError } = require('./exception');
 const ValidatorByType = require('./checker');
 const ServerLog = require('./server/log');
 const Color = require('./utils/color');
