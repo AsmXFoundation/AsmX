@@ -263,7 +263,10 @@ class Compiler {
         if (this.$arg0 == 'and')    this.$ret = this.$and = args[0] && args[1];
         if (this.$arg0 == 'or')     this.$ret = this.$or = args[0] || args[1];
         if (this.$arg0 == 'b_and')  this.$ret = this.$b_and = args[0] & args[1];
-        if (this.$arg0 == 'b_or')   this.$ret = this.$b_or = args[0] | args[1];
+        if (this.$arg0 == 'b_or')   {
+            this.$ret = this.$b_or = args[0] | args[1];
+            MiddlewareSoftware.compileStatement({ instruction: 'orr', r0: '$ret', r1: args[0], r2: args[1] });
+        }
         
         if (this.$arg0 == 'rand') {
             args[0] = +args[0] || 0;
@@ -1570,6 +1573,8 @@ class Compiler {
         if (/\$\w+/.test(arg)) {
             if (Reflect.has(this, `${arg}`)){
                 return this[`${arg}`];
+            } else if (Reflect.ownKeys(this.registers).includes(arg.toLowerCase())) {
+                return this[`$${this.registers[arg.toLowerCase()]}`];
             } else if (/(\$\w+)(\?)?\[([^])\]/.test(arg)) {
                 let match = arg.match(/(\$\w+)(\?)?\[([^])\]/);
                 let item = this.$list[match[1]][match[3]];

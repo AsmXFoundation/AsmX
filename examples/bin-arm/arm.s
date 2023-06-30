@@ -40,5 +40,6 @@ _start:
 	sub $ret #-10 #0
 	mul $ret #0.2 #1
 	div $ret #0.2 #1
+	orr $ret, #13, #43
 
 stop: b start

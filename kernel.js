@@ -21,6 +21,7 @@ const highlightCLI = require('./utils/highlight');
 const CortexMARM = require('./bin/arm/arm');
 const MiddlewareSoftware = require('./middleware.software');
 const EXE = require('./bin/exe/exe');
+const path = require('path');
 
 let argv  = process.argv;
 log = (message, callback) => process.stdout.write(message, callback);
@@ -306,10 +307,11 @@ class Cli {
         new Compiler(sourceparse);
 
         if (architecture === 'arm') {
-            if (!outputfile.endsWith('.s')) outputfile = outputfile + '.s';
+            if (outputfile && !outputfile.endsWith('.s')) outputfile = outputfile + '.s';
+            if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.s`;
             new CortexMARM(outputfile, MiddlewareSoftware.source);
         } else if (architecture === 'x86') {
-            if (!outputfile.endsWith('.asm')) outputfile = outputfile + '.asm';
+            if (outputfile && !outputfile.endsWith('.asm')) outputfile = outputfile + '.asm';
         } else {
             ServerLog.log('Unknow architecture', 'Exception');
             process.exit(1);

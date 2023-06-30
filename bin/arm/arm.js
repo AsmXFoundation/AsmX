@@ -209,6 +209,14 @@ class CortexMARM {
         this.SECTION_DATA.push(`${this.IS_SECTION_DATA_RESOURCES ? '\t': ''}${name}: ${DIRECTIVE} ${value}`);
     }
 
+
+    compileOrrStatement(tree) {
+        let r0 = tree.r0;
+        let r1 = tree.r1;
+        let r2 = tree.r2;
+        this.compileSource.push(`${this._isTab()}orr ${r0}, #${r1}, #${r2}`);
+    }
+
     
     _isTab() {
         return this.islabel ? '\t' : '';
