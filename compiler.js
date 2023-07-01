@@ -1138,19 +1138,42 @@ class Compiler {
      * detailed error messages if there are any issues during compilation.
      */
     compileAddStatement(statement, index, trace) {
+        // WARNING: Experimental mode
+        let isPush = true;
+        let repeatPush = 0;
+
+        if (statement.args.includes('$0')) {
+            statement.args.pop();
+            isPush = false;
+        } else if (statement.args.includes('$1')) {
+            statement.args.pop();
+            isPush = true;
+        } else if (/\$([2-9]|[0-9][0-9]+)$/.test(statement.args.join(' ').trimEnd())) {
+            let flag = statement.args.pop().slice(1);
+            repeatPush = Number(flag);
+            isPush = true;
+        }
+        //
+
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         for (let i = 0, l = statement.args.length; i < l; i++) statement.args[i] = +this[`$arg${i}`];
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = 0x00;
         for (let index = 0; index < statement.args.length; index++) this.$ret += this[`$arg${[index]}`];
 
-        // WARNING: Experimental mode
         let argumentsMiddleware = [];
         for (let index = 0; index < statement.args.length; index++) argumentsMiddleware.push(this[`$arg${[index]}`]);
         MiddlewareSoftware.compileStatement({ instruction: 'add', r0: '$ret', arguments: argumentsMiddleware });
-        //
         
-        this.$stack.push({ value: this.$ret });
+        // this.$stack.push({ value: this.$ret }); v1
+
+        // WARNING: Experimental mode
+        if (isPush && repeatPush == 0) {
+            this.$stack.push({ value: this.$ret });
+        } else if (isPush && repeatPush > 0) {
+            for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
+        }
+        //
     }
 
 
