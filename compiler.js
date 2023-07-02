@@ -1493,6 +1493,24 @@ class Compiler {
     }
 
 
+    _checkPushToStack(args) {
+        let isPush = true;
+        let repeatPush = 0;
+
+        if (args.includes('$0')) {
+            isPush = false;
+        } else if (args.includes('$1')) {
+            isPush = true;
+        } else if (/\$([2-9]|[0-9][0-9]+)$/.test(args.join(' ').trimEnd())) {
+            let flag = args.pop().slice(1);
+            repeatPush = Number(flag);
+            isPush = true;
+        }
+
+        return { isPush, repeatPush }
+    }
+
+
     /**
      * If the argument is a register, return the value of that register
      * @param arg - The argument to check.
