@@ -560,6 +560,7 @@ class Compiler {
 
         if (this.$arg0 == 'for') {
             if (args[2] == undefined) {
+                this.$count = 0; // fix index in cycle process
                 for (let index = 0; index < args[1]; index++) {
                     this.$count += 0X01;
                     ForExecute(this, args[0]), Garbage.setMatrix('for', this.fors.map(loop => Reflect.ownKeys(loop)[0])), Garbage.usage('for', args[0]);
@@ -1139,20 +1140,8 @@ class Compiler {
      */
     compileAddStatement(statement, index, trace) {
         // WARNING: Experimental mode
-        let isPush = true;
-        let repeatPush = 0;
-
-        if (statement.args.includes('$0')) {
-            statement.args.pop();
-            isPush = false;
-        } else if (statement.args.includes('$1')) {
-            statement.args.pop();
-            isPush = true;
-        } else if (/\$([2-9]|[0-9][0-9]+)$/.test(statement.args.join(' ').trimEnd())) {
-            let flag = statement.args.pop().slice(1);
-            repeatPush = Number(flag);
-            isPush = true;
-        }
+        const { isPush, repeatPush, args } = this._checkPushToStack(statement.args);
+        statement.args = args;
         //
 
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
@@ -1498,8 +1487,10 @@ class Compiler {
         let repeatPush = 0;
 
         if (args.includes('$0')) {
+            args.pop();
             isPush = false;
         } else if (args.includes('$1')) {
+            args.pop();
             isPush = true;
         } else if (/\$([2-9]|[0-9][0-9]+)$/.test(args.join(' ').trimEnd())) {
             let flag = args.pop().slice(1);
@@ -1507,7 +1498,7 @@ class Compiler {
             isPush = true;
         }
 
-        return { isPush, repeatPush }
+        return { isPush, repeatPush, args };
     }
 
 
