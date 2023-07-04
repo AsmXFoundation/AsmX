@@ -104,6 +104,9 @@ class Compiler {
         // Execute registers
         this.$mov = 0x00;
         this.$get = 0x00;
+        // Boolean registers
+        this.$true = 1;
+        this.$false = 0;
         // Logical registers
         this.$eq = 0x00;    // a == b
         this.$seq = 0x00; // a === b
