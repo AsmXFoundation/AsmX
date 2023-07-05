@@ -22,6 +22,7 @@ const CortexMARM = require('./bin/arm/arm');
 const MiddlewareSoftware = require('./middleware.software');
 const EXE = require('./bin/exe/exe');
 const path = require('path');
+const App = require('./bin/app/app');
 
 let argv  = process.argv;
 log = (message, callback) => process.stdout.write(message, callback);
@@ -292,6 +293,7 @@ class Cli {
     }
 
 
+    // build <arch> <input file> <out file>?
     static build(){
         const parameters = this.cli_args.slice(this.beforeCounter + 1);
 
@@ -310,8 +312,60 @@ class Cli {
             if (outputfile && !outputfile.endsWith('.s')) outputfile = outputfile + '.s';
             if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.s`;
             new CortexMARM(outputfile, MiddlewareSoftware.source);
-        } else if (architecture === 'x86') {
-            if (outputfile && !outputfile.endsWith('.asm')) outputfile = outputfile + '.asm';
+        } else if (architecture === 'app') {
+            if (outputfile && !outputfile.endsWith('.app')) outputfile = outputfile + '.app';
+            if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.app`;
+            new App(outputfile, 'x64', 'x64', MiddlewareSoftware.source);
+        } else {
+            ServerLog.log('Unknow architecture', 'Exception');
+            process.exit(1);
+        }
+
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
+    }
+
+
+    // exec <arch> <input file>
+    static run() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+
+        if (parameters.length > 2) { 
+            ServerLog.log("too many parameters", 'Exception');
+            process.exit(1);
+        }
+
+        const architecture = parameters[0];
+        const file = parameters[1];
+
+        if (architecture === 'app') {
+            App.Execute().execute(file);
+        } else {
+            ServerLog.log('Unknow architecture', 'Exception');
+            process.exit(1);
+        }
+
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
+    }
+
+
+    // decompile <arch> <input file>
+    static decompile() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+
+        if (parameters.length > 2) { 
+            ServerLog.log("too many parameters", 'Exception');
+            process.exit(1);
+        }
+
+        const architecture = parameters[0];
+        const file = parameters[1];
+
+        if (architecture === 'app') {
+            App.Decompiler().decompiler(file);
         } else {
             ServerLog.log('Unknow architecture', 'Exception');
             process.exit(1);

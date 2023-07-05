@@ -1075,6 +1075,9 @@ class Compiler {
      */
     compileInvokeStatement(statement, index, trace) {
         this.$arg0 = this.checkArgument(statement.address, trace?.parser?.code, trace?.parser.row) || statement.address;
+            
+        // WARNING: Experimental mode
+        MiddlewareSoftware.compileStatement({ instruction: 'invoke', invoke: { name: statement.address } });
 
         if (this.$arg0 == 0x01) {
             process.exit(0);
@@ -1325,6 +1328,7 @@ class Compiler {
             this.$stack.push({ address: this.$arg1, value: value });
             this.route.setPoint(this.$arg0, this.$arg1);
         } else {
+            // variable
             if (typeof this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) === 'boolean') {
                 this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row);
             } else if (typeof this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) === 'number') {
@@ -1332,6 +1336,9 @@ class Compiler {
             } else {
                 this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
             }
+
+            // WARNING: Experimental mode
+            MiddlewareSoftware.compileStatement({ instruction: 'route', route: { name: statement.name } });
         
             if (Type.check('String', this.$arg0)) this.$arg0 = this.$arg0.slice(1, -1);
             this.$stack.push({ value: this.$arg0 });
