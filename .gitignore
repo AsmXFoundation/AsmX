@@ -7,6 +7,7 @@ bin/*
 !bin/utils
 
 /examples/tests/*
+/examples/*
 
 # Tests
 tests/*
@@ -18,3 +19,8 @@ test.*
 
 # Beta test
 termux/
+
+
+#archives
+.tar
+.zip
