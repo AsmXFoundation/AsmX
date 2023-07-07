@@ -1185,6 +1185,11 @@ class Compiler {
      * error messages and debugging information.
      */
     compileSubStatement(statement, index, trace) {
+        // WARNING: Experimental mode
+        const { isPush, repeatPush, args } = this._checkPushToStack(statement.args);
+        statement.args = args;
+        //
+
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         statement.args = statement.args.map(argument => this.checkArgument(argument) ?? argument);
         // this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
@@ -1197,7 +1202,15 @@ class Compiler {
         MiddlewareSoftware.compileStatement({ instruction: 'sub', r0: '$ret', arguments: argumentsMiddleware });
         //
 
-        this.$stack.push({ value: this.$ret });
+        // this.$stack.push({ value: this.$ret }); v1
+
+        // WARNING: Experimental mode
+        if (isPush && repeatPush == 0) {
+            this.$stack.push({ value: this.$ret });
+        } else if (isPush && repeatPush > 0) {
+            for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
+        }
+        //
     }
 
 
@@ -1214,6 +1227,11 @@ class Compiler {
      * detailed error messages and debugging information.
      */
     compileDivStatement(statement, index, trace) {
+        // WARNING: Experimental mode
+        const { isPush, repeatPush, args } = this._checkPushToStack(statement.args);
+        statement.args = args;
+        //
+
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = this.$arg0;
@@ -1225,7 +1243,15 @@ class Compiler {
         MiddlewareSoftware.compileStatement({ instruction: 'div', r0: '$ret', arguments: argumentsMiddleware });
         //
 
-        this.$stack.push({ value: this.$ret });
+        // this.$stack.push({ value: this.$ret }); v1
+
+        // WARNING: Experimental mode
+        if (isPush && repeatPush == 0) {
+            this.$stack.push({ value: this.$ret });
+        } else if (isPush && repeatPush > 0) {
+            for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
+        }
+        //
     }
 
 
@@ -1242,11 +1268,25 @@ class Compiler {
      * error messages and debugging information.
      */
     compileModStatement(statement, index, trace) {
+        // WARNING: Experimental mode
+        const { isPush, repeatPush, args } = this._checkPushToStack(statement.args);
+        statement.args = args;
+        //
+
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = this.$arg0;
         for (let index = 1; index < statement.args.length; index++) this.$ret %= this[`$arg${[index]}`];
-        this.$stack.push({ value: this.$ret });
+
+        // this.$stack.push({ value: this.$ret }); v1
+
+        // WARNING: Experimental mode
+        if (isPush && repeatPush == 0) {
+            this.$stack.push({ value: this.$ret });
+        } else if (isPush && repeatPush > 0) {
+            for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
+        }
+        //
     }
 
 
@@ -1263,6 +1303,11 @@ class Compiler {
      * is used to provide more detailed error messages and debugging information.
      */
     compileMulStatement(statement, index, trace) {
+        // WARNING: Experimental mode
+        const { isPush, repeatPush, args } = this._checkPushToStack(statement.args);
+        statement.args = args;
+        //
+
         this.compilerAllArguments(statement, 'Int', trace?.parser?.code, trace?.parser.row);
         this.checkTypeArguments(statement.args, trace, ValidatorByType.validateTypeNumber);
         this.$ret = 1;
@@ -1274,7 +1319,15 @@ class Compiler {
         MiddlewareSoftware.compileStatement({ instruction: 'mul', r0: '$ret', arguments: argumentsMiddleware });
         //
 
-        this.$stack.push({ value: this.$ret });
+        // this.$stack.push({ value: this.$ret }); v1
+
+        // WARNING: Experimental mode
+        if (isPush && repeatPush == 0) {
+            this.$stack.push({ value: this.$ret });
+        } else if (isPush && repeatPush > 0) {
+            for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
+        }
+        //
     }
 
 
