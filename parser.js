@@ -1,4 +1,4 @@
-const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException } = require("./exception");
+const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException, ArgumentError } = require("./exception");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
 const ServerLog = require("./server/log");
@@ -275,8 +275,8 @@ class Parser {
             process.exit(1);
         }
 
-        ast['call']['name'] = tokens[1];
-        ast['call']['args'] = tokens[2] || '()';
+        ast['call']['name'] = tokens[1].trim();
+        ast['call']['args'] = tokens[2].trim() || '()';
         return ast;
     }
 
@@ -590,6 +590,27 @@ class Parser {
         const unitArguments = lineCode.substring(lineCode.indexOf('('), lineCode.indexOf(')') + 1);
         const argsRules = this.parseTypesArgumentsUnit(unitArguments.slice(1, -1));
         const argsNames = this.parseNamesArgumentsUnit(unitArguments.slice(1, -1));
+
+        if (!/[a-zA-Z0-9_]*/.test(unitName)) {
+            new ArgumentError(`[${Color.FG_RED}ArgumentException${Color.FG_WHITE}]: Invalid spelling of the function name.`, {
+                ...ast['parser'],
+                select: unitName
+            });
+
+            process.exit(1);
+        }
+
+        for (const arg of argsNames) {
+            if (!/[a-zA-Z0-9_]*/.test(arg)) {
+                new ArgumentError(`[${Color.FG_RED}ArgumentException${Color.FG_WHITE}]: Invalid spelling of the function argument name.`, {
+                    ...ast['parser'],
+                    select: arg
+                });
+    
+                process.exit(1);
+            }    
+        }
+
         ast['unit']['name'] = unitName;
         ast['unit']['args'] = unitArguments;
         ast['unit']['argsnames'] = argsNames;
