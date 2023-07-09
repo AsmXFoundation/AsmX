@@ -890,12 +890,12 @@ class Parser {
     }
     
     
-    static parseForStatement(lineCode, row) {
-        let ast = { for: {}, parser: { code: lineCode, row: row } };
-        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        this.lexerSymbol(lineCode, { operators: ['=', '+', '-', '*', '%', '/'] });
-        if (typeof lineCode !== 'string' || lineCode.length === 0) return 'rejected';
-        let match = lineCode.match(/^\@[F|f]or\s+(\w+)(?=\s+\:|\:)/);
+    static parseForStatement(line, row) {
+        let ast = { for: {}, parser: { code: line, row: row } };
+        line = this.parseAndDeleteEmptyCharacters(line);
+        this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof line !== 'string' || line.length === 0) return 'rejected';
+        let match = line.match(/^\@[F|f]or\s+(\w+)(?=\s+\:|\:)/);
 
         if (match == null) {
             new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
@@ -906,6 +906,46 @@ class Parser {
         }
 
         ast['for']['name'] = match[1];
+        return ast;
+    }
+
+
+    static parseExceptionStatement(line, row) {
+        let ast = { exception: {}, parser: { code: line, row: row } };
+        line = this.parseAndDeleteEmptyCharacters(line);
+        this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof line !== 'string' || line.length === 0) return 'rejected';
+        let match = line.match(/^\@[E|e]xception\s+(\w+)(?=\s+\:|\:)/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['exception']['name'] = match[1];
+        return ast;
+    }
+
+
+    static parseTryStatement(line, row) {
+        let ast = { try: {}, parser: { code: line, row: row } };
+        line = this.parseAndDeleteEmptyCharacters(line);
+        this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof line !== 'string' || line.length === 0) return 'rejected';
+        let match = line.match(/^\@[T|t]ry\s+(\w+)(?=\s+\:|\:)/);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['try']['name'] = match[1];
         return ast;
     }
 

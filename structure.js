@@ -48,5 +48,7 @@ Structure.new('unit');
 Structure.new('subprogram');
 Structure.new('enviroment');
 Structure.new('for');
+Structure.new('exception');
+Structure.new('try');
 
 module.exports = Structure;

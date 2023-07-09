@@ -40,6 +40,8 @@ class Compiler {
         this.subprograms = [];
         this.enviroments = [];
         this.fors = [];
+        this.exceptions = [];
+        this.trys = [];
         this.usings = [];
         this.registers = {};
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
@@ -144,6 +146,8 @@ class Compiler {
             this.enviroments = this.options.registers['enviroments'];
             this.subprograms = this.options.registers['subprograms'];
             this.fors = this.options.registers['fors'];
+            this.exceptions = this.options.registers['exceptions'];
+            this.trys = this.options.registers['trys'];
             this.registers = this.options.registers['registers'];
             this.stack = this.options.registers['stack'] || new Stack();
             this.This = this.options.registers['This'];
@@ -318,7 +322,9 @@ class Compiler {
                         enviroments: this.enviroments,
                         subprograms: this.subprograms,
                         fors: this.fors,
-                        scope: this.scope,
+                        exceptions: this.exceptions,
+                        trys: this.trys,
+                        scope: this.scope, 
                         This: this.This,
                         argsScopeLocal: this.argsScopeLocal,
                         // Logical registers
@@ -361,6 +367,8 @@ class Compiler {
                 this.subprograms = compile.subprograms;
                 this.enviroments = compile.enviroments;
                 this.fors = compile.fors;
+                this.exceptions = compile.exceptions;
+                this.trys = compile.trys;
                 this.scope = compile.scope;
                 this.This = compile.This;
                 this.argsScopeLocal = compile.argsScopeLocal;
@@ -398,6 +406,8 @@ class Compiler {
                 subprograms: globalThis.subprograms, 
                 labels: globalThis.labels,
                 fors: globalThis.fors,
+                exceptions: globalThis.exceptions,
+                trys: globalThis.trys,
                 registers: globalThis.registers
             };
             
@@ -435,6 +445,8 @@ class Compiler {
                     enviroments: globalThis.enviroments,
                     subprograms: globalThis.subprograms,
                     fors: globalThis.fors,
+                    exceptions: globalThis.exceptions,
+                    trys: globalThis.trys,
                     stack: globalThis.stack,
                     registers: globalThis.registers,
                     _task: globalThis._task
@@ -458,6 +470,8 @@ class Compiler {
                 globalThis.enviroments = compiler.enviroments;
                 globalThis.subprograms = compiler.subprograms;
                 globalThis.fors = compiler.fors;
+                globalThis.exceptions = compiler.exceptions;
+                globalThis.trys = compiler.trys;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
                 globalThis._task = compiler._task;
@@ -491,6 +505,8 @@ class Compiler {
                     enviroments: globalThis.enviroments,
                     subprograms: globalThis.subprograms,
                     fors: globalThis.fors,
+                    exceptions: globalThis.exceptions,
+                    trys: globalThis.trys,
                     stack: globalThis.stack,
                     registers: globalThis.registers,
                     _task: globalThis._task
@@ -514,6 +530,8 @@ class Compiler {
                 globalThis.enviroments = compiler.enviroments;
                 globalThis.subprograms = compiler.subprograms;
                 globalThis.fors = compiler.fors;
+                globalThis.exceptions = compiler.exceptions;
+                globalThis.trys = compiler.trys;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
                 globalThis._task = compiler._task;
@@ -576,6 +594,99 @@ class Compiler {
                 }
             }
         }
+
+
+        // @execute block <try name> <exception name>
+        if (this.$arg0 == 'block') {
+            let tryname = args[0];
+            let exceptname = args[1];
+
+            try {
+                let registers = {
+                    set: this.set, 
+                    constants: this.constants, 
+                    This: this.This, 
+                    scope: this.scope,
+                    labels: this.labels,
+                    enviroments: this.enviroments,
+                    subprograms: this.subprograms,
+                    fors: this.fors,
+                    exceptions: this.exceptions,
+                    trys: this.trys,
+                    stack: this.stack,
+                    registers: this.registers,
+                    _task: this._task
+                };
+
+                let attempt = this.trys.filter(at => Reflect.ownKeys(at)[0] == tryname);
+
+                for (const register of Object.getOwnPropertyNames(this)) {
+                    if (register.match(/\$\w+/)) registers[register] = this[register];
+                }
+    
+                let compiler = new Compiler(Parser.parse(attempt[0][tryname].join('\n')), this.scope, { registers: registers });
+    
+                for (const register of Object.getOwnPropertyNames(compiler)) {
+                    if (register.match(/\$\w+/)) this[register] = compiler[register];
+                }
+
+                this.set = compiler.set;
+                this.constants = compiler.constants;
+                this.This = compiler.This;
+                this.scope = compiler.scope;
+                this.labels = compiler.labels;
+                this.enviroments = compiler.enviroments;
+                this.subprograms = compiler.subprograms;
+                this.fors = compiler.fors;
+                this.exceptions = compiler.exceptions;
+                this.trys = compiler.trys;
+                this.stack = compiler.stack;
+                this.registers = compiler.registers;
+                this._task = compiler._task;
+            } catch (exception) {
+                let except = this.trys.filter(ex => Reflect.ownKeys(ex)[0] == exceptname);
+
+                let registers = { 
+                    set: this.set, 
+                    constants: this.constants, 
+                    This: this.This, 
+                    scope: this.scope,
+                    labels: this.labels,
+                    enviroments: this.enviroments,
+                    subprograms: this.subprograms,
+                    fors: this.fors,
+                    exceptions: this.exceptions,
+                    trys: this.trys,
+                    stack: this.stack,
+                    registers: this.registers,
+                    _task: this._task
+                };
+
+                for (const register of Object.getOwnPropertyNames(this)) {
+                    if (register.match(/\$\w+/)) registers[register] = this[register];
+                }
+    
+                let compiler = new Compiler(Parser.parse(except[0][exceptname].join('\n')), this.scope, { registers: registers });
+    
+                for (const register of Object.getOwnPropertyNames(compiler)) {
+                    if (register.match(/\$\w+/)) this[register] = compiler[register];
+                }
+
+                this.set = compiler.set;
+                this.constants = compiler.constants;
+                this.This = compiler.This;
+                this.scope = compiler.scope;
+                this.labels = compiler.labels;
+                this.enviroments = compiler.enviroments;
+                this.subprograms = compiler.subprograms;
+                this.fors = compiler.fors;
+                this.exceptions = compiler.exceptions;
+                this.trys = compiler.trys;
+                this.stack = compiler.stack;
+                this.registers = compiler.registers;
+                this._task = compiler._task;
+            }
+        }
     }
 
 
@@ -631,6 +742,18 @@ class Compiler {
     compileForStatement(statement, index) {
         let forname = Parser.parseForStatement(statement[0], index);
         this.fors.push({ [forname.for.name]: statement.slice(1) });
+    }
+
+
+    compileExceptionStatement(statement, index) {
+        let exceptname = Parser.parseExceptionStatement(statement[0], index);
+        this.exceptions.push({ [exceptname.exception.name]: statement.slice(1) });
+    }
+
+
+    compileTryStatement(statement, index) {
+        let tryname = Parser.parseTryStatement(statement[0], index);
+        this.trys.push({ [tryname.try.name]: statement.slice(1) });
     }
 
 
