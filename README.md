@@ -13,6 +13,7 @@
 - **Обновления.** AsmX, как и все языки постоянно развивается. Сам язык программирования AsmX можно посмотреть тут
 - **Документация.**
 - Расширение для подсветки AsmX кода [extension](https://marketplace.visualstudio.com/items?itemName=AsmX.AsmX) (VS Code)
+- Сайт документации по AsmX [web site](https://langprogramming-asmx.github.io/AsmX-Documentation/)
 
 # **Часть I** Основы
 
