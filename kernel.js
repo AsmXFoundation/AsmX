@@ -118,7 +118,7 @@ function callCompiler(pathfile) {
                 process.exit();
             }
         });
-    } else if (pathfile == "nowcode") {
+    } else if (pathfile == "repl") {
         let isprompt = true;
 
         while (isprompt) {
@@ -311,10 +311,12 @@ class Cli {
         if (architecture === 'arm') {
             if (outputfile && !outputfile.endsWith('.s')) outputfile = outputfile + '.s';
             if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.s`;
+            this.buildFile = outputfile;
             new CortexMARM(outputfile, MiddlewareSoftware.source);
         } else if (architecture === 'app') {
             if (outputfile && !outputfile.endsWith('.app')) outputfile = outputfile + '.app';
             if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.app`;
+            this.buildFile = outputfile;
             new App(outputfile, 'x64', 'x64', MiddlewareSoftware.source);
         } else {
             ServerLog.log('Unknow architecture', 'Exception');
@@ -326,8 +328,7 @@ class Cli {
         this.isexit = true;
     }
 
-
-    // exec <arch> <input file>
+    // run <arch> <input file>
     static run() {
         const parameters = this.cli_args.slice(this.beforeCounter + 1);
 
@@ -340,6 +341,7 @@ class Cli {
         const file = parameters[1];
 
         if (architecture === 'app') {
+            // App.Execute().execute(file == undefined ? this.buildFile : file);
             App.Execute().execute(file);
         } else {
             ServerLog.log('Unknow architecture', 'Exception');

@@ -673,7 +673,6 @@ class Parser {
     static parseModifyStatement(lineCode, row){
         let ast = { modify: {}, parser: { code: lineCode, row: row } };
         const commandArray = lineCode.trim().split(/\s+/);
-        if (commandArray[0] !== '@Modify') { return 'rejected'; }
         const registerName = commandArray[1];
         const value = commandArray.slice(2).join(' ');
         ast['modify']['model'] = registerName;

@@ -4,6 +4,7 @@
 
 // requires
 const fs = require('fs');
+const { exec } = require('child_process');
 
 // Components that compiler
 const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException } = require('./exception');
@@ -95,9 +96,9 @@ class Compiler {
         this.$name = 0x00;
         this.$text = ''; // Text to display
         this.$math = 0x00;
-        // File control
-        this.$file = '';
-        this.$content = '';
+        // Command
+        this.$cmd = '';
+        this.$cmdargs = '';
         // jmp
         this.$count = 0x01;
         // return
@@ -130,6 +131,9 @@ class Compiler {
             this.$arg3 = this.options.registers['$arg3'];
             this.$arg4 = this.options.registers['$arg4'];
             this.$arg5 = this.options.registers['$arg5'];
+            // Command
+            this.$cmd = this.options.registers[']cmd'];
+            this.$cmdargs = this.options.registers['$cmdargs'];
             //
             this.$mov = this.options.registers['$mov'];
             this.$get = this.options.registers['$get'];
@@ -305,6 +309,9 @@ class Compiler {
                         // jmp counter
                         $count: this.$count+1,
                         type: 'cycle',
+                        // command
+                        $cmd: this.$cmd,
+                        $cmdargs: this.$cmdargs,
                         // Stack
                         $fis: this.$fis,
                         $lis: this.$lis,
@@ -346,6 +353,9 @@ class Compiler {
                 this.$b_and = compile.$b_and;
                 this.$b_or = compile.$b_or;
                 this.$eq = compile.$eq;
+
+                this.$cmd = compile.$cmd;
+                this.$cmdargs = compile.$cmdargs;
 
                 this.$count = compile.$count;
                 this.$math = compile.$math;
@@ -999,7 +1009,8 @@ class Compiler {
         if (this.$arg0 == '$sp') this.$sp = this.$arg1;
         if (this.$arg0 == '$mov') this.$mov = this.$arg1;
         if (this.$arg0 == '$math') this.$math = this.checkArgument(this.$arg1) || this.$arg1;
-        if (this.$arg0 == '$file') this.$file = this.checkArgument(this.$arg1) || this.$arg1;
+        if (this.$arg0 == '$cmd') this.$cmd = this.checkArgument(this.$arg1) || this.$arg1;
+        if (this.$arg0 == '$cmdargs') this.$cmdargs = this.checkArgument(this.$arg1) || this.$arg1;
     }
 
 
@@ -1201,7 +1212,6 @@ class Compiler {
             
         // WARNING: Experimental mode
         MiddlewareSoftware.compileStatement({ instruction: 'invoke', invoke: { name: statement.address } });
-
         if (this.$arg0 == 0x01) {
             process.exit(0);
         } else if (this.$arg0 == 0x03) {
@@ -1223,6 +1233,14 @@ class Compiler {
             } catch {
                 process.stdout.write(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
             }
+        } else if (this.$arg0 == 0x08) {
+            if (Type.check('String', this.$cmd)) this.$cmd = this.$cmd.slice(1, -1);
+            if (Type.check('String', this.$cmdargs)) this.$cmdargs = this.$cmdargs.slice(1, -1);
+
+            exec(`${this.$cmd} ${this.$cmdargs}`.trim(), (err, stdout, stderr) => {
+                err && console.log(err);
+                stdout && console.log(stdout);
+            });
         } else {
             new SystemCallException(SystemCallException.SYSTEM_CALL_NOT_FOUND, { ...trace['parser'], select: this.$arg0 });
             process.exit(1);
