@@ -276,7 +276,7 @@ class Parser {
         }
 
         ast['call']['name'] = tokens[1].trim();
-        ast['call']['args'] = tokens[2].trim() || '()';
+        ast['call']['args'] = tokens[2] == undefined ? '()' : tokens[2].trim();
         return ast;
     }
 

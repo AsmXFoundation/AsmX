@@ -256,10 +256,20 @@ class Cli {
 
         this.doctorData = {
             isAsmXGlobal: isAsmXGlobal,
-            isAsmXCli: true
+            isAsmXCli: true,
+            isAsmXEXECli: false,
+            isAsmXAPPCli: false,
+            isAsmXVim: true,
+            isNeuralTools: true
         }
 
         this.task.new('doctor', this.doctorData, 'watch');
+    }
+
+
+    static config() {
+        this.configData = configSettings.INI_VARIABLES;
+        this.task.new('config', this.configData, 'watch');
     }
 
 
@@ -444,6 +454,18 @@ class Cli {
             let properties = this.task.last()['value'];
             printCheckTools(properties, 'isAsmXGlobal', 'AsmX Global System');
             printCheckTools(properties, 'isAsmXCli', 'AsmX CLI');
+            printCheckTools(properties, 'isAsmXAPPCli', 'AsmX APP CLI');
+            printCheckTools(properties, 'isNeuralTools', 'Neural Tools');
+            printCheckTools(properties, 'isAsmXVim', 'AsmX Vim');
+            printCheckTools(properties, 'isAsmXEXECli', 'AsmX EXE CLI');
+        }
+
+        else if (this.task.last()['name'] === 'config') {
+            let properties = this.task.last()['value'];
+            printCheckTools(properties, 'ANALYSIS', 'Analysis code');
+            printCheckTools(properties, 'GARBAGE', 'Garbage Collection (GC)');
+            printCheckTools(properties, 'OBJECT_OUTPUT', 'obj file for compiler');
+            printCheckTools(properties, 'PRINT_MODULES', 'library or module sections');
         }
 
         this.flagUsage = false;
