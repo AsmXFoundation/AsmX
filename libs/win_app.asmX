@@ -1,25 +1,25 @@
 @unit run_calc():
-    @modify $cmd 'calc';
+    @modify $cmd 'calc.exe';
     @invoke 0x08;
 
 
 @unit run_notepad():
-    @modify $cmd 'notepad';
+    @modify $cmd 'notepad.exe';
     @invoke 0x08;
 
 
 @unit run_explorer():
-    @modify $cmd 'explorer';
+    @modify $cmd 'explorer.exe';
     @invoke 0x08;
 
 
 @unit run_charmap():
-    @modify $cmd 'charmap';
+    @modify $cmd 'charmap.exe';
     @invoke 0x08;
 
 
 @unit run_paint():
-    @modify $cmd 'mspaint';
+    @modify $cmd 'mspaint.exe';
     @invoke 0x08;
 
 
@@ -41,4 +41,3 @@
 @unit run_cmd():
     @modify $cmd 'cmd';
     @invoke 0x08;
-    
