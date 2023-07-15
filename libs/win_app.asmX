@@ -24,20 +24,20 @@
 
 
 @unit run_task_manager():
-    @modify $cmd 'taskmgr';
+    @modify $cmd 'taskmgr.exe';
     @invoke 0x08;
 
 
 @unit run_media_player():
-    @modify $cmd 'wmplayer';
+    @modify $cmd 'wmplayer.exe';
     @invoke 0x08;
 
 
 @unit run_powershell():
-    @modify $cmd 'powershell';
+    @modify $cmd 'powershell.exe';
     @invoke 0x08;
 
 
 @unit run_cmd():
-    @modify $cmd 'cmd';
+    @modify $cmd 'cmd.exe';
     @invoke 0x08;
