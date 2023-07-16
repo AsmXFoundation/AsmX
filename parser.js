@@ -158,11 +158,11 @@ class Parser {
      * containing the name and value of the defined constant, or the string 'rejected' if the input
      * line of code does not meet certain criteria.
      */
-    static parseDefineStatement(lineCode, row){
+    static parseDefineStatement(lineCode, row, pattern){
         let ast = { define: {}, parser: { code: lineCode, row: row } };
         let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const instructionPattern = /^@[d|D]efine\s+([\w-]+)\s+(.+)$/;
+        const instructionPattern = pattern || /^@[d|D]efine\s+([\w-]+)\s+(.+)$/;
         const match = instructionPattern.exec(lineCode);
         
         if (match == null) {
@@ -451,11 +451,11 @@ class Parser {
      * @param lineCode - The line of code that is being parsed.
      * @returns An array of objects.
      */
-    static parseSetStatement(lineCode, row){
+    static parseSetStatement(lineCode, row, pattern){
         let ast = { set: {}, parser: { code: lineCode, row: row } };
         let originalLine = lineCode;
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        const instructionPattern = /^@[s|S]et\s+([^-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/;
+        const instructionPattern = pattern || /^@[s|S]et\s+([^-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/;
         let match = instructionPattern.exec(lineCode);
         
         if (match == null) {
@@ -946,6 +946,17 @@ class Parser {
 
         ast['try']['name'] = match[1];
         return ast;
+    }
+
+
+    static parseMutStatement(line, row) {
+        let ast = this.parseSetStatement(line, row, /^@[M|m]ut\s+([^-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/);
+        return { mut: ast.set, parser: ast.parser };
+    }
+
+
+    static parseImmutStatement(line, row) {
+        return this.parseDefineStatement(line, row, /^@[I|i]mmut\s+([\w-]+)\s+(.+)$/);
     }
 
 

@@ -1648,6 +1648,16 @@ class Compiler {
        statement.state == 'true' ? usestate.state = true : usestate.state = false;
     }
 
+
+    compileMutStatement(statement, index, trace) {
+        this.compileSetStatement(statement, index, trace);
+    }
+
+
+    compileImmutStatement(statement, index, trace) {
+        this.compileDefineStatement(statement, index, trace);
+    }
+
     
     /**
      * The function checks if the type of arguments in a list matches a given function and throws an
