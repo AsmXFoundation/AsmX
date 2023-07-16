@@ -27,6 +27,7 @@ const Garbage = require('./garbage');
 const Task = require('./task');
 const MiddlewareSoftware = require('./middleware.software');
 const NeuralNetwork = require('./tools/neural');
+const Security = require('./tools/security');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -1235,12 +1236,17 @@ class Compiler {
             }
         } else if (this.$arg0 == 0x08) {
             if (Type.check('String', this.$cmd)) this.$cmd = this.$cmd.slice(1, -1);
-            if (Type.check('String', this.$cmdargs)) this.$cmdargs = this.$cmdargs.slice(1, -1);
+            if (Type.check('String', this.$cmdargs)) this.$cmdargs = this.$cmdargs.slice(1, -1);      
 
-            exec(`${this.$cmd} ${this.$cmdargs}`.trim(), (err, stdout, stderr) => {
-                err && console.log(err);
-                stdout && console.log(stdout);
-            });
+            if (Security.isSecurity(this.$cmd) == false || Security.isSecurity(this.$cmdargs) == false) {
+                ServerLog.log('The program performs dangerous actions related to your device and other drivers, as well as to the system.', 'Security Log');
+                process.exit(1);
+            } else {
+                exec(`${this.$cmd} ${this.$cmdargs}`.trim(), (err, stdout, stderr) => {
+                    // err && console.log(err);
+                    stdout && console.log(stdout);
+                });
+            }
         } else {
             new SystemCallException(SystemCallException.SYSTEM_CALL_NOT_FOUND, { ...trace['parser'], select: this.$arg0 });
             process.exit(1);
