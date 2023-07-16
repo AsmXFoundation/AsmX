@@ -1624,7 +1624,15 @@ class Compiler {
         this.$arg2 = statement.value;
         
         if (this.set.length > 0 && this.set.findIndex(cell => cell.name == this.$name) > -1) {
-            this.set = this.set.filter(cell => cell.name !== this.$name).push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+            /**
+             *  @see github https://github.com/langprogramming-AsmX/AsmX/issues/14 (#14)
+             */
+            let index = this.set.findIndex(cell => cell.name == this.$name);
+            this.set[index].type = this.$arg1;
+            this.set[index].value = this.$arg2;
+            //
+
+            // this.set = this.set.filter(cell => cell.name !== this.$name).push({ name: this.$name, type: this.$arg1, value: this.$arg2 }); v1
         } else {
             this.set.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
         }
