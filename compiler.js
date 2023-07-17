@@ -254,6 +254,29 @@ class Compiler {
         
         if (this.$arg0 == 'mov')    this.$ret = this.$mov = args[0];
 
+        if (this.$arg0 == 'is_almost') {
+            if (typeof args[0] === 'number') {
+                let int = String(args[0]);
+
+                if (int.indexOf('.') > -1) { // float
+                    int = String(Number(int).toFixed(2));
+                    let leftnumber = int.slice(int.indexOf('.') + 1);
+                    let leftToken = +leftnumber[0];
+                    let rightToken = +leftnumber[1];
+                    if (leftToken > 2 && rightToken > 5) this.$ret = 'Almost';
+                    else  this.$ret = 'false';
+                } else { // Int
+                    int = int.slice(int.length - 2);
+                    let leftToken = +int[0];
+                    let rightToken = +int[1];
+                    if (leftToken > 2 && rightToken > 5) this.$ret = 'Almost';
+                    else  this.$ret = 'false';
+                }
+            } else {
+                this.$ret = 'Void';
+            }
+        }
+
         if (this.$arg0 == 'eq') {
             if (Type.check('Int', args[0]) && Type.check('Int', args[1])) {
                 this.$ret = this.$eq = +args[0] == +args[1];
