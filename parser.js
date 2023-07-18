@@ -949,6 +949,32 @@ class Parser {
     }
 
 
+    static parseStructStatement(line, row) {
+        let ast = this._parseStructure(line, row, /^\@[S|s]truct\s+(\w+)(?=\s+\:|\:)/);
+        return { struct: ast.structure.name, parser: ast.parser };
+    }
+
+
+    static _parseStructure(line, row, pattern) {
+        let ast = { structure: {}, parser: { code: line, row: row } };
+        line = this.parseAndDeleteEmptyCharacters(line);
+        this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
+        if (typeof line !== 'string' || line.length === 0) return 'rejected';
+        let match = line.match(pattern);
+
+        if (match == null) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+                row: row,     code: ast.parser.code
+            });
+
+            process.exit(1);
+        }
+
+        ast['structure']['name'] = match[1];
+        return ast;
+    }
+
+
     static parseMutStatement(line, row) {
         let ast = this.parseSetStatement(line, row, /^@[M|m]ut\s+([^-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/);
         return { mut: ast.set, parser: ast.parser };
@@ -957,6 +983,41 @@ class Parser {
 
     static parseImmutStatement(line, row) {
         return this.parseDefineStatement(line, row, /^@[I|i]mmut\s+([\w-]+)\s+(.+)$/);
+    }
+
+
+    static parsePropertyStatement(line, row) {
+        let ast = { property: {}, parser: { code: line, row } };
+        line = line.slice(line.indexOf(' ')).trim();
+
+        // @property structure_name::property_name value
+        if (line.indexOf('::') > -1) {
+            let structureType = line.slice(0, line.indexOf('::'));
+            let structureName = line.slice(line.indexOf('::') + 2, line.indexOf(' '));
+            ast.property.structure = { type: structureType, name: structureName };
+            line = line.slice(line.indexOf(' ')).trim();
+            ast.property.name = line.slice(0, line.indexOf(' '));
+            ast.property.value = line.slice(line.indexOf(' ')).trim();
+        } else { // @property name Type
+            ast.property.name = line.slice(0, line.indexOf(' '));
+            ast.property.type = line.slice(line.indexOf(' ')).trim();
+        }
+         
+        return ast;
+    }
+
+
+    static parseCreateStatement(line, row) {
+        let ast = { create: {}, parser: { code: line, row } };
+        this.lexerSymbol(line);
+        line = line.slice(line.indexOf(' ')).trim();
+        let structureType = line.slice(0, line.indexOf(' '));
+        line = line.slice(line.indexOf(' ')).trim();
+        let structureName = line.slice(0, line.indexOf(' '));
+        let name = line.slice(line.indexOf(' ')).trim();
+        ast.create.structure = { type: structureType, name: structureName };
+        ast.create.name = name;
+        return ast;
     }
 
 

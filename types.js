@@ -91,6 +91,13 @@ Type.new('Float', /[/+-]?\d+(\.\d+)$/);
 Type.new('Hex', /^0[xX][0-9a-fA-F]+/);
 Type.new('Bool', /true|false/);
 
+Type.new('string', /'[^"]*'/);
+Type.new('string', /"[^']*"/);
+Type.new('int', /([+-]?\d+$)/);
+Type.new('float', /[/+-]?\d+(\.\d+)$/);
+Type.new('hex', /^0[xX][0-9a-fA-F]+/);
+Type.new('bool', /true|false/);
+
 module.exports = {
     Type,
     Tuple,

@@ -7,7 +7,7 @@ const fs = require('fs');
 const { exec } = require('child_process');
 
 // Components that compiler
-const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException } = require('./exception');
+const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException, InstructionException } = require('./exception');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const Issues = require("./issue");
@@ -28,6 +28,7 @@ const Task = require('./task');
 const MiddlewareSoftware = require('./middleware.software');
 const NeuralNetwork = require('./tools/neural');
 const Security = require('./tools/security');
+const Interface = require('./interface');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -45,6 +46,8 @@ class Compiler {
         this.exceptions = [];
         this.trys = [];
         this.usings = [];
+        this.collections = { struct: [] };
+        this.interfaces = { structs: [] };
         this.registers = {};
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
         this.STACKTRACE_LIMIT = 10;
@@ -63,7 +66,8 @@ class Compiler {
 
             global: {
                 set: this.set,
-                const: this.constants
+                const: this.constants,
+                struct: this.collections.struct
             },
 
             local: {
@@ -153,6 +157,8 @@ class Compiler {
             this.fors = this.options.registers['fors'];
             this.exceptions = this.options.registers['exceptions'];
             this.trys = this.options.registers['trys'];
+            this.collections = this.options.registers['collections'];
+            this.interfaces = this.options.registers['interfaces'];
             this.registers = this.options.registers['registers'];
             this.stack = this.options.registers['stack'] || new Stack();
             this.This = this.options.registers['This'];
@@ -354,6 +360,8 @@ class Compiler {
                         subprograms: this.subprograms,
                         fors: this.fors,
                         exceptions: this.exceptions,
+                        collections: this.collections,
+                        interfaces: this.interfaces,
                         trys: this.trys,
                         scope: this.scope, 
                         This: this.This,
@@ -402,6 +410,8 @@ class Compiler {
                 this.enviroments = compile.enviroments;
                 this.fors = compile.fors;
                 this.exceptions = compile.exceptions;
+                this.collections = compile.collections;
+                this.interfaces = compile.interfaces;
                 this.trys = compile.trys;
                 this.scope = compile.scope;
                 this.This = compile.This;
@@ -441,6 +451,7 @@ class Compiler {
                 labels: globalThis.labels,
                 fors: globalThis.fors,
                 exceptions: globalThis.exceptions,
+                collections: globalThis.collections,
                 trys: globalThis.trys,
                 registers: globalThis.registers
             };
@@ -480,6 +491,7 @@ class Compiler {
                     subprograms: globalThis.subprograms,
                     fors: globalThis.fors,
                     exceptions: globalThis.exceptions,
+                    collections: globalThis.collections,
                     trys: globalThis.trys,
                     stack: globalThis.stack,
                     registers: globalThis.registers,
@@ -505,6 +517,7 @@ class Compiler {
                 globalThis.subprograms = compiler.subprograms;
                 globalThis.fors = compiler.fors;
                 globalThis.exceptions = compiler.exceptions;
+                globalThis.collections = compiler.collections;
                 globalThis.trys = compiler.trys;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
@@ -540,6 +553,7 @@ class Compiler {
                     subprograms: globalThis.subprograms,
                     fors: globalThis.fors,
                     exceptions: globalThis.exceptions,
+                    collections: globalThis.collections,
                     trys: globalThis.trys,
                     stack: globalThis.stack,
                     registers: globalThis.registers,
@@ -565,6 +579,7 @@ class Compiler {
                 globalThis.subprograms = compiler.subprograms;
                 globalThis.fors = compiler.fors;
                 globalThis.exceptions = compiler.exceptions;
+                globalThis.collections = compiler.collections;
                 globalThis.trys = compiler.trys;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
@@ -646,6 +661,7 @@ class Compiler {
                     subprograms: this.subprograms,
                     fors: this.fors,
                     exceptions: this.exceptions,
+                    collections: globalThis.collections,
                     trys: this.trys,
                     stack: this.stack,
                     registers: this.registers,
@@ -673,6 +689,7 @@ class Compiler {
                 this.subprograms = compiler.subprograms;
                 this.fors = compiler.fors;
                 this.exceptions = compiler.exceptions;
+                this.collections = compiler.collections;
                 this.trys = compiler.trys;
                 this.stack = compiler.stack;
                 this.registers = compiler.registers;
@@ -690,6 +707,7 @@ class Compiler {
                     subprograms: this.subprograms,
                     fors: this.fors,
                     exceptions: this.exceptions,
+                    collections: globalThis.collections,
                     trys: this.trys,
                     stack: this.stack,
                     registers: this.registers,
@@ -715,6 +733,7 @@ class Compiler {
                 this.subprograms = compiler.subprograms;
                 this.fors = compiler.fors;
                 this.exceptions = compiler.exceptions;
+                this.collections = compiler.collections;
                 this.trys = compiler.trys;
                 this.stack = compiler.stack;
                 this.registers = compiler.registers;
@@ -788,6 +807,68 @@ class Compiler {
     compileTryStatement(statement, index) {
         let tryname = Parser.parseTryStatement(statement[0], index);
         this.trys.push({ [tryname.try.name]: statement.slice(1) });
+    }
+
+
+    compileStructStatement(statement, index, tree) {
+        let structname = Parser.parseStructStatement(statement[0], index);
+        let ast = Parser.parse(statement.slice(1).join('\n'));
+        let allProperties = ast.every(tree => tree?.property);
+        
+        if (allProperties == false) {
+            ServerLog.log(`[${Color.FG_GREEN}Struct${Color.FG_WHITE}::${Color.FG_GREEN}${structname.struct}${Color.FG_WHITE}] This structure should have only the @property instruction.`, 'Exception');
+            process.exit(1);
+        }
+
+        // Experimental mode
+        let IA = {};
+        for (let property of ast) {
+            property = property?.property;
+            IA[property?.name] = property?.type;
+        }
+
+        Interface.create(IA, 'struct', structname.struct);
+        //
+    
+        this.interfaces['structs'].push({ [structname?.struct]: statement.slice(1) });
+    }
+
+
+    compilePropertyStatement(statement, index) {
+        let structure = statement.structure;
+        let searchedStructure = this.collections[structure.type].filter(strctr => strctr[structure.name])[0];
+
+        if (
+            Interface.checkField({ 
+                name: searchedStructure?.interface,
+                type: structure.type
+            }, statement.name, statement.value)
+        ) {
+            let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
+            searchedStructure[structure.name][statement.name] = statement.value;
+            filter.push(searchedStructure);
+            this.collections[structure.type] = filter;
+        } else {}
+    }
+
+
+    compileCreateStatement(statement, index) {
+        let structure = statement.structure;
+        let name = statement.name;
+        let releaseStruct = {};
+
+        let i7e = Interface.getInterface(structure.type, structure.name);
+        let fields = Reflect.ownKeys(i7e.IArguments);
+        for (const field of fields) releaseStruct[field] = null;
+
+        if (Reflect.ownKeys(this.collections).includes(structure.type)) {
+            this.collections[structure.type].push({
+                interface: i7e.structureName,
+                [name]: releaseStruct
+            });
+        } else {
+            process.exit(1);
+        }
     }
 
 
@@ -917,6 +998,17 @@ class Compiler {
 
         if (!['global', 'local', 'kernelos'].includes(properties[0])) $this = $this[this.scope];
 
+        if (Reflect.ownKeys(this.collections).includes(properties[0])) {
+            if (properties.length != 3) {
+                new ArgumentError(`[${Color.FG_RED}ArgumentException${Color.FG_WHITE}]: Perhaps there are not enough arguments.`, {
+                    row: trace?.parser.row, code: trace?.parser.code, select: statement.args, position: position
+                });
+            } else {
+                let structure = { type: properties[0], name: properties[1], field: properties[2] };
+                this.$get = this.collections[structure.type].filter(stre => stre[structure.name])[0][structure.name][structure.field];
+                if (this.$get == null) this.$get = 'Void';
+            }
+        } else
         properties.forEach((property) => {
             if (property.indexOf(':') > -1) property = property.split(':');
 

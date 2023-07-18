@@ -8,6 +8,7 @@ bin/*
 
 /examples/tests/*
 /examples/*
+!/examples/*.asmX
 
 # Tests
 tests/*

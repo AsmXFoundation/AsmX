@@ -50,5 +50,6 @@ Structure.new('enviroment');
 Structure.new('for');
 Structure.new('exception');
 Structure.new('try');
+Structure.new('struct');
 
 module.exports = Structure;
