@@ -4,6 +4,7 @@
 
 @create enum example Example;
 @call print(enum::Example::two);
+@execute jmp 0x01 0x04;
 @call print("=====");
 
 @enum week:
