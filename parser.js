@@ -955,6 +955,12 @@ class Parser {
     }
 
 
+    static parseEnumStatement(line , row) {
+        let ast = this._parseStructure(line, row, /^\@[E|e]num\s+(\w+)(?=\s+\:|\:)/);
+        return { enum: ast.structure.name, parser: ast.parser };
+    }
+
+
     static _parseStructure(line, row, pattern) {
         let ast = { structure: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
@@ -998,9 +1004,11 @@ class Parser {
             line = line.slice(line.indexOf(' ')).trim();
             ast.property.name = line.slice(0, line.indexOf(' '));
             ast.property.value = line.slice(line.indexOf(' ')).trim();
-        } else { // @property name Type
+        } else if (line.indexOf(' ') > -1) { // @property name Type
             ast.property.name = line.slice(0, line.indexOf(' '));
             ast.property.type = line.slice(line.indexOf(' ')).trim();
+        } else { // @property name
+            ast.property.name = line;
         }
          
         return ast;

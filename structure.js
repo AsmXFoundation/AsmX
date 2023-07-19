@@ -51,5 +51,6 @@ Structure.new('for');
 Structure.new('exception');
 Structure.new('try');
 Structure.new('struct');
+Structure.new('enum');
 
 module.exports = Structure;
