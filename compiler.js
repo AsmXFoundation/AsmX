@@ -46,7 +46,7 @@ class Compiler {
         this.exceptions = [];
         this.trys = [];
         this.usings = [];
-        this.collections = { struct: [], enum: [] };
+        this.collections = { struct: [], enum: [], class: [] };
         this.interfaces = { structs: [], enums: [] };
         this.registers = {};
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
@@ -907,44 +907,246 @@ class Compiler {
         let structure = statement.structure;
         let searchedStructure = this.collections[structure.type].filter(strctr => strctr[structure.name])[0];
 
-        if (
-            Interface.checkField({ 
-                name: searchedStructure?.interface,
-                type: structure.type
-            }, statement.name, statement.value)
-        ) {
-            let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
-            searchedStructure[structure.name][statement.name] = statement.value;
-            filter.push(searchedStructure);
-            this.collections[structure.type] = filter;
-        } else {}
+        if (structure.type == 'class') {
+            let i7e = Interface.getCustomInterface(structure.type, searchedStructure?.interface);
+            
+            if (i7e !== undefined) {
+                let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
+                searchedStructure[structure.name][statement.name] = statement.value;
+                filter.push(searchedStructure);
+                this.collections[structure.type] = filter;
+            }
+        } else {
+            if (
+                Interface.checkField({ 
+                    name: searchedStructure?.interface,
+                    type: structure.type
+                }, statement.name, statement.value)
+            ) {
+                let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
+                searchedStructure[structure.name][statement.name] = statement.value;
+                filter.push(searchedStructure);
+                this.collections[structure.type] = filter;
+            } else {}
+        }
     }
 
 
-    compileCreateStatement(statement, index) {
+    compileCreateStatement(statement, index, tree) {
         let structure = statement.structure;
         let name = statement.name;
         let releaseStruct = {};
 
         let i7e = Interface.getInterface(structure.type, structure.name);
-        let fields = Reflect.ownKeys(i7e.IArguments);
-        for (const field of fields) releaseStruct[field] = null;
 
-        if (Reflect.ownKeys(this.collections).includes(structure.type)) {
-            if (structure.type !== 'enum'){
-                this.collections[structure.type].push({
-                    interface: i7e.structureName,
-                    [name]: releaseStruct
-                });
-            } else if (structure.type == 'enum') {
-                this.collections[structure.type].push({
-                    interface: i7e.structureName,
-                    [name]: i7e.IArguments
-                });
-            }
-        } else {
+        if (i7e == undefined && structure.type == 'class') {
+            let props = Interface.getCustomInterface(structure.type, structure.name);
+            this.collections[structure.type].push({
+                interface: new String(props.structureName).valueOf(),
+                [statement.name]: props.obj.property
+            });
+        }
+
+        else if (i7e == undefined) {
+            new SystemCallException(`a ${structure.type} named ${structure.name} does not exist`, {
+                ...tree['parser'],
+                select: tree['parser'].code
+            });
             process.exit(1);
         }
+
+        else if (i7e) {
+            let fields = Reflect.ownKeys(i7e?.IArguments);
+            for (const field of fields) releaseStruct[field] = null;
+
+            if (Reflect.ownKeys(this.collections).includes(structure.type)) {
+                if (structure.type !== 'enum'){
+                    this.collections[structure.type].push({
+                        interface: i7e.structureName,
+                        [name]: releaseStruct
+                    });
+                } else if (structure.type == 'enum') {
+                    this.collections[structure.type].push({
+                        interface: i7e.structureName,
+                        [name]: i7e.IArguments
+                    });
+                }
+            } else {
+                process.exit(1);
+            }
+        }
+    }
+
+
+    compileClassStatement(statement, index, tree) {
+        let Tree = tree;
+        let clsBody = statement.slice(1);
+        let clsname = Parser.parseClassStatement(statement[0], tree.parser.row);
+        let ast = Parser.parse(clsBody.join('\n'));
+        let allBinds = ast.every(tree => tree?.bind || tree?.property);
+
+        if (allBinds !== true) {
+            let idx = 0;
+            let tr = null;
+
+            ast.forEach((tree, index) => {
+                let keys = Reflect.ownKeys(tree).filter(t => !t?.parser)[0];
+
+                if (['property', 'bind'].includes(keys) == false) {
+                    idx = index;
+                    tr = tree;
+                }
+            });
+
+            let row = idx + Tree.parser.row;
+    
+            new SystemCallException(`[${Color.FG_RED}ClassException${Color.FG_WHITE}]: Unexpected instruction`, {
+                code: tr.parser.code,
+                row,
+                select: tr.parser.code
+            });
+
+            ServerLog.log('You need to remove this instruction.', 'Possible fixes');
+            process.exit(1);
+        } else {
+            let constructor = ast.filter(t => t.bind && t.bind.bind == 'constructor');
+            
+            if (constructor.length > 1) {
+                let constructorsTree = constructor.slice(1);
+                let constructorsTreeIndex = 0;
+
+                ast.find((t, index) => {
+                    if (t?.bind && t.bind.name == constructorsTree[0].bind.name) {
+                        constructorsTreeIndex = index;
+                        return index;
+                    }
+                });
+
+                let idx = Tree.parser.row + constructorsTreeIndex;
+
+                for (const iterator of constructorsTree) {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}ClassException${Color.FG_WHITE}]: There are too many bind constructors.`, {
+                        code: iterator.parser.code,
+                        row: idx,
+                        select: iterator.parser.code
+                    });
+        
+                    ServerLog.log(`You need to remove this instruction.\n`, 'Possible fixes');
+                    idx++;
+                }
+    
+                process.exit(1);
+            } else if (constructor.length == 0) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}ClassException${Color.FG_WHITE}]: You didn't specify a constructor in the bind class.`, {
+                    code: statement[0],
+                    row: Tree.parser.row - 1,
+                    select: statement[0]
+                });
+    
+                ServerLog.log(`You need to specify the constructor's bind.\n`, 'Possible fixes');
+                process.exit(1);
+            } else {
+                constructor = constructor[0];
+                let properties = ast.filter(t => t?.property);
+                let methods = ast.filter(t => t.bind && t.bind.bind == 'method');
+                let binds = ast.filter(t => t.bind && t.bind.bind !== 'constructor');
+                let releaseProperties = {};
+                let obj = {};
+
+                for (let property of properties) {
+                    property = property?.property;
+                    releaseProperties[property.name] = property.type;
+                }
+
+                obj['property'] = releaseProperties;
+                Interface.create(releaseProperties, 'class', clsname);
+
+                for (const method of methods) {
+                   let i7e = Interface.getCustomInterface('method', method.bind.name);
+                   
+                    if (i7e == undefined) {
+                        let bindsTreeIndex = 0;
+    
+                        ast.find((t, index) => {
+                            if (t?.bind && t.bind.name == method.bind.name) {
+                                bindsTreeIndex = index;
+                                return index;
+                            }
+                        });
+        
+                       let idx = Tree.parser.row + bindsTreeIndex;
+
+                        new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}ClassException${Color.FG_WHITE}]: Non-existing method.`, {
+                            code: method.parser.code,
+                            row: idx,
+                            select: method.parser.code
+                        });
+            
+                        ServerLog.log(`You need to specify the constructor's bind.\n`, 'Possible fixes');
+                        process.exit(1);
+                    } else {
+                        if (obj['methods'] == undefined) obj['methods'] = [];
+                        obj['methods'].push(method.bind.name);
+                    }
+                }
+
+                let i7e = Interface.getInterface(constructor.bind.bind, constructor.bind.name);
+                let ci7e = Interface.getCustomInterface(constructor.bind.bind, constructor.bind.name);
+                obj['constructor'] = ci7e.structureName;
+                Interface.createCustomInterface(obj, 'class', clsname.class);
+            }
+        }
+    }
+
+
+    compileBindStatement(statement, scope = 'global') {}
+
+
+    compileMethodStatement(statement, index, tree) {
+        let methodname = Parser.parseMethodStatement(statement[0], tree?.parser.row || index);
+        let methodBody = statement.slice(1);
+        let idx = tree?.parser.row || index;
+        let ast = [];
+
+        for (const line of methodBody) {
+            if (line.startsWith('@')) ast.push(Parser.parse(line)[0]);
+            else if (/^[a-zA-Z0-9_]*\.[a-zA-Z0-9_]*\s+[a-zA-Z0-9_]*/.test(line)) {
+                let matches = /^([a-zA-Z0-9_]*)\.([a-zA-Z0-9_]*)\s+([a-zA-Z0-9_]*)/.exec(line).filter(t => t).slice(1);
+                
+                if (matches.length == 2) {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Not enough arguments.`, {
+                        code: line,
+                        row: idx,
+                        select: line
+                    });
+        
+                    ServerLog.log(`Probably need to write the missing argument`, 'Possible fixes');
+                    process.exit(1);
+                } else if (matches.length == 3) {
+                    ast.push({ self: { contextname: matches[0], name: matches[1], value: matches[2] }, type: 'self' });
+                }
+            }
+
+            idx++;
+        }
+
+        Interface.createCustomInterface(
+            {
+                arguments: methodname.method.arguments,
+                parser: methodname.parser,
+                body: methodBody
+            }, 
+            'method', methodname.method.name
+        );
+    }
+
+
+    compileConstructorStatement(statement, index, tree) {
+        let constructorBody = statement.slice(1);
+        let constructorInfo = Parser.parseConstructorStatement(statement[0], tree.parser.row);
+        let constructorArguments = Parser._parseConstructorArguments(constructorInfo.constructor.arguments, tree.parser.row);
+        Interface.createCustomInterface({ body: constructorBody }, 'constructor', constructorInfo.constructor.name);
+        Interface.create(constructorArguments.arguments, 'constructor', constructorInfo.constructor.name);
     }
 
 
@@ -1075,9 +1277,9 @@ class Compiler {
         if (!['global', 'local', 'kernelos'].includes(properties[0])) $this = $this[this.scope];
 
         if (Reflect.ownKeys(this.collections).includes(properties[0])) {
-            if (properties.length != 3) {
+            if (properties.length < 3) {
                 new ArgumentError(`[${Color.FG_RED}ArgumentException${Color.FG_WHITE}]: Perhaps there are not enough arguments.`, {
-                    row: trace?.parser.row, code: trace?.parser.code, select: statement.args, position: position
+                    row: trace?.parser.row, code: trace?.parser.code, select: statement.args, position: 'end'
                 });
             } else {
                 let structure = { type: properties[0], name: properties[1], field: properties[2] };
@@ -1346,7 +1548,233 @@ class Compiler {
             code: trace?.parser?.code
         }
 
-        if (unitCall.has(statement.name)) {
+        if (statement?.structure && statement.name) {
+            let collection = this.collections[statement.structure].filter(t => t[statement.name])[0];
+            let i7e = Object(this.collections[statement.structure].filter(t => t[statement.name])[0]);
+            let ci7e = Interface.getCustomInterface(statement.structure, i7e.interface);
+            let constructorInterface = Interface.getInterface('constructor', ci7e.obj.constructor);
+            let constructor = Interface.getCustomInterface('constructor', ci7e.obj.constructor);
+
+            let bi7e = new String(i7e?.interface).valueOf();
+            let initArgs = statement.args.split(',').map(t => t.trim());
+            let iArgs = constructorInterface.IArguments;
+            let indexArgs = 0;
+            let context  = Reflect.ownKeys(constructorInterface.IArguments)[0];
+
+            let newcollection = { [statement.name]: {}, interface: bi7e };
+            let copy = Object.getOwnPropertyNames(collection[statement.name]);
+            
+            for (const prop of copy)
+                newcollection[statement.name][prop] = collection[statement.name][prop];
+
+            for (const argument of Reflect.ownKeys(constructorInterface.IArguments).slice(1)) {
+                if (Type.check(iArgs[argument], initArgs[indexArgs]))
+                    newcollection[statement.name][argument] = initArgs[indexArgs];
+                else if (iArgs[argument].toLowerCase() == 'any')
+                    newcollection[statement.name][argument] = initArgs[indexArgs];
+                indexArgs++;
+            }
+ 
+            let idx = trace?.parser.row;
+            this.executeConstructor = true;
+            this.executeClass = statement.name;
+            this.executeContext = context;
+            this.executeclassData = newcollection;
+
+            for (const line of constructor.obj.body) {
+                if (line.startsWith('@')) {
+                    let trace = Parser.parse(line)[0];
+                    let statement = Reflect.ownKeys(trace).filter(stmt => stmt != 'parser')[0];
+                    this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
+                } else {
+                    let matches = /^([a-zA-Z0-9_]*)\.([a-zA-Z0-9_]*)\s+([a-zA-Z0-9_]*)/.exec(line).filter(t => t).slice(1);
+
+                    if (matches.length == 2) {
+                        new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Not enough arguments.`, {
+                            code: line,
+                            row: idx,
+                            select: line
+                        });
+            
+                        ServerLog.log(`Probably need to write the missing argument`, 'Possible fixes');
+                        process.exit(1);
+                    } else if (matches.length == 3) {
+                        if (matches[0] == context) {
+                            let initArgs = constructorInterface.IArguments;
+                            delete initArgs[context];
+
+                            if (initArgs && Reflect.ownKeys(initArgs).includes(matches[2])) {
+                                let initArgs2 = statement.args.split(',').map(t => t.trim());
+                                let hashArguments = {};
+                                let hashIndex = 0;
+                                
+                                for (const argument of Reflect.ownKeys(initArgs)) {
+                                    hashArguments[argument] = initArgs2[hashIndex];
+                                    hashIndex++;
+                                }
+
+                                if (Type.check(initArgs[matches[2]], hashArguments[matches[2]]))
+                                    newcollection[statement.name][matches[1]] = hashArguments[matches[2]];
+                                else newcollection[statement.name][matches[1]] = 'Void';
+                            } else {
+                                newcollection[statement.name][matches[1]] = matches[2];
+                            }
+                        } else {
+                            new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent context name.`, {
+                                code: line,
+                                row: idx,
+                                select: line
+                            });
+                
+                            ServerLog.log(`You need to write '${context}' instead of a non-existent context`, 'Possible fixes');
+                            process.exit(1);
+                        }
+                    }
+                }
+
+                idx++;
+            }
+
+            delete [
+                this.executeConstructor = false,
+                this.executeClass = false,
+                this.executeContext = null
+            ];
+
+            let backup_classes = this.collections[statement.structure].filter(t => !t[statement.name]);
+            backup_classes.push(newcollection);
+            this.collections[statement.structure] = backup_classes;
+        }
+        
+
+        else if (statement?.class && statement?.method) {
+           let i7e = Interface.getCustomInterface('method', statement.method);
+
+           if (i7e == undefined) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent method name or class name.`, {
+                    code: trace?.parser.code,
+                    row: trace?.parser.row,
+                    select: trace?.parser.code
+                });
+
+                process.exit(1);
+           } else {
+                let methodInfo = Interface.getCustomInterface('method', statement.method);
+                let methodBody = methodInfo.obj.body;
+                let idx = trace?.parser.row;
+                let context = 'self';
+                let i7e = Object(this.collections['class'].filter(t => t[statement.class])[0]);
+                let newcollection = { [statement.class]: {} };
+                let methodArgs = methodInfo.obj.arguments;
+                let initArgs = methodArgs && Parser._parseConstructorArguments(methodArgs).arguments;
+
+                if (i7e == undefined) {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent variable class name.`, {
+                        code: trace?.parser.code,
+                        row: idx,
+                        select: trace?.parser.code
+                    });
+        
+                    process.exit(1);
+                }
+
+                let cls = Interface.getCustomInterface('class', i7e.interface);
+
+                if (cls == undefined) {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent variable class name.`, {
+                        code: trace?.parser.code,
+                        row: idx,
+                        select: trace?.parser.code
+                    });
+        
+                    process.exit(1);
+                }
+
+                if (!cls.obj.methods.includes(statement.method)) {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent method name.`, {
+                        code: trace?.parser.code,
+                        row: idx,
+                        select: trace?.parser.code
+                    });
+        
+                    process.exit(1);
+                }
+
+                let copy = Object.getOwnPropertyNames(i7e[statement.class]);
+            
+                for (const prop of copy)
+                    newcollection[statement.class][prop] = i7e[statement.class][prop];
+
+                this.executeConstructor = true;
+                this.executeClass = statement.class;
+                this.executeContext = context;
+                this.executeclassData = newcollection;
+
+                for (const line of methodBody) {
+                    if (line.startsWith('@')) {
+                        let trace = Parser.parse(line)[0];
+                        let statement = Reflect.ownKeys(trace).filter(stmt => stmt != 'parser')[0];
+                        this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
+                    } else {
+                        let matches = /^([a-zA-Z0-9_]*)\.([a-zA-Z0-9_]*)\s+([a-zA-Z0-9_]*)/.exec(line).filter(t => t).slice(1);
+    
+                        if (matches.length == 2) {
+                            new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Not enough arguments.`, {
+                                code: line,
+                                row: idx,
+                                select: line
+                            });
+                
+                            ServerLog.log(`Probably need to write the missing argument`, 'Possible fixes');
+                            process.exit(1);
+                        } else if (matches.length == 3) {
+                            if (matches[0] == context) {
+                                if (initArgs && Reflect.ownKeys(initArgs).includes(matches[2])) {
+                                    let initArgs2 = statement.args.split(',').map(t => t.trim());
+                                    let hashArguments = {};
+                                    let hashIndex = 0;
+                                    
+                                    for (const argument of Reflect.ownKeys(initArgs)) {
+                                        hashArguments[argument] = initArgs2[hashIndex];
+                                        hashIndex++;
+                                    }
+
+                                    if (Type.check(initArgs[matches[2]], hashArguments[matches[2]]))
+                                        newcollection[statement.class][matches[1]] = hashArguments[matches[2]];
+                                    else newcollection[statement.class][matches[1]] = 'Void';
+                                } else {
+                                    newcollection[statement.class][matches[1]] = matches[2];
+                                }
+                            } else {
+                                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent context name.`, {
+                                    code: line,
+                                    row: idx,
+                                    select: line
+                                });
+                    
+                                ServerLog.log(`You need to write '${context}' instead of a non-existent context`, 'Possible fixes');
+                                process.exit(1);
+                            }
+                        }
+                    }
+    
+                    idx++;
+                }
+
+                delete [
+                    this.executeConstructor = false,
+                    this.executeClass = false,
+                    this.executeContext = null
+                ];
+
+                let backup_classes = this.collections['class'].filter(t => !t[statement.class]);
+                backup_classes.push(newcollection);
+                this.collections[statement.structure] = backup_classes;
+           }
+        }
+
+
+        else if (unitCall.has(statement.name)) {
             let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args, options);
 
             for (const argument of Object.keys(argsMap))
@@ -1975,6 +2403,12 @@ class Compiler {
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkArgumentsUnit(arg);
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkVariable(arg);
         if (/^[A-Z]+(_[A-Z]+)*$/.test(arg)) return checkConstant(arg);
+
+
+        if (typeof arg === 'string' && arg.indexOf('.') > -1 && !Type.check('String', arg) && this.executeClass) {
+            const [ctx, property] = arg.split('.');
+            return this.executeclassData[this.executeClass][property] == undefined ? 'Void' : this.executeclassData[this.executeClass][property];
+        }
 
         if (typeof arg !== 'number' && arg.indexOf('::') > -1) {
             this.compileGetStatement({ args: arg }, 0, {

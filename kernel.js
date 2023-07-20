@@ -523,7 +523,7 @@ class CompilerAsmX {
                 new Error('[StackException]: You must specify a range before calling this function');
             }
 
-            // console.log(exception);
+            console.log(exception);
 
             new FileError({ message: FileError.FILE_NOT_FOUND });
         }

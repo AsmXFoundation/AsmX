@@ -63,7 +63,7 @@ class Parser {
 
                 StructureCycle: for (let idx = fixedLine, len = lines.length, iterator = 0; idx < len; idx++, iterator++) {
                     let lineStructure = lines[idx].trim();
-                    this.parseAndDeleteEmptyCharacters(lineStructure) != '' && this.parseStatement(lineStructure, idx);
+                    Structure.isParse(structureName) && this.parseAndDeleteEmptyCharacters(lineStructure) != '' && this.parseStatement(lineStructure, idx);
                     let structureNameByLine = Structure.getNameByLine(lineStructure);
                     if (structureNameByLine != null) structureNameByLine = structureNameByLine[1];
                     if (iterator > 0 && structureNameByLine == structureName) StructureException.NestedStructureException(structureName, lineStructure, idx);
@@ -74,7 +74,7 @@ class Parser {
 
                 if (structureBody.length === 1) StructureException.EmptyStructureException(structureName, structureBody[0], fixedLine);
                 structureName = structureName[0].toLowerCase() + structureName.slice(1);
-                tokens.push({ [structureName]: structureBody });
+                tokens.push({ [structureName]: structureBody, parser: { row: index + 1 } });
                 isInterpreteProccess.state = true;
                 continue;
             } else if (isInterpreteProccess.state) {
@@ -85,6 +85,53 @@ class Parser {
         return tokens;
     }
 
+
+    static parseBindStatement(line, row) {
+        let ast = { bind: {}, parser: { code: line, row: row + 1} };
+        line = line.slice(line.indexOf(' ')).trim();
+        ast.bind.bind = line.slice(0, line.indexOf(' '));
+        line = line.slice(line.indexOf(' ')).trim();
+        ast.bind.name = line;
+        return ast;
+    }
+
+
+    static parseMethodStatement(line, row) {
+        let ast = { method: {}, parser: { code: line, row: row + 1 } };
+        let pattern = /\@[Mm]ethod\s+(\w+)\b(\s+)?\((.+)?\)(\:)?$/;
+        let matches = pattern.exec(line).filter(t => t).slice(1);
+        ast.method.name = matches[0];
+        ast.method.arguments = matches[1] == ':' || matches[1] == undefined ? false : matches[1];
+        return ast;
+    }
+
+
+    static parseConstructorStatement(line , row) {
+        let ast = { constructor: {}, parser: { code: line, row: row + 1 } };
+        let pattern = /\@[Cc]onstructor\s+(\w+)\b(\s+)?\((.+)\)(\:)?$/;
+        let matches = pattern.exec(line).filter(t => t).slice(1);
+        ast.constructor.name = matches[0];
+        ast.constructor.arguments = matches[1];
+        return ast;
+    }
+
+
+    static _parseConstructorArguments(line, row) {
+        let ast = { arguments: {} };
+        line = line.trim().replaceAll('  ', ' ');
+        let args = line.split(',').map( t => t.trim());
+
+        for (const arg of args) {
+            if (arg.indexOf(' ') == -1) ast.arguments[arg] = 'Any';
+    
+            else if (arg.indexOf(' ') > -1) {
+                const [type, name] = arg.split(' ').filter(t => t !== '');
+                ast.arguments[name] = type;
+            }
+        }
+
+        return ast;
+    }
 
     /**
     * The function parses a statement in a given line of code and returns an abstract syntax tree.
@@ -264,19 +311,36 @@ class Parser {
      */
     static parseCallStatement(lineCode, row){
         let ast = { call: {}, parser: { code: lineCode, row: row } };
-        // lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
-        let tokens = /\@[c|C]all\s+(\w+)\(([^]+)?\)/.exec(lineCode);
+        // let tokens = /\@[c|C]all\s+(\w+)\(([^]+)?\)/.exec(lineCode);
+        let tokens;
 
-        if (tokens == null) {
+        if ((tokens = /\@[Cc]all\s+(\w+)\:\:(\w+)\(([^]+)?\)/.exec(lineCode))) {
+            ast['call']['structure'] = tokens[1].trim();
+            ast['call']['name'] = tokens[2].trim();
+            ast['call']['args'] = tokens[3] == undefined ? '()' : tokens[3].trim();
+            tokens = true;
+        }
+
+        else if ((tokens = /\@[Cc]all\s+(\w+)\-\>(\w+)\(([^]+)?\)/.exec(lineCode))) {
+            ast['call']['class'] = tokens[1].trim();
+            ast['call']['method'] = tokens[2].trim();
+            ast['call']['args'] = tokens[3] == undefined ? '()' : tokens[3].trim();
+            tokens = true;
+        }
+        
+        else if ((tokens = /\@[c|C]all\s+(\w+)\(([^]+)?\)/.exec(lineCode))) {
+            ast['call']['name'] = tokens[1].trim();
+            ast['call']['args'] = tokens[2] == undefined ? '()' : tokens[2].trim();
+        }
+        
+        else {
             new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
                 row: row,     code: ast.parser.code
             });
 
             process.exit(1);
-        }
+        } 
 
-        ast['call']['name'] = tokens[1].trim();
-        ast['call']['args'] = tokens[2] == undefined ? '()' : tokens[2].trim();
         return ast;
     }
 
@@ -958,6 +1022,12 @@ class Parser {
     static parseEnumStatement(line , row) {
         let ast = this._parseStructure(line, row, /^\@[E|e]num\s+(\w+)(?=\s+\:|\:)/);
         return { enum: ast.structure.name, parser: ast.parser };
+    }
+
+
+    static parseClassStatement(line, row) {
+        let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/);
+        return { class: ast.structure.name, parser: ast.parser }; 
     }
 
 

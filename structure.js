@@ -1,5 +1,6 @@
 class Structure {
     static structures = [];
+    static isparses = {};
 
     /**
      * The function checks if a given line of code matches a specific pattern.
@@ -31,14 +32,20 @@ class Structure {
     }
 
 
+    static isParse(structurename) {
+        return this.isparses[structurename];
+    }
+
+
     /**
      * This function adds a new structure to an array of structures.
      * @param structurename - The parameter "structurename" is a variable that represents the name of a
      * structure that is being added to an array called "structures". The function "new" is adding the
      * structure name to the array.
      */
-    static new(structurename) {
+    static new(structurename, isParse = true) {
         this.structures.push(structurename);
+        this.isparses[structurename] = isParse;
     }
 }
 
@@ -52,5 +59,11 @@ Structure.new('exception');
 Structure.new('try');
 Structure.new('struct');
 Structure.new('enum');
+
+//
+Structure.new('class');
+Structure.new('method', false);
+Structure.new('constructor', false);
+//
 
 module.exports = Structure;
