@@ -1570,16 +1570,29 @@ class Compiler {
             let iArgs = constructorInterface.IArguments;
             let indexArgs = 0;
             let context  = Reflect.ownKeys(constructorInterface.IArguments)[0];
+            let argumentsList = null;
 
             if(iArgs[Reflect.ownKeys(iArgs)[0]] != 'Any') context = 'self'; // context
 
             let newcollection = { [statement.name]: {}, interface: bi7e };
             let copy = Object.getOwnPropertyNames(collection[statement.name]);
-            
+ 
             for (const prop of copy)
                 newcollection[statement.name][prop] = collection[statement.name][prop];
 
-            for (const argument of Reflect.ownKeys(constructorInterface.IArguments).slice(1)) {
+            if (initArgs.length == Reflect.ownKeys(constructorInterface.IArguments).length) {
+                argumentsList = Reflect.ownKeys(constructorInterface.IArguments);
+            } 
+            
+            else  if (initArgs.length <= Reflect.ownKeys(constructorInterface.IArguments).length) {
+                argumentsList = Reflect.ownKeys(constructorInterface.IArguments).slice(1);
+            } 
+            
+            else {
+                argumentsList = Reflect.ownKeys(constructorInterface.IArguments);
+            }
+
+            for (const argument of argumentsList) {
                 if (Type.check(iArgs[argument], initArgs[indexArgs]))
                     newcollection[statement.name][argument] = initArgs[indexArgs];
                 else if (iArgs[argument].toLowerCase() == 'any')

@@ -59,19 +59,30 @@
 @call print('================================');
 
 @create class Car supra;
-@call class::tesla('Supra', 'Supra', 2012);
+@call class::supra('Supra', 'SupraE4', 2012);
+
+@call supra->get_descriptive_name();
+@call print('');
+
+@call print(class::supra::model);
 
 @call print(class::supra::is_update_odometer);
+@call supra->read_odometer();
 @call print('');
 
-@create class Car supra;
-@call class::tesla('Supra', 'Supra', 2012);
+@call supra->update_odometer(203);
+@call supra->read_odometer();
+@call print('');
 
+@call print(class::supra::is_update_odometer);
+
+# Tesla
+@call print('================================');
 @call tesla->read_odometer();
 @call print('');
 
-@call tesla->update_odometer(203);
-@call tesla->read_odometer();
-@call print('');
+@call print('================================');
 
-@call print(class::tesla::is_update_odometer);
+@create class Car audi;
+@call class::audi('Audi', 'A4', 2012);
+@call audi->get_descriptive_name();
