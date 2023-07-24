@@ -1025,6 +1025,12 @@ class Parser {
     }
 
 
+    static parseCollectionStatement(line , row) {
+        let ast = this._parseStructure(line, row, /^\@[Cc]ollection\s+(\w+)(?=\s+\:|\:)/);
+        return { collection: ast.structure.name, parser: ast.parser };
+    }
+
+
     static parseClassStatement(line, row) {
         let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/);
         return { class: ast.structure.name, parser: ast.parser }; 

@@ -46,8 +46,8 @@ class Compiler {
         this.exceptions = [];
         this.trys = [];
         this.usings = [];
-        this.collections = { struct: [], enum: [], class: [] };
-        this.interfaces = { structs: [], enums: [] };
+        this.collections = { struct: [], enum: [], class: [], collection: [] };
+        this.interfaces = { structs: [], enums: [], collections: [] };
         this.registers = {};
         const PATH_TO_SYSTEMS_DIRECTORY = './systems';
         this.STACKTRACE_LIMIT = 10;
@@ -816,7 +816,7 @@ class Compiler {
         let allProperties = ast.every(tree => tree?.property);
         
         if (allProperties == false) {
-            ServerLog.log(`[${Color.FG_GREEN}Struct${Color.FG_WHITE}::${Color.FG_GREEN}${structname.struct}${Color.FG_WHITE}] This structure should have only the @property instruction.`, 'Exception');
+            ServerLog.log(`[${Color.FG_GREEN}struct${Color.FG_WHITE}::${Color.FG_GREEN}${structname.struct}${Color.FG_WHITE}] This structure should have only the @property instruction.`, 'Exception');
             process.exit(1);
         }
 
@@ -840,7 +840,7 @@ class Compiler {
         let allProperties = ast.every(tree => tree?.property);
         
         if (allProperties == false) {
-            ServerLog.log(`[${Color.FG_GREEN}Struct${Color.FG_WHITE}::${Color.FG_GREEN}${enumname.enum}${Color.FG_WHITE}] This structure should have only the @property instruction.`, 'Exception');
+            ServerLog.log(`[${Color.FG_GREEN}enum${Color.FG_WHITE}::${Color.FG_GREEN}${enumname.enum}${Color.FG_WHITE}] This structure should have only the @property instruction.`, 'Exception');
             process.exit(1);
         }
 
@@ -903,6 +903,30 @@ class Compiler {
     }
 
 
+    compileCollectionStatement(statement, index, tree) {
+        let collectionname = Parser.parseCollectionStatement(statement[0], index);
+        let ast = Parser.parse(statement.slice(1).join('\n'));
+        let allProperties = ast.every(tree => tree?.property);
+        
+        if (allProperties == false) {
+            ServerLog.log(`[${Color.FG_GREEN}collection${Color.FG_WHITE}::${Color.FG_GREEN}${collectionname.collection}${Color.FG_WHITE}] This structure should have only the @property instruction.`, 'Exception');
+            process.exit(1);
+        }
+
+        // Experimental mode
+        let IA = {};
+        for (let property of ast) {
+            property = property?.property;
+            IA[property?.name] = property?.type;
+        }
+
+        Interface.create(IA, 'collection', collectionname.collection);
+        //
+
+        this.interfaces['collections'].push({ [collectionname.collection]: statement.slice(1) });
+    }
+
+
     compilePropertyStatement(statement, index) {
         let structure = statement.structure;
         let searchedStructure = this.collections[structure.type].filter(strctr => strctr[structure.name])[0];
@@ -910,6 +934,15 @@ class Compiler {
         if (structure.type == 'class') {
             let i7e = Interface.getCustomInterface(structure.type, searchedStructure?.interface);
             
+            if (i7e !== undefined) {
+                let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
+                searchedStructure[structure.name][statement.name] = statement.value;
+                filter.push(searchedStructure);
+                this.collections[structure.type] = filter;
+            }
+        } else if (structure.type == 'collection') {
+            let i7e = Interface.getInterface(structure.type, searchedStructure?.interface);
+
             if (i7e !== undefined) {
                 let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
                 searchedStructure[structure.name][statement.name] = statement.value;
@@ -958,14 +991,13 @@ class Compiler {
         else if (i7e) {
             let fields = Reflect.ownKeys(i7e?.IArguments);
             for (const field of fields) releaseStruct[field] = null;
-
             if (Reflect.ownKeys(this.collections).includes(structure.type)) {
-                if (structure.type !== 'enum'){
+                if (!['enum', 'collection'].includes(structure.type)){
                     this.collections[structure.type].push({
                         interface: i7e.structureName,
                         [name]: releaseStruct
                     });
-                } else if (structure.type == 'enum') {
+                } else if (['enum', 'collection'].includes(structure.type)) {
                     this.collections[structure.type].push({
                         interface: i7e.structureName,
                         [name]: i7e.IArguments

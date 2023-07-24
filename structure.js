@@ -59,6 +59,7 @@ Structure.new('exception');
 Structure.new('try');
 Structure.new('struct');
 Structure.new('enum');
+Structure.new('collection');
 
 //
 Structure.new('class');
