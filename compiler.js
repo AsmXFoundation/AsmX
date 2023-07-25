@@ -107,7 +107,7 @@ class Compiler {
         // jmp
         this.$count = 0x01;
         // return
-        this.$urt = false;
+        this.$urt = null;
         this.$ret = false;
         // Execute registers
         this.$mov = 0x00;
@@ -1182,6 +1182,14 @@ class Compiler {
     }
 
 
+    compileTionStatement(statement, index, tree) {
+        let tionInfo = Parser.parseTionStatement(statement[0], tree.parser.row);
+        let i7e = { body: statement.slice(1), info: tionInfo.tion, parser: tionInfo.parser };
+        const tion = tionInfo.tion;
+        Interface.createCustomInterface(i7e, 'tion', tion.name);
+    }
+
+
     /**
      * The function compiles a "using" statement in JavaScript and handles exceptions.
      * @param statement - The statement to be compiled, which is an object containing the name and
@@ -1590,7 +1598,89 @@ class Compiler {
             code: trace?.parser?.code
         }
 
-        if (statement?.structure && statement.name) {
+
+        if (statement?.structure && statement.structure == 'tion' && statement.name) {
+            const tions = Interface.customs.filter(custom => custom?.structureType && custom?.structureType == 'tion');
+            let idx = trace?.parser.row;
+            const filterTions = tions.filter(tio => tio?.structureName && tio.structureName == statement.name);
+
+            if (filterTions.length == 0) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Not exist tion.`, {
+                    code: trace?.parser?.code,
+                    row: idx,
+                    select: trace?.parser?.code
+                });
+                process.exit(1);
+            } else {
+                let searchedTion = null;
+                let argumentsHashMap = {};
+                let countArguments = 0;
+                let initArgs = statement.args.split(',').map(t => t.trim());
+
+                if (filterTions.length > 0) {
+                    const tions = filterTions;
+                    ['()', ''].includes(statement.args) ? countArguments = 0 : countArguments = initArgs.length;
+                    let filterByTypes = tions.filter(tio => tio?.obj.info.isTypes == true);
+                    let filter = null;
+
+                    function baseFilter(tions, isTypes, countArguments) {
+                        let filterByTypes = tions.filter(tio => tio?.obj.info.isTypes == isTypes);
+                        filter = filterByTypes.filter(tio => tio?.obj.info.countArguments == countArguments);
+                        return filter;
+                    }
+
+                    if (filterByTypes.length == 0) {
+                        let filter = baseFilter(tions, false, countArguments);
+                        searchedTion = filter[filter.length - 1];
+                    } else {
+                        filter = tions.filter(tio => tio?.obj.info.countArguments == countArguments);
+
+                        if (filter.length == 1) {
+                            searchedTion = filter[0];
+                        } else if (filter.length > 1) {
+                            let filterByGrammars = null;
+
+                            if (initArgs.length == 1) {
+                                filterByGrammars = filter.filter(tio => tio.obj.info.grammars.number == 4);
+                                let typeArgument = null;
+                                for (const T of Type.types) if (Type.check(T.name, initArgs[0])) typeArgument = T.name;
+                                let filterByType = filterByGrammars.filter(tio => tio?.obj.info.types == typeArgument);
+
+                                if (filterByType.length == 0) {
+                                    let filter = baseFilter(tions, false, countArguments);
+                                    searchedTion = filter[filter.length - 1];
+                                } else {
+                                    searchedTion = filterByType[0];
+                                }
+                            } else if (initArgs.length > 1) {
+
+                            }
+                        }
+                    }
+                } else {
+                   searchedTion = filterTions[0];
+                }
+
+                const tion = searchedTion;
+                let body = tion?.obj.body;
+
+                if (countArguments >= 1) {
+                    let idx = 0;
+                    for (const argument of searchedTion.obj.info.arguments.split(',').map(t => t.trim())) {
+                        argumentsHashMap[argument] = initArgs[idx];
+                        idx++;
+                    }
+                }
+
+                if (tion !== null) {
+                    let compiler = new Compiler(Parser.parse(body.join('\n')), 'local', { argsScopeLocal: argumentsHashMap || {} });
+                    (compiler.$urt == null) ? this.$urt = 'Void' : this.$urt = compiler.$urt;
+                }
+            }
+        }
+
+
+        else if (statement?.structure && statement.structure == 'class' && statement.name) {
             let collection = this.collections[statement.structure].filter(t => t[statement.name])[0];
             let i7e = Object(this.collections[statement.structure].filter(t => t[statement.name])[0]);
             let ci7e = Interface.getCustomInterface(statement.structure, i7e.interface);
@@ -1892,7 +1982,7 @@ class Compiler {
             process.stdout.write('You must specify a global scope before you compile the statement in the current process');
             this.compileInvoke({ address: 0x01 });
         } else if (this.scope == 'local') {
-            this.$urt = this.checkArgument(statement.arg, trace?.parser?.code, trace?.parser.row) || this.$ret || 0x00;
+            this.$urt = this.checkArgument(statement.arg, trace?.parser?.code, trace?.parser.row) || this.$ret || null;
         }
     }
 
