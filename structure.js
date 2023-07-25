@@ -60,6 +60,7 @@ Structure.new('try');
 Structure.new('struct');
 Structure.new('enum');
 Structure.new('collection');
+Structure.new('tion');
 
 //
 Structure.new('class');

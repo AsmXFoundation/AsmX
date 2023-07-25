@@ -1057,6 +1057,63 @@ class Parser {
     }
 
 
+    static parseTionStatement(line, row){
+        let ast = { tion: {}, parser: { code: line, row: row } };
+        line = this.parseAndDeleteEmptyCharacters(line);
+        this.lexerSymbol(line, { brackets: false, operators: ['=', '+', '-', '*', '%', '/'], angles: false });
+        if (typeof line !== 'string' || line.length === 0) return 'rejected';
+
+        if (/\@[Tt][ii][oo][Nn]\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\(\)/.test(line)) {
+            ast.tion.isArguments = false;
+            ast.tion.extends = false;
+            ast.tion.isTypes = false;
+            ast.tion.countArguments = 0;
+            ast.tion.grammars = { number: 1 };
+            const pattern = /\@[Tt][ii][oo][Nn]\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\(\)/;
+            ast.tion.name = pattern.exec(line)[1];
+        }
+
+        else if (/\@[Tt][ii][oo][Nn]\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\([a-zA-Z][a-zA-Z0-9_]*\)/.test(line)) {
+            ast.tion.isArguments = true;
+            ast.tion.extends = false;
+            ast.tion.isTypes = false;
+            ast.tion.countArguments = 1;
+            ast.tion.grammars = { number: 2 };
+            const pattern = /\@[Tt][ii][oo][Nn]\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\(([a-zA-Z][a-zA-Z0-9_]*)\)/;
+            const tokens = pattern.exec(line).filter(l => l).map(l => l.trim()).filter(l => l != '').slice(1);
+            ast.tion.name = tokens[0];
+            ast.tion.arguments = tokens[1];
+        }
+
+        else if (/\@[Tt][ii][oo][Nn]\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\((\s?\s+)?[a-zA-Z][a-zA-Z0-9_]*((\s?\s+)?,(\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*))*?(\s?\s+)?\)/.test(line)) {
+            ast.tion.isArguments = true;
+            ast.tion.extends = false;
+            ast.tion.isTypes = false;
+            ast.tion.grammars = { number: 3 };
+            const pattern = /\@[Tt][ii][oo][Nn]\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\((\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*((\s?\s+)?,(\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*))*?)(\s?\s+)?\)/;
+            const tokens = pattern.exec(line).filter(l => l).map(l => l.trim()).filter(l => l != '').slice(1);
+            ast.tion.countArguments = tokens[1].split(',').length;
+            ast.tion.name = tokens[0];
+            ast.tion.arguments = tokens[1];
+        }
+
+        else if (/\@[Tt][ii][oo][Nn]\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\((\s?\s+)?[a-zA-Z][a-zA-Z0-9_]*\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\)/.test(line)) {
+            ast.tion.isArguments = true;
+            ast.tion.extends = false;
+            ast.tion.isTypes = true;
+            ast.tion.countArguments = 1;
+            ast.tion.grammars = { number: 4 };
+            const pattern = /\@[Tt][ii][oo][Nn]\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\((\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*)\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\)/;
+            const tokens = pattern.exec(line).filter(l => l).map(l => l.trim()).filter(l => l != '').slice(1);
+            ast.tion.name = tokens[0];
+            ast.tion.types = tokens[1];
+            ast.tion.arguments = tokens[2];
+        }
+
+        return ast;
+    }
+
+
     static parseMutStatement(line, row) {
         let ast = this.parseSetStatement(line, row, /^@[M|m]ut\s+([^-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/);
         return { mut: ast.set, parser: ast.parser };
