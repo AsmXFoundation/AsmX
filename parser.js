@@ -1162,6 +1162,19 @@ class Parser {
     }
 
 
+    static parseRemoveStatement(line, row) {
+        let ast = { remove: {}, parser: { code: line, row } };
+        this.lexerSymbol(line);
+        line = line.slice(line.indexOf(' ')).trim();
+        let structureType = line.slice(0, line.indexOf(' '));
+        line = line.slice(line.indexOf(' ')).trim();
+        let structureName = line;
+        ast.remove.structure = { type: structureType };
+        ast.remove.name = structureName;
+        return ast;
+    }
+
+
     /**
      * This function parses the arguments of a given line of code in JavaScript.
      * @param lineCode - The code line that contains the instruction and its arguments.

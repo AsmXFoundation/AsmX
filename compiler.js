@@ -944,10 +944,25 @@ class Compiler {
             let i7e = Interface.getInterface(structure.type, searchedStructure?.interface);
 
             if (i7e !== undefined) {
+                // v1
+                // let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
+                // console.log(filter);
+                // searchedStructure[structure.name][statement.name] = statement.value;
+                // filter.push(searchedStructure);
+                // this.collections[structure.type] = filter;
+
+                //v2
                 let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
-                searchedStructure[structure.name][statement.name] = statement.value;
-                filter.push(searchedStructure);
-                this.collections[structure.type] = filter;
+                let buckup = Object.create({ });
+                buckup = { interface: new String(searchedStructure.interface).valueOf(), [structure.name]: {} };
+
+                for (const property of Reflect.ownKeys(searchedStructure[structure.name])) {
+                    buckup[structure.name][property] = new String(searchedStructure[structure.name][property]).valueOf();
+                }
+
+                buckup[structure.name][statement.name] = statement.value;
+                buckup = JSON.parse(JSON.stringify(buckup));
+                this.collections[structure.type] = [...filter, buckup];
             }
         } else {
             if (
@@ -1007,6 +1022,12 @@ class Compiler {
                 process.exit(1);
             }
         }
+    }
+
+
+    compileRemoveStatement(statement) {
+        let structure = statement.structure;
+        this.collections[structure.type] = this.collections[structure.type].filter(s7e => !s7e[statement.name]);
     }
 
 
