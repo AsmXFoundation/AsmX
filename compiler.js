@@ -4,7 +4,7 @@
 
 // requires
 const fs = require('fs');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 
 // Components that compiler
 const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException, InstructionException } = require('./exception');
@@ -104,6 +104,7 @@ class Compiler {
         // Command
         this.$cmd = '';
         this.$cmdargs = '';
+        this.$cmdret = null;
         // jmp
         this.$count = 0x01;
         // return
@@ -150,6 +151,7 @@ class Compiler {
             this.$urt = this.options.registers['$urt'];
             this.$math = this.options.registers['$math'];
             this.$count = this.options.registers['$count'];
+            this.$cmdret = this.options.registers['$cmdret'];
             this.set = this.options.registers['set'];
             this.labels = this.options.registers['labels'];
             this.enviroments = this.options.registers['enviroments'];
@@ -201,7 +203,7 @@ class Compiler {
                 const alias = this.compileImportStatement(module.import, module);
                 
                 if (alias instanceof Array)
-                    for (const tree of alias) this.AbstractSyntaxTree.unshift(tree);
+                    for (const tree of alias.reverse()) this.AbstractSyntaxTree.unshift(tree);
 
                 exececuted_imports.push(module.import.alias);
             }
@@ -1357,6 +1359,12 @@ class Compiler {
                     process.exit(1);
                 }
             }
+        } else if (properties[0] == 'json') {
+            let json = this.checkArgument(properties[1]) || 'Void';
+            const fields = properties.slice(2);
+            const pull = (obj, field) => obj[field];
+            if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
+            this.$get = json;
         } else
         properties.forEach((property) => {
             if (property.indexOf(':') > -1) property = property.split(':');
@@ -1887,6 +1895,17 @@ class Compiler {
                 this.executeclassData = newcollection;
                 let updatedProprties = [];
 
+                let initArgs2 = statement.args.split(',').map(t => t.trim());
+                let hashArguments = {};
+                let hashIndex = 0;
+                
+                for (const argument of Reflect.ownKeys(initArgs)) {
+                    hashArguments[argument] = initArgs2[hashIndex];
+                    hashIndex++;
+                }
+
+                this.executeArgumentsMethod = hashArguments;
+
                 for (const line of methodBody) {
                     if (line.startsWith('@')) {
                         let trace = Parser.parse(line)[0];
@@ -2024,6 +2043,13 @@ class Compiler {
         MiddlewareSoftware.compileStatement({ instruction: 'invoke', invoke: { name: statement.address } });
         if (this.$arg0 == 0x01) {
             process.exit(0);
+        } else if (this.$arg0 == 0X02) {
+            try {
+                let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
+                console.log(typeof JSON.parse(string));
+            } catch {
+                console.log(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
+            }
         } else if (this.$arg0 == 0x03) {
             this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
             this.$list['$input'].push(this.$input);
@@ -2051,10 +2077,27 @@ class Compiler {
                 ServerLog.log('The program performs dangerous actions related to your device and other drivers, as well as to the system.', 'Security Log');
                 process.exit(1);
             } else {
-                exec(`${this.$cmd} ${this.$cmdargs}`.trim(), (err, stdout, stderr) => {
+                let proc = exec(`${this.$cmd} ${this.$cmdargs}`.trim(), (err, stdout, stderr) => {
                     // err && console.log(err);
-                    stdout && console.log(stdout);
+                    if (stdout) fs.writeFileSync('.json', stdout);
                 });
+
+                this.$pid = proc.pid;
+            }
+        } else if (this.$arg0 == 0x09) {
+            if (Security.isSecurity(this.$cmd) == false || Security.isSecurity(this.$cmdargs) == false) {
+                ServerLog.log('The program performs dangerous actions related to your device and other drivers, as well as to the system.', 'Security Log');
+                process.exit(1);
+            } else {
+                this.$cmdargs = this.checkArgument(this.$cmdargs) || this.$cmdargs;
+                if (Type.check('String', this.$cmdargs)) this.$cmdargs = this.$cmdargs = this.$cmdargs.slice(1, -1);       
+                let proc = execSync(`${this.$cmd} ${this.$cmdargs}`.trim());
+
+                try {
+                    this.$cmdret = JSON.parse(proc.toString('utf8'));
+                } catch {
+                    this.$cmdret = proc.toString('utf8');
+                }
             }
         } else {
             new SystemCallException(SystemCallException.SYSTEM_CALL_NOT_FOUND, { ...trace['parser'], select: this.$arg0 });
@@ -2343,7 +2386,11 @@ class Compiler {
             } else if (typeof this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) === 'number') {
                 this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row);
             } else {
-                this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
+                if (this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) == null) {
+                    this.$arg0 = 'Void'; 
+                } else {
+                    this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
+                }
             }
 
             // WARNING: Experimental mode
@@ -2594,6 +2641,9 @@ class Compiler {
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkVariable(arg);
         if (/^[A-Z]+(_[A-Z]+)*$/.test(arg)) return checkConstant(arg);
 
+        if (typeof arg === 'string' && this.executeArgumentsMethod) {
+            if (Reflect.ownKeys(this.executeArgumentsMethod).includes(arg)) return this.executeArgumentsMethod[arg];
+        }
 
         if (typeof arg === 'string' && arg.indexOf('.') > -1 && !Type.check('String', arg) && this.executeClass) {
             const [ctx, property] = arg.split('.');
