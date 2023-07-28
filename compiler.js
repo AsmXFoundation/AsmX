@@ -1365,6 +1365,18 @@ class Compiler {
             const pull = (obj, field) => obj[field];
             if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
             this.$get = json;
+        } else if (properties[0] == 'ir_json') {
+            let json = this.checkArgument(properties[1]) || 'Void';
+            let fields = properties.slice(2);
+            const pull = (obj, field) => obj[field];
+
+            for (let index = 0; index < fields.length; index++) {
+                const argument = fields[index];
+                fields[index] = this.checkArgument(argument, trace?.parser?.code, trace?.parser.row) || fields;
+            }
+
+            if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
+            this.$get = json;
         } else
         properties.forEach((property) => {
             if (property.indexOf(':') > -1) property = property.split(':');
@@ -1645,6 +1657,11 @@ class Compiler {
                 let argumentsHashMap = {};
                 let countArguments = 0;
                 let initArgs = statement.args.split(',').map(t => t.trim());
+
+                for (let index = 0; index < initArgs.length; index++) {
+                    const argument = initArgs[index];
+                    initArgs[index] = this.checkArgument(argument, trace?.parser?.code, trace?.parser.row) || argument;
+                }
 
                 if (filterTions.length > 0) {
                     const tions = filterTions;
@@ -2079,7 +2096,7 @@ class Compiler {
             } else {
                 let proc = exec(`${this.$cmd} ${this.$cmdargs}`.trim(), (err, stdout, stderr) => {
                     // err && console.log(err);
-                    if (stdout) fs.writeFileSync('.json', stdout);
+                    stdout && console.log(stdout);
                 });
 
                 this.$pid = proc.pid;

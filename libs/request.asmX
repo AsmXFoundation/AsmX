@@ -23,25 +23,25 @@
 
     @method post(string route):
         @modify $cmd curl -X POST -H "Content-Type: application/json";
-        @modify $cmdargs [route];
+        @modify $cmdargs route;
         @invoke 0x09;
         # @ret $cmdret;
 
     @method delete(string route):
         @modify $cmd curl -X DELETE -H "Content-Type: application/json";
-        @modify $cmdargs [route];
+        @modify $cmdargs route;
         @invoke 0x09;
         # @ret $cmdret;
 
     @method put(string route):
         @modify $cmd curl -X PUT -H "Content-Type: application/json";
-        @modify $cmdargs [route];
+        @modify $cmdargs route;
         @invoke 0x09;
         # @ret $cmdret;
 
     @method patch(string route):
         @modify $cmd curl -X PATCH -H "Content-Type: application/json";
-        @modify $cmdargs [route];
+        @modify $cmdargs route;
         @invoke 0x09;
         # @ret $cmdret;
 
