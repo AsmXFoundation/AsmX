@@ -1372,7 +1372,7 @@ class Compiler {
 
             for (let index = 0; index < fields.length; index++) {
                 const argument = fields[index];
-                fields[index] = this.checkArgument(argument, trace?.parser?.code, trace?.parser.row) || fields;
+                fields[index] = this.checkArgument(argument, trace?.parser?.code, trace?.parser.row) || argument;
             }
 
             if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
