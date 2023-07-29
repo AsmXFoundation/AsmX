@@ -293,7 +293,7 @@ class Compiler {
             } else if ( /[a-zA-Z_][a-zA-Z0-9_]*/.test(args[0]) && Type.check('String', args[1])) {
                 this.$ret = this.$eq = args[0] == args[1].slice(1, -1);
             } else if ( /[a-zA-Z_][a-zA-Z0-9_]*/.test(args[1]) && Type.check('String', args[0])) {
-                this.$ret = this.$eq = args[0] == args[1].slice(1, -1);
+                this.$ret = this.$eq = args[1] == args[0].slice(1, -1);
             } else {
                 this.$ret = this.$eq = args[0] == args[1];
             }
