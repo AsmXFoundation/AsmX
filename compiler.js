@@ -1915,10 +1915,12 @@ class Compiler {
                 let initArgs2 = statement.args.split(',').map(t => t.trim());
                 let hashArguments = {};
                 let hashIndex = 0;
-                
-                for (const argument of Reflect.ownKeys(initArgs)) {
-                    hashArguments[argument] = initArgs2[hashIndex];
-                    hashIndex++;
+
+                if (methodArgs !== false) {
+                    for (const argument of Reflect.ownKeys(initArgs)) {
+                        hashArguments[argument] = initArgs2[hashIndex];
+                        hashIndex++;
+                    }
                 }
 
                 this.executeArgumentsMethod = hashArguments;
