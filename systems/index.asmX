@@ -8,3 +8,11 @@
 @import "./systems/types/units/string.asmX";
 @import "./systems/types/units/int.asmX";
 #================================================================
+
+@tion sizeof(list):
+    @execute sizeof [list];
+    @ret $ret;
+
+@tion length(list):
+    @execute sizeof [list];
+    @ret $ret;

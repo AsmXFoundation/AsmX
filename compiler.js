@@ -285,6 +285,12 @@ class Compiler {
             }
         }
 
+        if (this.$arg0 == 'sizeof') {
+            if (Array.isArray(args[0]) || typeof args[0] === 'string') {
+                Type.check('String', args[0]) ? this.$ret = args[0].slice(1, -1).length : this.$ret = args[0].length;
+            }
+        }
+
         if (this.$arg0 == 'eq') {
             if (Type.check('Int', args[0]) && Type.check('Int', args[1])) {
                 this.$ret = this.$eq = +args[0] == +args[1];
@@ -2675,6 +2681,11 @@ class Compiler {
             });
 
             return this.$get;
+        }
+
+        if (typeof arg === 'string' && /^[^_][\d\_]+[^_]$/.test(arg)) {
+            let int_t = arg.replaceAll('_', '');
+            return Number(int_t);
         }
 
         if (/\$[A-Z][A-Z\d]+/.test(arg)) {
