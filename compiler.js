@@ -1033,9 +1033,33 @@ class Compiler {
     }
 
 
-    compileRemoveStatement(statement) {
+    compileRemoveStatement(statement, index) {
         let structure = statement.structure;
-        this.collections[structure.type] = this.collections[structure.type].filter(s7e => !s7e[statement.name]);
+        
+        if (structure.type == 'class') {
+            let getInterface = this.collections[structure.type].filter(s7e => s7e[statement.name])[0]['interface'];
+            let i7e = Interface.customs.filter(obj_t => obj_t?.structureName == getInterface)[0];
+            let destructorName = i7e?.obj?.destructor;
+            let destructor;
+            
+            if (destructorName && (destructor = Interface.getCustomInterface('destructor', destructorName))) {
+                this.executeConstructor = true;
+                this.executeClass = statement.name;
+                this.executeclassData = this.collections[structure.type].filter(s7e => s7e[statement.name])[0];
+    
+                for (const line of destructor?.obj?.body) {
+                    if (line.startsWith('@')) {
+                        let trace = Parser.parse(line)[0];
+                        let statement = Reflect.ownKeys(trace).filter(stmt => stmt != 'parser')[0];
+                        this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
+                    }
+                }
+            }
+            
+            this.collections[structure.type] = this.collections[structure.type].filter(s7e => !s7e[statement.name]);
+        } else {
+            this.collections[structure.type] = this.collections[structure.type].filter(s7e => !s7e[statement.name]);
+        }
     }
 
 
@@ -1071,7 +1095,35 @@ class Compiler {
             process.exit(1);
         } else {
             let constructor = ast.filter(t => t.bind && t.bind.bind == 'constructor');
-            
+            let destructor = ast.filter(t => t.bind && t.bind.bind == 'destructor');
+
+            if (destructor.length > 1) {
+                let destructorsTree = destructor.slice(1);
+                let destructorsTreeIndex = 0;
+
+                ast.find((t, index) => {
+                    if (t?.bind && t.bind.name == destructorsTree[0].bind.name) {
+                        destructorsTreeIndex = index;
+                        return index;
+                    }
+                });
+
+                let idx = Tree.parser.row + destructorsTreeIndex;
+
+                for (const iterator of destructorsTree) {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}ClassException${Color.FG_WHITE}]: There are too many bind destructors.`, {
+                        code: iterator.parser.code,
+                        row: idx,
+                        select: iterator.parser.code
+                    });
+        
+                    ServerLog.log(`You need to remove this instruction.\n`, 'Possible fixes');
+                    idx++;
+                }
+    
+                process.exit(1);
+            }
+
             if (constructor.length > 1) {
                 let constructorsTree = constructor.slice(1);
                 let constructorsTreeIndex = 0;
@@ -1110,7 +1162,7 @@ class Compiler {
                 constructor = constructor[0];
                 let properties = ast.filter(t => t?.property);
                 let methods = ast.filter(t => t.bind && t.bind.bind == 'method');
-                let binds = ast.filter(t => t.bind && t.bind.bind !== 'constructor');
+                let binds = ast.filter(t => t.bind && (t.bind.bind !== 'constructor' || t.bind.bind !== 'destructor'));
                 let releaseProperties = {};
                 let obj = {};
 
@@ -1148,6 +1200,34 @@ class Compiler {
                     } else {
                         if (obj['methods'] == undefined) obj['methods'] = [];
                         obj['methods'].push(method.bind.name);
+                    }
+                }
+
+                if (destructor.length == 1) {
+                    destructor = destructor[0];
+                    let ci7e = Interface.getCustomInterface(destructor.bind.bind, destructor.bind.name);
+                    if (ci7e) {
+                        obj['destructor'] = ci7e.structureName;
+                    } else {
+                        let bindsTreeIndex = 0;
+    
+                        ast.find((t, index) => {
+                            if (t?.bind && t.bind.name == destructor.bind.name) {
+                                bindsTreeIndex = index;
+                                return index;
+                            }
+                        });
+
+                        let idx = Tree.parser.row + bindsTreeIndex;
+
+                        new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}ClassException${Color.FG_WHITE}]: Non-existing method.`, {
+                            code: ast[bindsTreeIndex].parser.code,
+                            row: idx,
+                            select: ast[bindsTreeIndex].parser.code
+                        });
+            
+                        ServerLog.log(`You need to specify the binding of an existing destructor.\n`, 'Possible fixes');
+                        process.exit(1);
                     }
                 }
 
@@ -1208,6 +1288,13 @@ class Compiler {
         let constructorArguments = Parser._parseConstructorArguments(constructorInfo.constructor.arguments, tree.parser.row);
         Interface.createCustomInterface({ body: constructorBody }, 'constructor', constructorInfo.constructor.name);
         Interface.create(constructorArguments.arguments, 'constructor', constructorInfo.constructor.name);
+    }
+
+
+    compileDestructorStatement(statement, index, tree) {
+        let destructorBody = statement.slice(1);
+        let destructorInfo = Parser.parseDestructorStatement(statement[0], tree.parser.row);
+        Interface.createCustomInterface({ body: destructorBody }, 'destructor', destructorInfo.destructor.name);
     }
 
 
@@ -1383,6 +1470,27 @@ class Compiler {
 
             if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
             this.$get = json;
+        } else if (properties[0] == 'json_t') {
+            const structure_t = properties[1];
+            const structure_n = properties[2];
+
+            if (Reflect.ownKeys(this.collections).includes(structure_t)) {
+                let i7e;
+
+                if ((i7e = Interface.getInterface(structure_t, structure_n))) {
+                    this.$get = i7e?.IArguments;
+                } else {
+                    let filter = this.collections[structure_t].filter(s => s[structure_n]);
+                    this.$get = this.collections[structure_t].length == 0 ? 'Void' : filter[filter.length - 1][structure_n];
+                }
+            } else {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent structure type.`, {
+                    code:  trace?.parser.code,
+                    row:  trace?.parser.row,
+                    select:  trace?.parser.code
+                });
+                process.exit(1);
+            }
         } else
         properties.forEach((property) => {
             if (property.indexOf(':') > -1) property = property.split(':');
@@ -1705,7 +1813,7 @@ class Compiler {
                                     searchedTion = filterByType[0];
                                 }
                             } else if (initArgs.length > 1) {
-
+                                // type arg*
                             }
                         }
                     }

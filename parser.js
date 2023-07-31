@@ -1,4 +1,4 @@
-const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException, ArgumentError } = require("./exception");
+const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException, ArgumentError, SystemCallException } = require("./exception");
 const ValidatorByType = require("./checker");
 const Lexer = require("./lexer");
 const ServerLog = require("./server/log");
@@ -109,9 +109,41 @@ class Parser {
     static parseConstructorStatement(line , row) {
         let ast = { constructor: {}, parser: { code: line, row: row + 1 } };
         let pattern = /\@[Cc]onstructor\s+(\w+)\b(\s+)?\((.+)\)(\:)?$/;
-        let matches = pattern.exec(line).filter(t => t).slice(1);
-        ast.constructor.name = matches[0];
-        ast.constructor.arguments = matches[1];
+        let matches = pattern.exec(line)?.filter(t => t).slice(1);
+
+        if (matches) {
+            ast.constructor.name = matches[0];
+            ast.constructor.arguments = matches[1];
+        }  else {
+            new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}ClassException${Color.FG_WHITE}]: Invalid grammar.`, {
+                code: line,
+                row: row,
+                select: line
+            });
+            process.exit(1);
+        }
+
+        return ast;
+    }
+
+
+    static parseDestructorStatement(line, row) {
+        let ast = { destructor: {}, parser: { code: line, row: row + 1 } };
+        let pattern = /\@[Dd]estructor\s+(\w+)\b(\s+)?\((.+)?\)\:?$/;
+        let matches = pattern.exec(line)?.filter(t => t).slice(1);
+
+        if (matches) {
+            ast.destructor.name = matches[0];
+            ast.destructor.arguments = matches[1] || false;
+        } else {
+            new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}ClassException${Color.FG_WHITE}]: Invalid grammar.`, {
+                code: line,
+                row: row,
+                select: line
+            });
+            process.exit(1);
+        }
+
         return ast;
     }
 

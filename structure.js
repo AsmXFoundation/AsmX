@@ -66,6 +66,7 @@ Structure.new('tion');
 Structure.new('class');
 Structure.new('method', false);
 Structure.new('constructor', false);
+Structure.new('destructor');
 //
 
 module.exports = Structure;
