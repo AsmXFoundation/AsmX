@@ -187,7 +187,7 @@ class Parser {
         // stmt = stmt[0].toUpperCase() + stmt.substring(1);
 
         // Experemental mode
-        if (stmt.substring(1) == stmt.substring(1).toUpperCase()) {
+        if (line !== '' && stmt.substring(1) == stmt.substring(1).toUpperCase()) {
             if (stmt[0] == stmt[0].toUpperCase() && stmt.substring(1) == stmt.substring(1).toUpperCase()) stmt = stmt[0].toUpperCase() + stmt.substring(1).toLowerCase();
             line = `@${stmt} ${line.slice(line.indexOf(' '))}`;
         } else {
@@ -1064,8 +1064,19 @@ class Parser {
 
 
     static parseClassStatement(line, row) {
-        let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/);
-        return { class: ast.structure.name, parser: ast.parser }; 
+        if (/^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/.test(line)) {
+            let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/);
+            return { class: ast.structure.name, parser: ast.parser };
+        } else if (/^\@[Cc]lass\s+[a-zA-Z][a-zA-Z0-9_]*\s+extends\s+[a-zA-Z][a-zA-Z0-9_]*(?=\s+\:?$|\:?$)/.test(line)) {
+            let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+([a-zA-Z][a-zA-Z0-9_]*)\s+extends\s+[a-zA-Z][a-zA-Z0-9_]*(?=\s+\:?|\:?)/);
+            const pattern = /^\@[Cc]lass\s+([a-zA-Z][a-zA-Z0-9_]*)\s+extends\s+([a-zA-Z][a-zA-Z0-9_]*)(?=\s+\:?|\:?)/;
+            return { class: ast.structure.name, abstract: pattern.exec(line)[2], parser: ast.parser };
+        } else {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  Invalid grammar.`, {
+                row: row,     code: line
+            });
+            process.exit(1);
+        }
     }
 
 

@@ -1164,14 +1164,29 @@ class Compiler {
                 let methods = ast.filter(t => t.bind && t.bind.bind == 'method');
                 let binds = ast.filter(t => t.bind && (t.bind.bind !== 'constructor' || t.bind.bind !== 'destructor'));
                 let releaseProperties = {};
-                let obj = {};
+                let obj = { property: {}, methods: [] };
+                let abstract;
+
+                if ((abstract = Interface.getCustomInterface('class', clsname?.abstract)?.obj)) {
+                    if (abstract?.property) {
+                        let buckup_props = JSON.parse(JSON.stringify(abstract?.property));
+                        Object.assign(obj['property'], buckup_props);
+                    }
+
+                    if (abstract?.methods) {
+                        let buckup_methods = JSON.parse(JSON.stringify(abstract?.methods));
+                        Object.assign(obj['methods'], buckup_methods);
+                    }
+                }
 
                 for (let property of properties) {
                     property = property?.property;
                     releaseProperties[property.name] = property.type;
                 }
 
-                obj['property'] = releaseProperties;
+                // obj['property'] = releaseProperties; v1
+                for (const prop of Reflect.ownKeys(releaseProperties)) obj['property'][prop] = releaseProperties[prop]; // v2
+
                 Interface.create(releaseProperties, 'class', clsname);
 
                 for (const method of methods) {
@@ -2072,13 +2087,18 @@ class Compiler {
                                         hashArguments[argument] = initArgs2[hashIndex];
                                         hashIndex++;
                                     }
-                                    
+
                                     if (Type.check(initArgs[matches[2]], hashArguments[matches[2]])) {
                                         newcollection[statement.class][matches[1]] = hashArguments[matches[2]];
                                         i7e[statement.class][matches[1]] = hashArguments[matches[2]];
                                     } else {
-                                        newcollection[statement.class][matches[1]] = 'Void';
-                                        i7e[statement.class][matches[1]] = 'Void';
+                                        if (initArgs[matches[2]].toLowerCase() == 'any') {
+                                            newcollection[statement.class][matches[1]] = hashArguments[matches[2]];
+                                            i7e[statement.class][matches[1]] = hashArguments[matches[2]];
+                                        } else {
+                                            newcollection[statement.class][matches[1]] = 'Void';
+                                            i7e[statement.class][matches[1]] = 'Void';
+                                        }
                                     }
                                 } else {
                                     newcollection[statement.class][matches[1]] = matches[2];
