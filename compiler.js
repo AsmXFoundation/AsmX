@@ -1469,7 +1469,13 @@ class Compiler {
             }
         } else if (properties[0] == 'json') {
             let json = this.checkArgument(properties[1]) || 'Void';
-            const fields = properties.slice(2);
+            let fields;
+
+            if (['set', 'const'].includes(properties[1])) {
+                json = this.checkArgument(`${properties[1]}::${properties[2]}`) || 'Void';
+                fields = properties.slice(3);
+            } else fields = properties.slice(2);
+            
             const pull = (obj, field) => obj[field];
             if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
             this.$get = json;
@@ -2604,11 +2610,21 @@ class Compiler {
             statement.value = `'${statement.value}'`;
         }
 
-        if (this.checkArgument(forReplace.name) != undefined || this.checkArgument(forReplace.value) != undefined) {
-            isType = true;
+        // v1
+        // if (this.checkArgument(forReplace.name) != undefined || this.checkArgument(forReplace.value) != undefined) {
+        //     isType = true;
+        // }
+        else if (statement.type == 'Object') {
+            if (typeof statement.value === 'object' && !Array.isArray(statement.value)) isType = true;
+            else isType = false;
         }
 
-        if (statement.type == 'Auto') {
+        else if (statement.type == 'List') {
+            if (typeof statement.value === 'object' && Array.isArray(statement.value)) isType = true;
+            else isType = false;
+        }
+
+        else if (statement.type == 'Auto') {
             if (isType = false && /[_a-zA-Z][_a-zA-Z0-9]{0,30}/.test(forReplace.value)) {
                 statement.value = `'${statement.value}'`;
             }
@@ -2639,9 +2655,7 @@ class Compiler {
         this.$arg2 = statement.value;
         
         if (this.set.length > 0 && this.set.findIndex(cell => cell.name == this.$name) > -1) {
-            /**
-             *  @see github https://github.com/langprogramming-AsmX/AsmX/issues/14 (#14)
-             */
+            /** @see github https://github.com/langprogramming-AsmX/AsmX/issues/14 (#14) */
             let index = this.set.findIndex(cell => cell.name == this.$name);
             this.set[index].type = this.$arg1;
             this.set[index].value = this.$arg2;
