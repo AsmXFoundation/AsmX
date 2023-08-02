@@ -2614,6 +2614,9 @@ class Compiler {
         // if (this.checkArgument(forReplace.name) != undefined || this.checkArgument(forReplace.value) != undefined) {
         //     isType = true;
         // }
+    
+        else if (forReplace.value.startsWith('json::')) isType = true;
+
         else if (statement.type == 'Object') {
             if (typeof statement.value === 'object' && !Array.isArray(statement.value)) isType = true;
             else isType = false;
@@ -2655,7 +2658,6 @@ class Compiler {
         this.$arg2 = statement.value;
         
         if (this.set.length > 0 && this.set.findIndex(cell => cell.name == this.$name) > -1) {
-            /** @see github https://github.com/langprogramming-AsmX/AsmX/issues/14 (#14) */
             let index = this.set.findIndex(cell => cell.name == this.$name);
             this.set[index].type = this.$arg1;
             this.set[index].value = this.$arg2;
