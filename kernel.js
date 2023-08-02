@@ -273,6 +273,23 @@ class Cli {
     }
 
 
+    static start() {
+        exec('npm install', (exception, stdout) => {
+            if (stdout) console.log('AsmX started!');
+            if (exception) {
+                dns.lookup('github.com', (except) => {
+                    if (except && except.code === 'ENOTFOUND') 
+                    console.log(`
+                        \x1b[1F${Color.BRIGHT}[${Color.FG_RED}RequestException${Color.FG_WHITE}]: Internet is not avaliable ${Color.RESET}
+                    `);
+                });
+
+                ServerLog.log('If you have an internet connection, you probably deleted your git account.', 'Possible fixes');
+            }
+        });
+    }
+
+
     static update() {
         exec('git pull', (exception, stdout) => {
             if (stdout) console.log('AsmX updated!');
