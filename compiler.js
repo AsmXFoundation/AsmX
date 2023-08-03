@@ -2805,6 +2805,34 @@ class Compiler {
             return $edx;
         }
 
+        
+        if (typeof arg === 'string' && (arg.startsWith('fmt\'') || arg.startsWith('fmt\"'))) {
+            let string_t = arg.slice(3);
+            const check = (argument) => this.checkArgument(argument) == null ? 'Void' : this.checkArgument(argument);
+
+            const grammars = [
+                /(\$[A-Z][A-Z\d]+)/g, /\[([_a-zA-Z][_a-zA-Z0-9]{0,30})\]/g, /^[A-Z]+(_[A-Z]+)*$/g, /(\$\w+)/g,
+                /(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/g,
+            ];
+
+            if (this.executeContext) grammars.push(new RegExp(`${this.executeContext}\.[_a-zA-Z][_a-zA-Z0-9]+`, 'g'))
+
+            for (let i = 0, len = grammars.length; i < len; i++) {
+                const grammar = grammars[i];
+
+                string_t = string_t.replace(grammar, (match) => {
+                  if(/(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/.test(match)) {
+                    return check(match.slice(1, -1).trim());
+                  }
+
+                  return this.checkArgument(match) == null ? 'Void' : this.checkArgument(match);
+                });
+            }
+
+            return string_t;
+        }
+
+
         /* Checking if the argument is a variable, constant, or a unit. */  
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkArgumentsUnit(arg);
         if (/\[[_a-zA-Z][_a-zA-Z0-9]{0,30}\]/.test(arg)) return checkVariable(arg);
