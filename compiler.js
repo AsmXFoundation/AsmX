@@ -2812,7 +2812,8 @@ class Compiler {
 
             const grammars = [
                 /(\$[A-Z][A-Z\d]+)/g, /\[([_a-zA-Z][_a-zA-Z0-9]{0,30})\]/g, /^[A-Z]+(_[A-Z]+)*$/g, /(\$\w+)/g,
-                /(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/g,
+                /(\[\s*set\:\:[a-zA-Z][a-zA-Z0-9_]+\s*\])/g,
+                /(\[\s*const\:\:[A-Z][A-Z0-9_]+\s*\])/g,
             ];
 
             if (this.executeContext) grammars.push(new RegExp(`${this.executeContext}\.[_a-zA-Z][_a-zA-Z0-9]+`, 'g'))
@@ -2821,7 +2822,7 @@ class Compiler {
                 const grammar = grammars[i];
 
                 string_t = string_t.replace(grammar, (match) => {
-                  if(/(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/.test(match)) {
+                  if(/(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/.test(match) || /(\[\s*const\:\:[A-Z][A-Z0-9_]+\s*\])/.test(match)) {
                     return check(match.slice(1, -1).trim());
                   }
 
