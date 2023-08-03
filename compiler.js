@@ -2053,7 +2053,8 @@ class Compiler {
 
                 if (methodArgs !== false) {
                     for (const argument of Reflect.ownKeys(initArgs)) {
-                        hashArguments[argument] = initArgs2[hashIndex];
+                        // hashArguments[argument] = initArgs2[hashIndex]; v1
+                        hashArguments[argument] = this.checkArgument(initArgs2[hashIndex]) == null ? 'Void' : (this.checkArgument(initArgs2[hashIndex]) || initArgs2[hashIndex]); //v2
                         hashIndex++;
                     }
                 }
