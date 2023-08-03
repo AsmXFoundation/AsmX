@@ -2805,7 +2805,7 @@ class Compiler {
             return $edx;
         }
 
-        
+
         if (typeof arg === 'string' && (arg.startsWith('fmt\'') || arg.startsWith('fmt\"'))) {
             let string_t = arg.slice(3);
             const check = (argument) => this.checkArgument(argument) == null ? 'Void' : this.checkArgument(argument);
@@ -2822,8 +2822,12 @@ class Compiler {
                 const grammar = grammars[i];
 
                 string_t = string_t.replace(grammar, (match) => {
-                  if(/(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/.test(match) || /(\[\s*const\:\:[A-Z][A-Z0-9_]+\s*\])/.test(match)) {
+                  if(/(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/.test(match)) {
                     return check(match.slice(1, -1).trim());
+                  }
+
+                  else if (/(\[\s*const\:\:[A-Z][A-Z0-9_]+\s*\])/.test(match)) {
+                    return check(match.slice(1, -1).trim().slice(7));
                   }
 
                   return this.checkArgument(match) == null ? 'Void' : this.checkArgument(match);
