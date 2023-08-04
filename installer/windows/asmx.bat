@@ -1,3 +1,2 @@
-set kernel = %USERPROFILE%/AsmX/kernel.js;
-
-%kernel% %*
+@echo off
+node ./kernel.js %kernel% %*

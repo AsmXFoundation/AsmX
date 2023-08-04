@@ -25,3 +25,6 @@ termux/
 #archives
 .tar
 .zip
+
+
+perl_core

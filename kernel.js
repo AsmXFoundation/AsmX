@@ -287,6 +287,33 @@ class Cli {
                 ServerLog.log('If you have an internet connection, you probably deleted your git account.', 'Possible fixes');
             }
         });
+
+        const currentPATH = process.env.PATH;
+        let newPath;
+    
+        if (process.platform === 'win32') {
+            newPath = path.join(__dirname, 'installer/windows/asmx.bat');
+        } else if (process.platform === 'linux' || process.platform === 'darwin') {
+            newPath = path.join(__dirname, 'installer/linux/asmx.bat');
+        }
+
+        if (!currentPATH.includes(newPath)) {
+            const releasePATH = `${currentPATH}${path.delimiter}${newPath}`;
+            let execCommand;
+
+            if (process.platform === 'win32') {
+                execCommand = `setx PATH "${releasePATH}"`;
+            } else if (process.platform === 'linux' || process.platform === 'darwin') {
+                execCommand = `export PATH=${releasePATH}`;
+            }
+
+            exec(execCommand, (err, stdout, stderr) => {
+                stdout && console.log(stdout);
+                stderr && console.log(stderr.toString());
+            });
+        } else {
+            console.log('AsmX in Global System');
+        }
     }
 
 
