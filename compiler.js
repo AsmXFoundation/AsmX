@@ -29,6 +29,7 @@ const MiddlewareSoftware = require('./middleware.software');
 const NeuralNetwork = require('./tools/neural');
 const Security = require('./tools/security');
 const Interface = require('./interface');
+const Expression = require('./expression');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -2835,6 +2836,13 @@ class Compiler {
                 });
             }
 
+            return string_t;
+        }
+
+
+        if (typeof arg === 'string' && (arg.startsWith('expr\'') || arg.startsWith('expr\"'))) {
+            let string_t = arg.slice(5, -1);
+            new Expression(string_t);
             return string_t;
         }
 
