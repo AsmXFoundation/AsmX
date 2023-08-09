@@ -103,6 +103,10 @@ class Scanner {
                 this.addTokenType(EXPRESSION_TOKEN_TYPE.STAR);
                 break;
 
+            case '.':
+                this.addTokenType(EXPRESSION_TOKEN_TYPE.DOT);
+                break;
+
             case ' ':
                 this.addTokenType(EXPRESSION_TOKEN_TYPE.SPACE);
                 break;
@@ -121,7 +125,7 @@ class Expression {
         this.expression = expression || '';
         if (typeof expression === 'string') {
             const ast = this.parse(this.expression);
-            // console.log(ast);
+            console.log(ast);
         }
     }
 
@@ -134,32 +138,115 @@ class Expression {
 
 
     buildAst(tokens) {
-        let isParen = false;
         let newast = [];
-        let idx = 0;
+        tokens = tokens.filter(t => t?.type !== EXPRESSION_TOKEN_TYPE.SPACE);
+        
+        function scanNumber(tokens) {
+            let list = [];
+            let next = null;
+            let index = 0;
+            let intIndex = 0;
 
-        for (let index = 0; index < tokens.length; index++) {
-            const token = tokens[index];
-
-            if (token?.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
-                isParen = true;
-            } 
-            
-            else if (token?.type == EXPRESSION_TOKEN_TYPE.RIGHT_PAREN) {
-                isParen = false;
-            }
-            
-            else {
-                if (isParen) {
-                    if (newast[index] == undefined) newast[index] = [];
-                    newast[index][idx] = token;
-                    idx++;
-                } else {
-                    newast.push(token);
+            for (const token of tokens) {
+                if (token instanceof Token) {
+                    if (!next && token.type === EXPRESSION_TOKEN_TYPE.NUMBER) {
+                        intIndex = index;
+                        list[intIndex] = [];
+                        list[intIndex].push(token?.lexeme);
+                        next = true;
+                    } else {
+                        if (next && token.type === EXPRESSION_TOKEN_TYPE.NUMBER || token.type === EXPRESSION_TOKEN_TYPE.DOT) {
+                            list[intIndex].push(token?.lexeme);
+                        } else {
+                            list[index] = token;
+                            next = false;
+                        }
+                    }
                 }
+
+                index++;
             }
+
+            list = list.filter(i => i);
+            return list;
         }
 
+
+        function splitNumber(tokens) {
+            let list = [];
+
+            for (const token of tokens) {
+                if (token instanceof Token) {
+                   list.push(token);
+                } else if (token instanceof Array) {
+                    list.push(new Token(EXPRESSION_TOKEN_TYPE.NUMBER, token.join(''), null, 1));
+                }
+            }
+
+            list = list.filter(i => i);
+            return list;
+        }
+
+
+        function scopeParens(tokens) {
+            let list = [];
+            let next = null;
+            let index = 0;
+            let parensIndex = 0;
+            
+            let depth = 0;
+
+            for (const token of tokens) {
+                if (token instanceof Token) {
+                    if (!next && token?.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
+                        depth++;
+                        parensIndex = index;
+                        list[parensIndex] = [];
+                        // list[parensIndex].push(token);
+                        
+                        if (list[parensIndex][depth] == undefined) list[parensIndex][depth] = [];
+                        list[parensIndex][depth].push(token);
+
+                        next = true;
+                    } else {
+                        if (next) {
+                            // ((3 + 1) + 34) * 2 + 1
+                            if (token.type === EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
+                                depth++;
+                                if (list[parensIndex][depth] == undefined) list[parensIndex][depth] = [];
+                                list[parensIndex][depth].push(token);
+                            } else if (token.type === EXPRESSION_TOKEN_TYPE.RIGHT_PAREN) {
+                                // console.log(parensIndex, depth);
+                                // console.log(depth);
+                                if (depth > 0) list[parensIndex][depth].push(token);
+                                else list[parensIndex].push(token);
+                                depth--;
+                                // next = false;
+                            } else {
+                                console.log(depth, token);
+                                if (depth > 0) list[parensIndex][depth].push(token);
+                                else list[parensIndex].push(token);
+                                // console.log(token);
+                            }
+                        } else {
+                            // console.log(depth, token);
+                            list[index] = token;
+                            next = false;
+                        }
+                    }
+                }
+
+                index++;
+            }
+
+            list = list.filter(i => i);
+            console.log(list);
+            return list;
+        }
+
+        newast = scanNumber(tokens);
+        newast = splitNumber(newast);
+        scopeParens(newast);
         return newast;
     }
 }
