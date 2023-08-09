@@ -2842,7 +2842,7 @@ class Compiler {
 
         if (typeof arg === 'string' && (arg.startsWith('expr\'') || arg.startsWith('expr\"'))) {
             let string_t = arg.slice(5, -1);
-            new Expression(string_t);
+            // new Expression(string_t);
             return string_t;
         }
 
@@ -2870,6 +2870,11 @@ class Compiler {
         }
 
         if (typeof arg === 'string' && /^[^_][\d\_]+[^_]$/.test(arg)) {
+            let int_t = arg.replaceAll('_', '');
+            return Number(int_t);
+        }
+
+        else if (typeof arg === 'string' && /^[^_][\d\_]+\.[\d\_]+[^_]$/.test(arg)) {
             let int_t = arg.replaceAll('_', '');
             return Number(int_t);
         }
