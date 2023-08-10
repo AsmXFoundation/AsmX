@@ -193,43 +193,45 @@ class Expression {
             let next = null;
             let index = 0;
             let parensIndex = 0;
-            
             let depth = 0;
 
             for (const token of tokens) {
                 if (token instanceof Token) {
                     if (!next && token?.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
+                        // if (depth > 0 && list[parensIndex][depth] == undefined) list[parensIndex][depth] = []; // v2
+                        // else if (depth > 0) list[parensIndex][depth].push(token);
+
                         depth++;
                         parensIndex = index;
-                        list[parensIndex] = [];
-                        // list[parensIndex].push(token);
-                        
-                        if (list[parensIndex][depth] == undefined) list[parensIndex][depth] = [];
-                        list[parensIndex][depth].push(token);
+                        if (list[parensIndex] == undefined) list[parensIndex] = [];
 
+                        if (depth == 0) list[parensIndex].push(token);
+                        list[parensIndex].push(token);
                         next = true;
                     } else {
-                        if (next) {
+                        if (next) { // (...
                             // ((3 + 1) + 34) * 2 + 1
                             if (token.type === EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
+                                // list[parensIndex][depth].push(token); // v2
+
                                 depth++;
-                                if (list[parensIndex][depth] == undefined) list[parensIndex][depth] = [];
-                                list[parensIndex][depth].push(token);
+                                list[parensIndex].push(token);
                             } else if (token.type === EXPRESSION_TOKEN_TYPE.RIGHT_PAREN) {
-                                // console.log(parensIndex, depth);
-                                // console.log(depth);
-                                if (depth > 0) list[parensIndex][depth].push(token);
-                                else list[parensIndex].push(token);
-                                depth--;
-                                // next = false;
+                                list[parensIndex].push(token);
+                                // list[parensIndex][depth].push(token); // v2
+                                // console.log(list[parensIndex], scopeParens(list[parensIndex].slice(2, -1)));
+                                if (depth > 0) depth--;
+                                else if (depth == 0) next = false;
                             } else {
-                                console.log(depth, token);
-                                if (depth > 0) list[parensIndex][depth].push(token);
-                                else list[parensIndex].push(token);
-                                // console.log(token);
+                                if (depth > 0) list[parensIndex].push(token);
+                                // console.log(depth, list[parensIndex]);
+                                // if (depth > 0) list[parensIndex][depth].push(token); // v2
+                                else if (depth == 0) {
+                                    list[index] = token;
+                                    next = false;
+                                }
                             }
                         } else {
-                            // console.log(depth, token);
                             list[index] = token;
                             next = false;
                         }

@@ -833,8 +833,8 @@ class Parser {
         let ast = { push: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
         let args = this.parserArgumentsInstruction(lineCode);
-        this.checkLimitArguments(args, ast.parser, [1, 2]);
-        ast['push']['args'] = args[0];
+        this.checkLimitArguments(args, ast.parser, [2, 2]);
+        ast['push']['args'] = args;
         return ast;
     }
 

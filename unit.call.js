@@ -25,11 +25,14 @@ class UnitCall {
             if (typeArgument == 'Any') continue;
 
             if (!Type.check(typeArgument, args[index])) {
-                new ArgumentError(ArgumentError.ARGUMENT_INVALID_TYPE_ARGUMENT, {
-                    ...options, select: args[index]
-                });
-
-                process.exit(1);
+                if (typeArgument == undefined) {
+                } else {
+                    new ArgumentError(ArgumentError.ARGUMENT_INVALID_TYPE_ARGUMENT, {
+                        ...options, select: args[index]
+                    });
+    
+                    process.exit(1);
+                }
             }
             // Lexer.lexerAutonomyByType(lineCode, args[index], typeArgument, options);
         }

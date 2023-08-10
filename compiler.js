@@ -1601,7 +1601,52 @@ class Compiler {
             this.$arg0 = this.checkArgument(statement.args[0], trace?.parser?.code, trace?.parser.row) || statement.args[0];
         }
 
-        this.$stack.push(this.$arg0);
+        let stuff = statement?.args[0];
+
+        if (stuff.indexOf('::') > -1) {
+            const [namespace, name] = stuff.split('::');
+
+            if (['set', 'const'].includes(namespace)) {
+                'use strict';
+                let filter = JSON.parse(JSON.stringify(this[namespace].filter(s => s?.name != name)));
+                let searched = this[namespace].filter(s => s?.name == name)[0];
+                let buckup = Object.create({ });
+                let value = this.checkArgument(statement.args[1]) || statement.args[1];
+                if (typeof value === 'string' && Type.check('int', value)) value = Number(value);
+                for (const property of Reflect.ownKeys(searched)) buckup[property] = searched[new String(property).valueOf()];
+
+                searched = JSON.parse(JSON.stringify(searched));
+                buckup.value.push(value);
+    
+                // console.log(filter, value, buckup, this[namespace]);
+                this[namespace] = [...filter, buckup];
+                // console.log(this[namespace]);
+
+                // let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
+                // let buckup = Object.create({ });
+                // buckup = { interface: new String(searchedStructure.interface).valueOf(), [structure.name]: {} };
+
+                // for (const property of Reflect.ownKeys(searchedStructure[structure.name])) {
+                //     buckup[structure.name][property] = new String(searchedStructure[structure.name][property]).valueOf();
+                // }
+
+                // buckup[structure.name][statement.name] = statement.value;
+                // buckup = JSON.parse(JSON.stringify(buckup));
+                // this.collections[structure.type] = [...filter, buckup];
+
+                // let filter = this[namespace].filter(s => s?.name == name);
+                // let copy = this[namespace].filter(s => s?.name !== name);
+                // let value = this.checkArgument(statement.args[1]) || statement.args[1];
+                // if (typeof value === 'string' && Type.check('int', value)) value = Number(value);
+                // filter[0].value?.push(value);
+                // console.log(filter);
+                // console.log([...copy, filter]);
+                // this[namespace] = [...copy, filter];
+                // console.log(this[namespace]);
+            }
+        } else {
+            this.$stack.push(this.$arg0);
+        }
     }
 
 
@@ -2218,8 +2263,15 @@ class Compiler {
             Task.new('input', this.$arg0, 'proccess');
         } else if (this.$arg0 == 0x04) {
             try {
-                let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
-                FlowOutput.createOutputStream(string);
+                const item = this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value;
+                const item_t = typeof item;
+
+                if (item_t == 'object' && Array.isArray(item)) {
+                    console.log(item);
+                } else {
+                    let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
+                    FlowOutput.createOutputStream(string);
+                }
             } catch {
                 FlowOutput.createOutputStream(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
             }
@@ -2556,7 +2608,7 @@ class Compiler {
 
             // WARNING: Experimental mode
             MiddlewareSoftware.compileStatement({ instruction: 'route', route: { name: statement.name } });
-        
+
             if (Type.check('String', this.$arg0)) this.$arg0 = this.$arg0.slice(1, -1);
             this.$stack.push({ value: this.$arg0 });
         }
@@ -2626,6 +2678,10 @@ class Compiler {
 
         else if (statement.type == 'List') {
             if (typeof statement.value === 'object' && Array.isArray(statement.value)) isType = true;
+            else if (statement.value == '[]') {
+                isType = true;
+                statement.value = [];
+            }
             else isType = false;
         }
 
