@@ -69,4 +69,6 @@ Structure.new('constructor', false);
 Structure.new('destructor');
 //
 
+Structure.new('event');
+
 module.exports = Structure;

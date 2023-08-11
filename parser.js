@@ -1063,6 +1063,13 @@ class Parser {
     }
 
 
+    static parseEventStatement(line , row) {
+        let ast = this._parseStructure(line, row, /^\@[Ee]vent\s+[a-zA-Z][a-zA-Z0-9_]*\s+(\w+)(?=\s+\:|\:)/);
+        let type = /^\@[Ee]vent\s+([a-zA-Z][a-zA-Z0-9_]*)\s+\w+(?=\s+\:|\:)/.exec(line)[1];
+        return { event: ast.structure.name, type, parser: ast.parser };
+    }
+
+
     static parseClassStatement(line, row) {
         if (/^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/.test(line)) {
             let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/);

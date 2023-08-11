@@ -30,6 +30,7 @@ const NeuralNetwork = require('./tools/neural');
 const Security = require('./tools/security');
 const Interface = require('./interface');
 const Expression = require('./expression');
+const EventEmulator = require('./event');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -1322,6 +1323,17 @@ class Compiler {
     }
 
 
+    compileEventStatement(statement, index, tree) {
+        let eventInfo = Parser.parseEventStatement(statement[0], tree.parser.row);
+
+        EventEmulator.new(eventInfo.event, eventInfo.type, {
+            body: statement.slice(1),
+            name: eventInfo.event,
+            parser: eventInfo.parser
+        });
+    }
+
+
     /**
      * The function compiles a "using" statement in JavaScript and handles exceptions.
      * @param statement - The statement to be compiled, which is an object containing the name and
@@ -1480,9 +1492,17 @@ class Compiler {
             const pull = (obj, field) => obj[field];
             if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
             this.$get = json;
-        } else if (properties[0] == 'ir_json') {
-            let json = this.checkArgument(properties[1]) || 'Void';
-            let fields = properties.slice(2);
+        } else if (properties[0] == 'ir_json' || (this.executeEventData && properties[0] == 'event')) {
+            let json, fields;
+
+            if (properties[0] == 'event') {
+                json = this.executeEventData;
+                fields = properties.slice(1);
+            } else {
+                json = this.checkArgument(properties[1]) || 'Void';
+                fields = properties.slice(2);
+            }
+
             const pull = (obj, field) => obj[field];
 
             for (let index = 0; index < fields.length; index++) {
@@ -1620,6 +1640,13 @@ class Compiler {
     
                 // console.log(filter, value, buckup, this[namespace]);
                 this[namespace] = [...filter, buckup];
+
+                EventEmulator.on('push', (data, event) => {
+                    this.executeEventData = { type: event.type, name, namespace, value, instruction: 'push' };
+                    this._executeCode(event.data.body);
+                    this.executeEventData = null;
+                });
+
                 // console.log(this[namespace]);
 
                 // let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
@@ -2714,17 +2741,25 @@ class Compiler {
         this.$arg0 = this.$name = statement.name;
         this.$arg1 = statement.type;
         this.$arg2 = statement.value;
-        
+        let eventType = null;
+
         if (this.set.length > 0 && this.set.findIndex(cell => cell.name == this.$name) > -1) {
             let index = this.set.findIndex(cell => cell.name == this.$name);
             this.set[index].type = this.$arg1;
             this.set[index].value = this.$arg2;
-            //
+            eventType = 'change';
 
             // this.set = this.set.filter(cell => cell.name !== this.$name).push({ name: this.$name, type: this.$arg1, value: this.$arg2 }); v1
         } else {
             this.set.push({ name: this.$name, type: this.$arg1, value: this.$arg2 });
+            eventType = 'set';
         }
+
+        EventEmulator.on(eventType, (data, event) => {
+            this.executeEventData = { type: event.type, name: this.$name, type: this.$arg1, value: this.$arg2, instruction: 'set' };
+            this._executeCode(event.data.body);
+            this.executeEventData = null;
+        });
 
         // WARNING: Experimental mode
         MiddlewareSoftware.compileStatement({ instruction: 'variable', variable: { name: this.$name, type: this.$arg1, value: this.$arg2 } });
@@ -2790,6 +2825,18 @@ class Compiler {
             if (type == 'Int' || type == 'Float') this[`$arg${index}`] = +this.checkArgument(statement.args[index], code, row) || +statement.args[index] || 0x00;
             else if (type == 'String') this[`$arg${index}`] = this.checkArgument(statement.args[index], code, row) || statement.args[index] || 0x00;
             else if (type == 'Bool') this[`$arg${index}`] = Boolean(this.checkArgument(statement.args[index], code, row) || statement.args[index] || 0x00);
+    }
+
+
+    _executeCode(body) {
+        let ast = Parser.parse(body.join('\n'));
+        let index = 0;
+
+        for (const tree of ast) {   
+            let statement = Reflect.ownKeys(tree).filter(stmt => stmt != 'parser')[0];
+            this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](tree[statement], index, tree);
+            index++;
+        }
     }
 
 
