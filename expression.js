@@ -59,6 +59,7 @@ class Scanner {
         return this.current >= this.#source.length;
     }
 
+
     scanTokens() {
         while (!this.isAtEnd()) {
             this.start = this.current;
@@ -69,18 +70,22 @@ class Scanner {
         return this.#tokens;
     }
 
+
     advance() {
         return this.#source.charAt(this.current++) || '';
     }
+
 
     addTokenType(type) {
         this.addToken(type, null);
     }
 
+
     addToken(type, literal) {
         let text = this.#source.substring(this.start, this.current);
         this.#tokens.push(new Token(type, text, literal, this.line));
     }
+
 
     _match(char) {
         if (this.isAtEnd()) return false;
@@ -90,10 +95,12 @@ class Scanner {
         return true;
     }
 
+
     _matchInt(char) {
         return /[0-9]/.test(char);
     }
 
+    
     scanToken() {
         let char = this.advance();
 
@@ -144,20 +151,25 @@ class Expression {
         this.expression = expression || '';
         if (typeof expression === 'string') {
             const ast = this.parse(this.expression);
-            let isParens = ast.find(item => item instanceof Array && item.find(i => i.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN));
+            let isParens = this.isParens(ast);
+            let tokens = this.definitionTokens(ast);
+            let watch;
 
             if (isParens == undefined) {
-                let tokens = this.definitionTokens(ast);
-                let watch = this.evaluateSimple(tokens);
+                watch = this.evaluateSimple(tokens);
+            } else {
+                watch = this.evaluateHard(tokens);
+                while (this.indexArray(watch) > -1) watch = this.evaluateHard(tokens);
+                watch = this.evaluateSimple(watch);
+            }
 
-                if (watch instanceof Token && watch.type !== EXPRESSION_TOKEN_TYPE.EOF) {
-                    this.answer_t = Number(watch.lexeme);
+            if (watch instanceof Token && watch.type !== EXPRESSION_TOKEN_TYPE.EOF) {
+                this.answer_t = Number(watch.lexeme);
+            } else {
+                if (watch instanceof Array && watch.length == 1) {
+                    this.answer_t = Number(watch[0].lexeme);
                 } else {
-                    if (watch instanceof Array && watch.length == 1) {
-                        this.answer_t = Number(watch[0].lexeme);
-                    } else {
-                        this.answer_t = 0;
-                    }
+                    this.answer_t = 0;
                 }
             }
         }
@@ -246,9 +258,6 @@ class Expression {
             for (const token of tokens) {
                 if (token instanceof Token) {
                     if (!next && token?.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
-                        // if (depth > 0 && list[parensIndex][depth] == undefined) list[parensIndex][depth] = []; // v2
-                        // else if (depth > 0) list[parensIndex][depth].push(token);
-
                         depth++;
                         parensIndex = index;
                         if (list[parensIndex] == undefined) list[parensIndex] = [];
@@ -258,22 +267,15 @@ class Expression {
                         next = true;
                     } else {
                         if (next) { // (...
-                            // ((3 + 1) + 34) * 2 + 1
                             if (token.type === EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
-                                // list[parensIndex][depth].push(token); // v2
-
                                 depth++;
                                 list[parensIndex].push(token);
                             } else if (token.type === EXPRESSION_TOKEN_TYPE.RIGHT_PAREN) {
                                 list[parensIndex].push(token);
-                                // list[parensIndex][depth].push(token); // v2
-                                // console.log(list[parensIndex], scopeParens(list[parensIndex].slice(2, -1)));
                                 if (depth > 0) depth--;
                                 else if (depth == 0) next = false;
                             } else {
                                 if (depth > 0) list[parensIndex].push(token);
-                                // console.log(depth, list[parensIndex]);
-                                // if (depth > 0) list[parensIndex][depth].push(token); // v2
                                 else if (depth == 0) {
                                     list[index] = token;
                                     next = false;
@@ -302,8 +304,6 @@ class Expression {
 
     evaluateSimple(ast) {
         let index = 0;
-        let newast = [];
-        let priorityMax = this.priorityMax(ast);
         let priorityMin = this.priorityMin(ast);
 
         if (ast instanceof Array && ast.length == 2) {
@@ -333,12 +333,149 @@ class Expression {
     }
 
 
+    evaluateHard(ast) {
+        let index = 0;
+
+        if (ast instanceof Array) {
+            if (this.indexArray(ast) > -1 && ast[this.indexArray(ast)].length == 1) {
+                ast[this.indexArray(ast)] = ast[this.indexArray(ast)][0];
+                return ast;
+            }
+        }
+
+        for (let token of ast) {
+            if (token instanceof Array) {
+                if (token.length == 1) {
+                    return token[0];
+                } else if (this.isParens(ast)) {
+                    let indexLeftParen = this.indexLeftParenByCount(token, this.countLeftParen(token));
+                    let indexRightParen = this.indexRightParenByCount(token, 1);
+                    let newast = token.slice(indexLeftParen, indexRightParen);
+                    newast.push(new Token(EXPRESSION_TOKEN_TYPE.EOF, '', null, 1));
+                    let result = this.evaluateSimple(this.definitionTokens(newast));
+                    for (let idx = indexLeftParen - 1; idx < indexRightParen + 1; idx++) token[idx] = null;
+                    token[indexLeftParen - 1] = result;
+                    token = token.filter(t => t);
+                    ast[index] = token;
+                    ast = this.evaluateHard(ast);
+                    break;
+                }
+            }
+
+            index++;
+        }
+
+        return ast;
+    }
+
+
+    indexArray(ast) {
+        let idx = -1;
+        let count = 0;
+
+        for (let index = 0; index < ast.length; index++) 
+            if (count == 0 && Array.isArray(ast[index])) {
+                idx = index;
+                count++;
+            }
+
+        return idx;
+    }
+
+
+    firstLeftParen(ast) {
+        let leftParen = 0;
+        let countLeftParen = 0;
+
+        for (let index = 0; index < ast.length; index++) {
+            const item = ast[index];
+            if (item instanceof Token && countLeftParen == 0 && item.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
+                leftParen = index + 1;
+                countLeftParen++;
+            }
+        }
+
+        return leftParen;
+    }
+
+
+    lastRightParen(ast) {
+        let rightParen = 0;
+        let countRightParen = 0;
+        
+        for (let index = ast.length; 0 < index; index--) {
+            const item = ast[index];
+
+            if (item instanceof Token && countRightParen == 0 && item.type == EXPRESSION_TOKEN_TYPE.RIGHT_PAREN) {
+                rightParen = index;
+                countRightParen++;
+            }
+        }
+
+        return rightParen;
+    }
+
+
+    countLeftParen(ast) {
+        let countLeftParen = 0;
+
+        for (let index = 0; index < ast.length; index++)
+            if (ast[index] instanceof Token && ast[index].type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN) countLeftParen++;
+
+        return countLeftParen;
+    }
+
+
+    countRightParen(ast) {
+        let countRightParen = 0;
+
+        for (let index = 0; index < ast.length; index++)
+            if (ast[index] instanceof Token && ast[index].type == EXPRESSION_TOKEN_TYPE.RIGHT_PAREN) countRightParen++;
+
+        return countRightParen;
+    }
+
+
+    indexLeftParenByCount(ast, count) {
+        let idx = 0;
+        let countLeftParen = 0;
+
+        for (let index = 0; index < ast.length; index++)
+            if (ast[index] instanceof Token && ast[index].type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN) {
+                countLeftParen++;
+                if (countLeftParen == count) idx = index + 1;
+            }
+
+        return idx;
+    }
+
+
+    indexRightParenByCount(ast, count) {
+        let idx = 0;
+        let countRightParen = 0;
+
+        for (let index = 0; index < ast.length; index++)
+            if (ast[index] instanceof Token && ast[index].type == EXPRESSION_TOKEN_TYPE.RIGHT_PAREN) {
+                countRightParen++;
+                if (countRightParen == count) idx = index;
+            }
+
+        return idx;
+    }
+
+
+    isParens(ast) {
+        return ast.find(item => item instanceof Array && item.find(i => i.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN));
+    }
+
+
     definitionTokens(ast) {
         let newast = [];
 
         for (const token of ast)
             if (token instanceof Token)
                 newast.push(Reflect.ownKeys(this.priorityOperators).includes(token.lexeme) ? new Operator(this.priorityOperators[token.lexeme], token.lexeme, null, 1) : token);
+            else if (token instanceof Array) newast.push(token);
 
         return newast;
     }
