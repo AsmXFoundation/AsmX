@@ -1078,6 +1078,12 @@ class Parser {
             let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+([a-zA-Z][a-zA-Z0-9_]*)\s+extends\s+[a-zA-Z][a-zA-Z0-9_]*(?=\s+\:?|\:?)/);
             const pattern = /^\@[Cc]lass\s+([a-zA-Z][a-zA-Z0-9_]*)\s+extends\s+([a-zA-Z][a-zA-Z0-9_]*)(?=\s+\:?|\:?)/;
             return { class: ast.structure.name, abstract: pattern.exec(line)[2], parser: ast.parser };
+        } else if (/\@Class\s+([a-zA-Z][a-zA-Z0-9_]*)\s+extends(\s?\s+)?\((\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*((\s?\s+)?,(\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*))*?)(\s?\s+)?\)(?=\s+\:?|\:?)/.test(line)) {
+            this.lexerSymbol(line, { brackets: ['[', ']', '{', '}'] });
+            const pattern = /\@Class\s+([a-zA-Z][a-zA-Z0-9_]*)\s+extends(\s?\s+)?\((\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*((\s?\s+)?,(\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*))*?)(\s?\s+)?\)(?=\s+\:?|\:?)/;
+            let ast = this._parseStructure(line, row, pattern, false);
+            const tokens = pattern.exec(line).filter(t => t && t.trim() !== '');
+            return { class: ast.structure.name, abstract: tokens[2].trim().split(',').map(t => t.trim()), parser: ast.parser };
         } else {
             new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  Invalid grammar.`, {
                 row: row,     code: line
@@ -1087,10 +1093,10 @@ class Parser {
     }
 
 
-    static _parseStructure(line, row, pattern) {
+    static _parseStructure(line, row, pattern, isLexer = true) {
         let ast = { structure: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
-        this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
+        isLexer && this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
         if (typeof line !== 'string' || line.length === 0) return 'rejected';
         let match = line.match(pattern);
 

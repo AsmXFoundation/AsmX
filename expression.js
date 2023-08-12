@@ -1,6 +1,7 @@
 const EXPRESSION_TOKEN_TYPE = {
     LEFT_PAREN: 'LEFT_PAREN',
     RIGHT_PAREN: 'RIGHT_PAREN',
+    DEGREE: 'DEGREE',
     DOT: 'DOT',
     MINUS: 'MINUS',
     PLUS: 'PLUS',
@@ -17,6 +18,20 @@ const EXPRESSION_TOKEN_TYPE = {
 class Token {
     constructor(type, lexeme, literal, line) {
         this.type = type;
+        this.lexeme = lexeme;
+        this.literal = literal;
+        this.line = line;
+    }
+
+    toString() {
+        return this.type + " " + this.lexeme + " " + this.literal;
+    }
+}
+
+
+class Operator {
+    constructor(priority, lexeme, literal, line) {
+        this.priority = priority;
         this.lexeme = lexeme;
         this.literal = literal;
         this.line = line;
@@ -107,6 +122,10 @@ class Scanner {
                 this.addTokenType(EXPRESSION_TOKEN_TYPE.DOT);
                 break;
 
+            case '^':
+                this.addTokenType(EXPRESSION_TOKEN_TYPE.DEGREE);
+                break;
+
             case ' ':
                 this.addTokenType(EXPRESSION_TOKEN_TYPE.SPACE);
                 break;
@@ -125,10 +144,39 @@ class Expression {
         this.expression = expression || '';
         if (typeof expression === 'string') {
             const ast = this.parse(this.expression);
-            console.log(ast);
+            let isParens = ast.find(item => item instanceof Array && item.find(i => i.type == EXPRESSION_TOKEN_TYPE.LEFT_PAREN));
+
+            if (isParens == undefined) {
+                let tokens = this.definitionTokens(ast);
+                let watch = this.evaluateSimple(tokens);
+
+                if (watch instanceof Token && watch.type !== EXPRESSION_TOKEN_TYPE.EOF) {
+                    this.answer_t = Number(watch.lexeme);
+                } else {
+                    if (watch instanceof Array && watch.length == 1) {
+                        this.answer_t = Number(watch[0].lexeme);
+                    } else {
+                        this.answer_t = 0;
+                    }
+                }
+            }
         }
     }
 
+
+    answer() {
+        return this.answer_t;
+    }
+
+    priorityOperators = {
+        '(': 1,
+        ')': 2,
+        '^': 3,
+        '*': 4,
+        '/': 4,
+        '+': 5,
+        '-': 5
+    };
 
     parse(expression) {
         const scanner = new Scanner(expression);
@@ -242,14 +290,121 @@ class Expression {
             }
 
             list = list.filter(i => i);
-            console.log(list);
+            // console.log(list);
             return list;
         }
 
-        newast = scanNumber(tokens);
-        newast = splitNumber(newast);
-        scopeParens(newast);
+        newast = splitNumber(scanNumber(tokens));
+        newast = scopeParens(newast);
         return newast;
+    }
+
+
+    evaluateSimple(ast) {
+        let index = 0;
+        let newast = [];
+        let priorityMax = this.priorityMax(ast);
+        let priorityMin = this.priorityMin(ast);
+
+        if (ast instanceof Array && ast.length == 2) {
+            return ast[0];
+        }
+
+        for (const token of ast) {
+            if (token instanceof Operator) {
+                let operand_l = ast[index - 1];
+                let operand_r = ast[index + 1];
+                [operand_l, operand_r] = this.transformationToken([operand_l, operand_r]).map(t => t.lexeme);
+
+                if (token.priority == priorityMin) {
+                    ast[index - 1] = null;
+                    ast[index] = new Token(EXPRESSION_TOKEN_TYPE.NUMBER, String(this.Operator()[this.parse(token.lexeme)[0].type.toLowerCase()](operand_l, operand_r)), null, 1);
+                    ast[index + 1] = null;
+                    ast = ast.filter(t => t);
+                    ast = this.evaluateSimple(ast);
+                    break;
+                }
+            }
+
+            index++;
+        }
+
+        return ast;
+    }
+
+
+    definitionTokens(ast) {
+        let newast = [];
+
+        for (const token of ast)
+            if (token instanceof Token)
+                newast.push(Reflect.ownKeys(this.priorityOperators).includes(token.lexeme) ? new Operator(this.priorityOperators[token.lexeme], token.lexeme, null, 1) : token);
+
+        return newast;
+    }
+
+
+    transformationToken(ast) {
+        let newast = [];
+
+        for (const token of ast)
+            if (token instanceof Token) newast.push(token.type == EXPRESSION_TOKEN_TYPE.NUMBER ? { ...token, lexeme: Number(token.lexeme) } : token);
+
+        return newast;
+    }
+
+
+    priorityMax(ast) {
+        let max = 0;
+
+        for (const token of ast)
+            if (token instanceof Operator) if (this.priorityOperators[token.lexeme] > max) max = this.priorityOperators[token.lexeme];
+
+        return max;
+    }
+
+
+    priorityMin(ast) {
+        let min = 0;
+        let max = this.priorityMax(ast);
+        let index = 0;
+        ast = ast.filter(tree => tree instanceof Operator);
+
+        for (const token of ast) {
+            if (index == 0) {
+                if (this.priorityOperators[token.lexeme] <= max) min = this.priorityOperators[token.lexeme];
+            } else if (index > 0)
+                min = this.priorityOperators[token.lexeme] >= min ? min : this.priorityOperators[token.lexeme];
+
+            index++;
+        }
+
+        return min;
+    }
+
+
+    Operator() {
+        return class {
+            static plus(a, b) {
+                return a + b;
+            }
+
+            static minus(a, b) {
+                return a - b;
+            }
+
+            static slash(a, b) {
+                return a / b;
+            }
+
+            static star(a, b) {
+                return a * b;
+            }
+
+            static degree(a, b) {
+                return Math.pow(a, b);
+            }
+        }
     }
 }
 

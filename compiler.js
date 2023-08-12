@@ -1179,7 +1179,24 @@ class Compiler {
                         let buckup_methods = JSON.parse(JSON.stringify(abstract?.methods));
                         Object.assign(obj['methods'], buckup_methods);
                     }
+                } else {
+                    if (clsname?.abstract instanceof Array) {
+                        for (let abstract_t of clsname?.abstract) {
+                            abstract_t = Interface.getCustomInterface('class', abstract_t)?.obj;
+
+                            if (abstract_t?.property) {
+                                let buckup_props = JSON.parse(JSON.stringify(abstract_t?.property));
+                                Object.assign(obj['property'], buckup_props);
+                            }
+
+                            if (abstract_t?.methods) {
+                                let buckup_methods = JSON.parse(JSON.stringify(abstract_t?.methods));
+                                Object.assign(obj['methods'], buckup_methods);
+                            }
+                        }
+                    }
                 }
+
 
                 for (let property of properties) {
                     property = property?.property;
@@ -2629,14 +2646,16 @@ class Compiler {
                 if (this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) == null) {
                     this.$arg0 = 'Void'; 
                 } else {
-                    this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name;
+                    // this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row) || statement.name; // v1
+                    this.$arg0 = this.checkArgument(statement.name, trace?.parser?.code, trace?.parser.row); // v2
                 }
             }
 
             // WARNING: Experimental mode
             MiddlewareSoftware.compileStatement({ instruction: 'route', route: { name: statement.name } });
 
-            if (Type.check('String', this.$arg0)) this.$arg0 = this.$arg0.slice(1, -1);
+            if (typeof this.$arg0 === 'string' && (this.$arg0.indexOf('\'') == 0 && this.$arg0.lastIndexOf('\'') == this.$arg0.length - 1)) this.$arg0 = this.$arg0.slice(1, -1);
+            else if (typeof this.$arg0 === 'string' && (this.$arg0.indexOf('\"') == 0 && this.$arg0.lastIndexOf('\"') == this.$arg0.length - 1)) this.$arg0 = this.$arg0.slice(1, -1);
             this.$stack.push({ value: this.$arg0 });
         }
     }
@@ -2945,8 +2964,9 @@ class Compiler {
 
         if (typeof arg === 'string' && (arg.startsWith('expr\'') || arg.startsWith('expr\"'))) {
             let string_t = arg.slice(5, -1);
-            // new Expression(string_t);
-            return string_t;
+            let expression_t = new Expression(string_t);
+            if (expression_t.answer() == 0) return '0';
+            else return expression_t.answer();
         }
 
 
