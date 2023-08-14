@@ -5,6 +5,9 @@ const ServerLog = require("./server/log");
 const Structure = require("./structure");
 const NeuralNetwork = require("./tools/neural");
 const Color = require("./utils/color");
+const Engine = require("./engine/core");
+const config = require("./config");
+const engine = require("./engine/core");
 
 class Parser {
     static parse(sourceCode) {
@@ -200,16 +203,31 @@ class Parser {
         if (this.isStatement(stmt)) {
            ast = this[`parse${stmt}Statement`](line, index);
         } else {
-            ServerLog.log('This instruction does not exist', 'Exception');
-            new SyntaxError(`\n<source:${index+1}:1>  This instruction does not exist`, { code: line, row: index });
-            ServerLog.log('You need to remove this instruction.', 'Possible fixes');
+            if (config.INI_VARIABLES.CHECK_ENGINE !== '') {
+                try {
+                    stmt = stmt.toLowerCase();
+                    const userEngine = require(config.INI_VARIABLES.CHECK_ENGINE);
 
-            const instructions = Reflect.ownKeys(this).filter(property => /parse\w+Statement/.test(property)).map(token => /parse(\w+)Statement/.exec(token)).map(list => list[1]);
-            const coincidences = NeuralNetwork.coincidence(instructions, stmt);
-            const presumably = NeuralNetwork.presumably(coincidences);
-            ServerLog.log(`Perhaps you wanted to write some of these instructions: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
+                    if (Reflect.ownKeys(userEngine).includes('registerInstruction')) {
+                        userEngine['registerInstruction'](engine);
+                    }
+                } catch {}
+            }
 
-            process.exit(1);
+            if (engine.hasInstruction(stmt)) {
+                ast = { [stmt]: { arguments: line.slice(line.indexOf(' ')) }, parser: { code: line, row: index + 1 } }; 
+            } else {
+                ServerLog.log('This instruction does not exist', 'Exception');
+                new SyntaxError(`\n<source:${index+1}:1>  This instruction does not exist`, { code: line, row: index });
+                ServerLog.log('You need to remove this instruction.', 'Possible fixes');
+
+                const instructions = Reflect.ownKeys(this).filter(property => /parse\w+Statement/.test(property)).map(token => /parse(\w+)Statement/.exec(token)).map(list => list[1]);
+                const coincidences = NeuralNetwork.coincidence(instructions, stmt);
+                const presumably = NeuralNetwork.presumably(coincidences);
+                ServerLog.log(`Perhaps you wanted to write some of these instructions: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
+
+                process.exit(1);
+            }
         }
 
         return ast;

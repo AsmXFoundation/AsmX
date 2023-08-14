@@ -121,6 +121,10 @@ class Scanner {
                 this.addTokenType(EXPRESSION_TOKEN_TYPE.PLUS); 
                 break;
 
+            case '/':
+                this.addTokenType(EXPRESSION_TOKEN_TYPE.SLASH);
+                break;
+
             case '*':
                 this.addTokenType(EXPRESSION_TOKEN_TYPE.STAR);
                 break;

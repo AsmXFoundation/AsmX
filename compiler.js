@@ -31,6 +31,8 @@ const Security = require('./tools/security');
 const Interface = require('./interface');
 const Expression = require('./expression');
 const EventEmulator = require('./event');
+const engine = require('./engine/core');
+const EngineAdapter = require('./engine/adapter');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -68,6 +70,7 @@ class Compiler {
 
             global: {
                 set: this.set,
+                mut: this.set,
                 const: this.constants,
                 struct: this.collections.struct
             },
@@ -216,13 +219,26 @@ class Compiler {
         for (let index = 0; index < this.AbstractSyntaxTree.length; index++) {
             const trace = this.AbstractSyntaxTree[index];
             let statement = Reflect.ownKeys(trace).filter(stmt => stmt != 'parser')[0];
-            this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
+
+            if (this.isStatement(statement)) {
+                this[`compile${statement[0].toUpperCase() + statement.substring(1)}Statement`](trace[statement], index, trace);
+            } else {
+                if (engine.hasInstruction(statement)) {
+                    const instruction = engine.getInstruction(statement).at(-1);
+                    EngineAdapter.registerInstruction.call(this, instruction, trace[statement]['arguments'], trace);
+                }
+            }
 
             if (config.INI_VARIABLES?.ANALYSIS) {
                 Analysis.createModel(statement);
                 Analysis.counterModel('new', statement);
             }
         };
+    }
+
+
+    isStatement(name) {
+        return Object.getOwnPropertyNames(Compiler.prototype).includes(`compile${name[0].toUpperCase() + name.slice(1).toLowerCase()}Statement`);
     }
 
 

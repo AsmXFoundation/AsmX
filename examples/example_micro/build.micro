@@ -1,0 +1,9 @@
+# Micro
+msg This Micro Shell!
+
+.section app-cli
+   build ./examples/example_micro/hello.asmX ./examples/example_micro/tar/hello
+   run ./examples/example_micro/tar/hello.app
+
+tar ./examples/example_micro/tar
+msg This Micro Shell End!
