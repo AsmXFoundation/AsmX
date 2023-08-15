@@ -26,3 +26,6 @@ termux/
 #archives
 .tar
 .zip
+
+
+/etc/os/miniOS/usr/

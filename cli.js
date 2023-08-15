@@ -15,7 +15,7 @@ const config = require('./config');
 const Color = require('./utils/color');
 // const { MicroParser } = require('./micro/parser');
 const ServerLog = require('./server/log');
-const { getAllFiles } = require('./fs');
+const { getAllFiles, getDirs, printDirs } = require('./fs');
 
 
 class ReadmeCLI {
@@ -102,6 +102,7 @@ class Cli {
         log('asmx-cli micro ./file \t\t- The command allows you to run the AsmX collector');
         log('asmx-cli engine \t\t- The command allows you to see which engine is installed for AsmX');
         log('asmx-cli engine ./setfile \t- The command allows you to install the engine for AsmX');
+        log('asmx-cli vmare [name] \t- The command allows you to navigate the operating system with the name [name]');
         log('FLAGS:');
         log('-ls');
         log(`${'-'.repeat(96)}`);
@@ -115,14 +116,6 @@ class Cli {
         if (parameters.length > 2) { 
             ServerLog.log("too many parameters", 'Exception');
             process.exit(1);
-        }
-
-        function getDirs(path) {
-            return fs.readdirSync(path,  { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name);
-        }
-        
-        function printDirs(dirs) {
-            for (let index = 0; index < dirs.length; index++) console.log(`${index + 1}. ${dirs[index]}`);
         }
 
         const command = parameters[0];
@@ -146,6 +139,37 @@ class Cli {
                 }
             } else if (command == 'switch') { // theme switch <name>
                 // in develop
+            }
+        } else {
+            printDirs(dirs);
+        }
+
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
+    }
+
+
+    static vmare() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+
+        if (parameters.length > 1) { 
+            ServerLog.log("too many parameters", 'Exception');
+            process.exit(1);
+        }
+
+        const vm = parameters[0];
+        let dirs = getDirs('./etc/os');
+
+        if (vm) {
+            if (dirs.includes(vm)) {
+                try {
+                    const machine = require(`./etc/os/${vm}/core.js`);
+                    machine.boot();
+                } catch (exception) {
+                    console.log(exception);
+                    ServerLog.log('', 'Exception');
+                }
             }
         } else {
             printDirs(dirs);

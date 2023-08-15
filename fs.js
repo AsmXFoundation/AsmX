@@ -25,7 +25,25 @@ const getTotalSize = (directoryPath) => {
 }
 
 
+function getDirs(path) {
+    return fs.readdirSync(path,  { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name);
+}
+
+
+function getFiles(path) {
+    return fs.readdirSync(path,  { withFileTypes: true }).filter(d => d.isFile()).map(d => d.name);
+}
+
+
+function printDirs(dirs) {
+    for (let index = 0; index < dirs.length; index++) console.log(`${index + 1}. ${dirs[index]}`);
+}
+
+
 module.exports = {
     getAllFiles: getAllFiles,
-    getTotalSize: getTotalSize
+    getTotalSize: getTotalSize,
+    getDirs: getDirs,
+    getFiles: getFiles,
+    printDirs: printDirs
 }
