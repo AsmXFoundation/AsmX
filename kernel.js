@@ -75,7 +75,10 @@ class Fact {
 }
 
 function callCompiler(pathfile) {
-    if (pathfile.endsWith('.asmx') || pathfile.endsWith('.asmX') || pathfile.endsWith('.🚀')) {
+    if (pathfile == undefined) {
+        ServerLog.log('Insufficient number of arguments\n', 'Exception');
+        process.exit(1);
+    } else if (pathfile.endsWith('.asmx') || pathfile.endsWith('.asmX') || pathfile.endsWith('.🚀')) {
         ServerLog.log(`COMPILING ${pathfile} FILE...\n`, 'Compiler');
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
         Fact.news();
