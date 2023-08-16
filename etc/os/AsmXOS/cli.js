@@ -1,3 +1,4 @@
+const kernelCli = require("../../../cli");
 const { getDirs, printDirs, getFiles } = require("../../../fs");
 const ServerLog = require("../../../server/log");
 const fs = require('fs');
@@ -13,7 +14,7 @@ class Cli {
     static cli_args = [];
     static root = 'root';
     static separateCD = '@';
-    static cdPath = 'miniOS';
+    static cdPath = 'asmxOS';
 
     flagUsage = true;
     commandUsage = true;
@@ -24,7 +25,7 @@ class Cli {
     cli_args = [];
     root = 'root';
     separateCD = '@';
-    cdPath = 'miniOS';
+    cdPath = 'asmxOS';
 
     //============================================================================================
     // Main function
@@ -32,7 +33,7 @@ class Cli {
     execute(args) {
         this.cli_args = args;
 
-        // if (args[0] = 'os-cli') {
+        if (this.root == 'root') {
             let flags = ['ls', 'graph', 'o', 'v', 'c'];
 
             for (const argument of args) {
@@ -54,7 +55,11 @@ class Cli {
             }
 
             if (this.counter == 0) console.log('get more information: asmx-cli usage');
-        // }
+        } else if (this.root == 'cli') {
+            if (this.cdPath == 'asmx') {
+                kernelCli.execute(['asmx-cli', ...args]);
+            }
+        }
     }
 
 
@@ -123,7 +128,7 @@ class Cli {
 
     neofetch() {
         console.log('\t\t\t\t\tarchitecture: AsmX');
-        console.log('\t\t\t\t\tname os: MiniOS');
+        console.log('\t\t\t\t\tname os: AsmXOS');
         console.log('\t\t\t\t\tui: NeoUI');
     }
 
@@ -139,15 +144,15 @@ class Cli {
 
 
     c() {
-        process.stdout.write('MiniOS v1.0.0 ');
-        console.log('\tMiniOS Corporation. All rights reserved.');
+        process.stdout.write('AsmXOS v1.0.0 ');
+        console.log('\tAsmXOS Corporation. All rights reserved.');
         console.log('\t\tOpen source source: https://github.com/langprogramming-AsmX/AsmX');
         this.flagUsage = false;
         this.commandUsage = false;
     }
 
     ls() {
-        if (this.root == 'root' && this.cdPath == 'miniOS') {
+        if (this.root == 'root' && this.cdPath == 'asmXOS') {
             printDirs(getDirs(__dirname + '/usr'));
             printDirs(getFiles(__dirname + '/usr'));
         }
