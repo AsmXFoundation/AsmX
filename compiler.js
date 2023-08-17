@@ -1059,8 +1059,8 @@ class Compiler {
             let i7e = Interface.customs.filter(obj_t => obj_t?.structureName == getInterface)[0];
             let destructorName = i7e?.obj?.destructor;
             let destructor;
-            
-            if (destructorName && (destructor = Interface.getCustomInterface('destructor', destructorName))) {
+
+            if (destructorName && (destructor = Interface.getCustomInterfaceByIndex('destructor', i7e?.obj?.destructor, i7e?.obj?.destructorIndex))) {
                 this.executeConstructor = true;
                 this.executeClass = statement.name;
                 this.executeclassData = this.collections[structure.type].filter(s7e => s7e[statement.name])[0];
@@ -1256,6 +1256,7 @@ class Compiler {
                 if (destructor.length == 1) {
                     destructor = destructor[0];
                     let ci7e = Interface.getCustomInterface(destructor.bind.bind, destructor.bind.name);
+
                     if (ci7e) {
                         obj['destructor'] = ci7e.structureName;
                     } else {
@@ -1284,6 +1285,8 @@ class Compiler {
                 let i7e = Interface.getInterface(constructor.bind.bind, constructor.bind.name);
                 let ci7e = Interface.getCustomInterface(constructor.bind.bind, constructor.bind.name);
                 obj['constructor'] = ci7e.structureName;
+                obj['constructorIndex'] = Interface.getCustomIndexByType('constructor');
+                obj['destructorIndex'] = Interface.getCustomIndexByType('destructor');
                 Interface.createCustomInterface(obj, 'class', clsname.class);
             }
         }
@@ -1972,7 +1975,7 @@ class Compiler {
             let i7e = Object(this.collections[statement.structure].filter(t => t[statement.name])[0]);
             let ci7e = Interface.getCustomInterface(statement.structure, i7e.interface);
             let constructorInterface = Interface.getInterface('constructor', ci7e.obj.constructor);
-            let constructor = Interface.getCustomInterface('constructor', ci7e.obj.constructor);
+            let constructor = Interface.getCustomInterfaceByIndex('constructor', ci7e.obj.constructor, ci7e?.obj?.constructorIndex);
 
             let bi7e = new String(i7e?.interface).valueOf();
             let initArgs = statement.args.split(',').map(t => t.trim());

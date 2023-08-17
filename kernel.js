@@ -81,6 +81,7 @@ function callCompiler(pathfile) {
     } else if (pathfile.endsWith('.asmx') || pathfile.endsWith('.asmX') || pathfile.endsWith('.🚀')) {
         ServerLog.log(`COMPILING ${pathfile} FILE...\n`, 'Compiler');
         ServerLog.log('you can enable Server Log using `@Issue true` \n', 'Notify');
+        ServerLog.log(`It is not recommended to use the @Issue instruction. WE DO NOT GUARANTEE THE FULL FUNCTIONALITY OF AsmX PROGRAMS\n`, 'Warning');
         Fact.news();
 
         let timer = setInterval(() => {
