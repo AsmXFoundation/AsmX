@@ -102,7 +102,7 @@ class Cli {
         log('asmx-cli micro ./file \t\t- The command allows you to run the AsmX collector');
         log('asmx-cli engine \t\t- The command allows you to see which engine is installed for AsmX');
         log('asmx-cli engine ./setfile \t- The command allows you to install the engine for AsmX');
-        log('asmx-cli vmare [name] \t- The command allows you to navigate the operating system with the name [name]');
+        log('asmx-cli os [name] \t- The command allows you to navigate the operating system with the name [name]');
         log('FLAGS:');
         log('-ls');
         log(`${'-'.repeat(96)}`);
@@ -150,7 +150,7 @@ class Cli {
     }
 
 
-    static vmare() {
+    static os() {
         const parameters = this.cli_args.slice(this.beforeCounter + 1);
 
         if (parameters.length > 1) { 
@@ -158,16 +158,16 @@ class Cli {
             process.exit(1);
         }
 
-        const vm = parameters[0];
+        const os = parameters[0];
         let dirs = getDirs('./etc/os');
 
-        if (vm) {
-            if (dirs.includes(vm)) {
+        if (os) {
+            if (dirs.includes(os)) {
                 try {
-                    const machine = require(`./etc/os/${vm}/core.js`);
+                    const machine = require(`./etc/os/${os}/core.js`);
                     machine.boot();
                 } catch (exception) {
-                    console.log(exception);
+                    // console.log(exception);
                     ServerLog.log('', 'Exception');
                 }
             }
