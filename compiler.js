@@ -2965,15 +2965,18 @@ class Compiler {
                 const grammar = grammars[i];
 
                 string_t = string_t.replace(grammar, (match) => {
-                  if(/(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/.test(match)) {
-                    return check(match.slice(1, -1).trim());
-                  }
+                    if(/(\[\s*set\:\:[_a-zA-Z][_a-zA-Z0-9]+\s*\])/.test(match)) {
+                        let result = check(match.slice(1, -1).trim());
+                        if (typeof result === 'string' && (result.indexOf('\'') == 0 && result.lastIndexOf('\'') == result.length - 1)) result = result.slice(1, -1);
+                        else if (typeof result === 'string' && (result.indexOf('\"') == 0 && result.lastIndexOf('\"') == result.length - 1)) result = result.slice(1, -1);
+                        return result;
+                    }
 
-                  else if (/(\[\s*const\:\:[A-Z][A-Z0-9_]+\s*\])/.test(match)) {
-                    return check(match.slice(1, -1).trim().slice(7));
-                  }
+                    else if (/(\[\s*const\:\:[A-Z][A-Z0-9_]+\s*\])/.test(match)) {
+                        return check(match.slice(1, -1).trim().slice(7));
+                    }
 
-                  return this.checkArgument(match) == null ? 'Void' : this.checkArgument(match);
+                    return this.checkArgument(match) == null ? 'Void' : this.checkArgument(match);
                 });
             }
 

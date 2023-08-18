@@ -378,6 +378,20 @@ class StackTraceException {
 }
 
 
+class ExpressionException {
+    constructor(source, message, line, index) {
+        let lastLine = `${Color.FG_GRAY}${' '.repeat(String(line).length)} |\t\n`;
+        let middleLine = `${line} |\t`;
+        let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${' '.repeat(String(line).length)} |\t${' '.repeat(index)}${Color.FG_RED}^-${Color.FG_WHITE}\n`;
+
+        process.stdout.write(`${Color.BRIGHT}${Color.BRIGHT}[${Color.FG_RED}ExpressionException${Color.FG_WHITE}]: ${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${source}\n`);
+        process.stdout.write(nextLine);
+    }
+}
+
+
 //================================================================================================
 // SYNTAX ERRORS
 //================================================================================================
@@ -448,5 +462,6 @@ module.exports = {
     StructureException: StructureException,
     UsingException: UsingException,
     ConstException: ConstException,
-    SystemCallException: SystemCallException
+    SystemCallException: SystemCallException,
+    ExpressionException: ExpressionException
 }

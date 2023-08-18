@@ -1,3 +1,6 @@
+const { ExpressionException } = require("./exception");
+const ServerLog = require("./server/log");
+
 const EXPRESSION_TOKEN_TYPE = {
     LEFT_PAREN: 'LEFT_PAREN',
     RIGHT_PAREN: 'RIGHT_PAREN',
@@ -16,11 +19,12 @@ const EXPRESSION_TOKEN_TYPE = {
 
 
 class Token {
-    constructor(type, lexeme, literal, line) {
+    constructor(type, lexeme, literal, line, index) {
         this.type = type;
         this.lexeme = lexeme;
         this.literal = literal;
         this.line = line;
+        this.index = index || 0;
     }
 
     toString() {
@@ -83,7 +87,7 @@ class Scanner {
 
     addToken(type, literal) {
         let text = this.#source.substring(this.start, this.current);
-        this.#tokens.push(new Token(type, text, literal, this.line));
+        this.#tokens.push(new Token(type, text, literal, this.line, this.current));
     }
 
 
@@ -143,7 +147,11 @@ class Scanner {
 
             default:
                 if (this._matchInt(char)) this.addTokenType(EXPRESSION_TOKEN_TYPE.NUMBER); 
-                else throw "Unexpected character.";
+                else {
+                    new ExpressionException(`expr'${this.#source}'`, "Unexpected character.", this.line, this.current + 4);
+                    ServerLog.log('Letters and symbols that are not related to mathematics are prohibited in a mathematical expression.', 'Possible fixes');
+                    process.exit(1);
+                }
                 break;
         }
     }
