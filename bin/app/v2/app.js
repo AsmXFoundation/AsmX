@@ -1,12 +1,12 @@
 const fs = require('fs');
 
-const { DWord } = require('../utils/hex-types');
-const { FileError } = require('../../exception');
-const Color = require('../../utils/color');
+const { DWord } = require('../../utils/hex-types');
+const { FileError } = require('../../../exception');
+const Color = require('../../../utils/color');
 
-const Parser = require('../../parser');
-const Compiler = require('../../compiler');
-const { Type } = require('../../types');
+const Parser = require('../../../parser');
+const Compiler = require('../../../compiler');
+const { Type } = require('../../../types');
 
 
 /*
@@ -23,6 +23,57 @@ const { Type } = require('../../types');
 */
 
 
+class TableComplier {
+    static table;
+    static it; // index table
+
+    static create() {
+        // let keys = [...new Set(list.map(k => k[0]))];
+        // let map = {};
+        this.createIndexedTable();
+
+        // for (const key of keys) map[key] = [];
+        // for (const instruction of list) map[instruction[0]].push(instruction);
+        // for (const key of keys) map[key] = map[key].sort();
+
+        // console.log(this.table);
+        // console.log(this.pullIndexByInstruction());
+
+        // this.table = map;
+    }
+
+
+    static pullIndexByInstruction(instruction) {
+        return `${Reflect.ownKeys(this.table).indexOf(instruction[0])}:${this.table[instruction[0]].indexOf(instruction)}`;
+    }
+
+
+    static pullInstructionByIndex(data) {
+        this.createIndexedTable();
+        
+        if (typeof data == 'string') {
+            if (data.indexOf(':')) {
+                const [instruction, index] = data.split(':');
+                let keys = Reflect.ownKeys(this.table);
+                return this.table[keys[instruction]][index];
+            }
+        } 
+    
+        return;
+    }
+
+
+    static createIndexedTable() {
+        let parserInstructions = Object.getOwnPropertyNames(Parser).filter(i => /parse\w+Statement/.test(i)).map(i => /parse(\w+)Statement/.exec(i)[1]).map( i => i.toLowerCase());
+        let parseWords = [...new Set(parserInstructions.map(i => i[0]).sort())];
+        let pmap = {};
+
+        for (const key of parseWords) pmap[key[0]] = [];
+        for (const instruction of parserInstructions) pmap[instruction[0]].push(instruction);
+
+        this.table = pmap;
+    }
+}
 
 
 class HeaderApp {
@@ -163,7 +214,7 @@ class App {
             static composeLinkerApp() {
                 if (this.OFFSET_APP == 0xA) {
                     this.app_linker = Buffer.alloc(this.SIZE_ROW_CELLS);
-                    const [MAJOR, MINOR, MICRO, ISBETA] = [1, 0, 0, 0];
+                    const [MAJOR, MINOR, MICRO, ISBETA] = [2, 0, 0, 0];
                     this.app_linker[2] = parseInt(MAJOR, 16).toString(16);
                     this.app_linker[3] = '-';
                     this.app_linker[4] = parseInt(MINOR, 10).toString(16);
@@ -235,21 +286,19 @@ class App {
                 if (Array.isArray(this.source)) {
                     let sourceBuffers = [];
 
-                    this.source.forEach((line) => {
-                        // if (Reflect.ownKeys(line).includes('constant') && line?.instruction == 'constant') {
-                        //     // cl - compiled line source
-                        //     let cl = this.AppComplier().compileConstantStatement.call(App, line) + '\0';
-                        //     this.BUILD_SOURCE_CODE_APP = Buffer.alloc(cl.length);
-                        //     this.BUILD_SOURCE_CODE_APP.write(cl);
-                        // } else 
-                        if (['variable', 'constant', 'route', 'invoke'].includes(line?.instruction)) {
-                            let cl = this.AppComplier()[`compile${line?.instruction[0].toUpperCase() + line?.instruction.substring(1)}Statement`].call(App, line) + '\0';
-                            this.BUILD_SOURCE_CODE_APP = Buffer.alloc(cl.length);
-                            this.BUILD_SOURCE_CODE_APP.write(cl);
-                        } else {
-                            
-                        }
+                    const source = this.source.map(s => s.parser.code).filter(t => t);
+                    const instructions = [...new Set(source.map(l => l.slice(1, l.indexOf(' ')).toLowerCase()))].sort();
+                    TableComplier.create();
 
+                    source.forEach((line) => {
+                        let l2 = line.slice(line.indexOf(' '));
+                        let nl2 = ':';
+                        for (const char of l2) nl2 += char.charCodeAt() + ':';
+                        l2 = nl2;
+                        l2 = l2.split(':').reverse().join(':');
+                        let cl = `${TableComplier.pullIndexByInstruction(line.substring(1, line.indexOf(' ')).toLowerCase())} <${l2}>\0`;
+                        this.BUILD_SOURCE_CODE_APP = Buffer.alloc(cl.length);
+                        this.BUILD_SOURCE_CODE_APP.write(cl);
                         sourceBuffers.push(this.BUILD_SOURCE_CODE_APP);
                     });
 
@@ -383,7 +432,7 @@ class App {
                         };
 
                         this.app_linker = app_linker;
-    
+
                         if (log) {
                             console.log(`\n\n${Color.BG_GREEN} ${Object.values(app_linker).join('.')}${Color.BG_BLACK} Linker Version:`);
                             console.log('\t|-> Major: ', app_linker.major);
@@ -412,7 +461,6 @@ class App {
                         if (!Object.values(OptionalHeaderApp.SIGNATURE).includes(this.app_signature)) process.stdout.write(this.app_stub);
 
                         this.app_machine = row.slice(4, 6).reverse().filter(hex => hex != '00').map(hex => hex.trim());
-                        // console.log(1, this.app_machine);
                         index += 10;
                     }
 
@@ -438,7 +486,6 @@ class App {
                     }
 
                     else if (this.app_offset_source >= index) {
-                        // this.app_source += row;
                         this.app_source.push(row);
                     }
                 })
@@ -449,14 +496,6 @@ class App {
 
     static Execute() {
         return class {
-            static instructionMap = {
-                '01': '@set',
-                '02': '@define',
-                '03': '@route',
-                '04': '@route',
-                '05': '@invoke'
-            }
-
             static execute(path) {
                 this.decompiler = App.Decompiler();
                 this.decompiler.decompiler(path, false);
@@ -469,7 +508,7 @@ class App {
                 this.app_magic = this.decompiler['app_magic'];
                 this.app_offset_source = this.decompiler['app_offset_source'];
 
-                if (this.app_linker.major != 1) {
+                if (this.app_linker.major != 2) {
                     process.stdout.write(this.app_stub);
                     process.exit(1);
                 }
@@ -490,19 +529,16 @@ class App {
 
                 this.app_source = this.app_source.map(line => {
                     let instruction = line.substring(0, line.indexOf(' '));
-                    line = line.substring(line.indexOf(' '));
-
-                    if (this.instructionMap[instruction] !== undefined) {
-                        if (this.instructionMap[instruction] == '@set') {
-                            let type = null;
-                            line = line.trim();
-                            let name = line.substring(0, line.indexOf(' ')).trim();
-                            let value = line.slice(line.indexOf(' ')).trim();
-                            for (const T of Type.types) if (Type.check(T.name, value)) type = T.name;
-                            return `${this.instructionMap[instruction]} ${name} ${type} ${value}`;
-                        } else {
-                            return `${this.instructionMap[instruction]}${line}`;
-                        }
+                    line = line.substring(line.indexOf(' ')).trim();
+                    let i9n;
+                    
+                    if ((i9n = TableComplier.pullInstructionByIndex(instruction))) {
+                        let nl2 = '';
+                        line = line.slice(2, line.indexOf(':>'));
+                        line = line.split(':').reverse().join(':');
+                        let l2 = line;
+                        for (const char of l2.split(':')) nl2 += String.fromCharCode(char);
+                        return `@${i9n}${nl2}`;
                     } else {
                         process.stdout.write(this.app_stub);
                         process.exit(1);
@@ -521,11 +557,5 @@ class App {
     }
 }
 
-
-// new Compiler(Parser.parse(content));
-// new App(path, 'x64', 'x64', MiddlewareSoftware.source);
-
-// App.Decompiler().decompiler(path);
-// App.Execute().execute(path);
 
 module.exports = App;

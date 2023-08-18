@@ -327,12 +327,39 @@ class Cli {
         const sourceparse =  Parser.parse(fs.readFileSync(file, { encoding: 'utf8' }));
         new Compiler(sourceparse);
 
-        if (architecture === 'arm') {
+        const TableSource = {
+            arm: '.s',
+            app: '.app'
+        }
+
+        if (architecture.indexOf('@') > -1) {
+            const [arch, version] = architecture.split('@');
+
+            try {
+                const complier = require(`./bin/${arch}/${version}/${arch}`);
+
+                if (Reflect.ownKeys(TableSource).includes(arch)) {
+                    if (outputfile && !outputfile.endsWith(TableSource[arch])) outputfile = outputfile + TableSource[arch];
+                    if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}${TableSource[arch]}`;
+                    this.buildFile = outputfile;
+                }
+
+                if (arch == 'app') {
+                    new complier(outputfile, 'x64', 'x64', sourceparse);
+                } else if (arch == 'arm') {
+                    new complier(outputfile, MiddlewareSoftware.source);
+                } else {
+                    new complier(outputfile, MiddlewareSoftware.source);
+                }
+            } catch (exception) {
+                ServerLog.log('Unknow version architecture', 'Exception');
+            }
+        } else if (architecture == 'arm') {
             if (outputfile && !outputfile.endsWith('.s')) outputfile = outputfile + '.s';
             if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.s`;
             this.buildFile = outputfile;
             new CortexMARM(outputfile, MiddlewareSoftware.source);
-        } else if (architecture === 'app') {
+        } else if (architecture == 'app') {
             if (outputfile && !outputfile.endsWith('.app')) outputfile = outputfile + '.app';
             if (outputfile == undefined) outputfile = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.app`;
             this.buildFile = outputfile;
@@ -395,9 +422,30 @@ class Cli {
         }
 
         const architecture = parameters[0];
-        const file = parameters[1];
+        let file = parameters[1];
 
-        if (architecture === 'app') {
+        const TableSource = {
+            arm: '.s',
+            app: '.app'
+        }
+
+        if (architecture.indexOf('@') > -1) {
+            const [arch, version] = architecture.split('@');
+
+            try {
+                const complier = require(`./bin/${arch}/${version}/${arch}`);
+
+                if (Reflect.ownKeys(TableSource).includes(arch)) {
+                    if (file && !file.endsWith(TableSource[arch])) file = file + TableSource[arch];
+                    if (file == undefined) file = `${path.parse(file)['dir']}\\${path.parse(file)['name']}${TableSource[arch]}`;
+                }
+
+                complier.Execute().execute(file);
+            } catch (exception) {
+                console.log(exception);
+                ServerLog.log('Unknow version architecture', 'Exception');
+            }
+        } else if (architecture === 'app') {
             // App.Execute().execute(file == undefined ? this.buildFile : file);
             App.Execute().execute(file);
         } else {
