@@ -1497,15 +1497,18 @@ class Compiler {
         if (!['global', 'local', 'kernelos'].includes(properties[0])) $this = $this[this.scope];
 
         if (Reflect.ownKeys(this.collections).includes(properties[0])) {
-            if (properties.length < 3) {
+            if (properties.length == 0) {
                 new ArgumentError(`[${Color.FG_RED}ArgumentException${Color.FG_WHITE}]: Perhaps there are not enough arguments.`, {
                     row: trace?.parser.row, code: trace?.parser.code, select: statement.args, position: 'end'
                 });
+
+                process.exit(1);
             } else {
                 let structure = { type: properties[0], name: properties[1], field: properties[2] };
 
                 try {
-                    this.$get = this.collections[structure.type].filter(stre => stre[structure.name])[0][structure.name][structure.field];
+                    this.$get = this.collections[structure.type].filter(stre => stre[structure.name])[0][structure.name];
+                    if (structure.field) this.$get = this.$get[structure.field];
                     if (this.$get == null) this.$get = 'Void';
                 } catch {
                     new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent variale name.`, {
@@ -1517,15 +1520,18 @@ class Compiler {
                 }
             }
         } else if (properties[0] == 'json') {
+            const pull = (obj, field) => obj[field];
             let json = this.checkArgument(properties[1]) || 'Void';
             let fields;
 
             if (['set', 'const'].includes(properties[1])) {
-                json = this.checkArgument(`${properties[1]}::${properties[2]}`) || 'Void';
+                json = this.checkArgument(`${properties[1]}::${properties[2]}`, trace.parser.code, trace.parser.row) || 'Void';
+                fields = properties.slice(3);
+            } else if (Reflect.ownKeys(this.collections).includes(properties[1])) {
+                if (properties[2]) json = this.checkArgument(`${properties[1]}::${properties[2]}`, trace.parser.code, trace.parser.row) || 'Void';
                 fields = properties.slice(3);
             } else fields = properties.slice(2);
-            
-            const pull = (obj, field) => obj[field];
+
             if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
             this.$get = json;
         } else if (properties[0] == 'ir_json' || (this.executeEventData && properties[0] == 'event')) {
@@ -1568,6 +1574,31 @@ class Compiler {
                     select:  trace?.parser.code
                 });
                 process.exit(1);
+            }
+        } else if (properties[0] == 'keys' ||properties[0] == 'values') {
+            const pull = (obj, field) => obj[field];
+            let json = this.checkArgument(properties[1]) || 'Void';
+            let fields;
+
+            if (['set', 'const'].includes(properties[1])) {
+                json = this.checkArgument(`${properties[1]}::${properties[2]}`) || 'Void';
+                fields = properties.slice(3);
+            } else if (Reflect.ownKeys(this.collections).includes(properties[1])) {
+                if (properties[2]) json = this.checkArgument(`${properties[1]}::${properties[2]}`, trace?.parser?.code, trace?.parser.row) || 'Void';
+                fields = properties.slice(3);
+            } else fields = properties.slice(2);
+            
+            if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field, trace?.parser?.code, trace?.parser.row) || field);
+            this.$get = json;
+            
+            if (properties[0] == 'keys') {
+                if (typeof this.$get === 'object' && !Array.isArray(this.$get))
+                    this.$get = Reflect.ownKeys(this.$get);
+                else this.$get = 'Void';
+            } else if (properties[0] == 'values') {
+                if (typeof this.$get === 'object' && !Array.isArray(this.$get))
+                    this.$get = Object.values(this.$get);
+                else this.$get = 'Void';
             }
         } else
         properties.forEach((property) => {
