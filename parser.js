@@ -203,6 +203,17 @@ class Parser {
         if (this.isStatement(stmt)) {
            ast = this[`parse${stmt}Statement`](line, index);
         } else {
+            if (config.INI_VARIABLES.MAJOR_ENGINE !== '') {
+                try {
+                    stmt = stmt.toLowerCase();
+                    const userEngine = require(config.INI_VARIABLES.MAJOR_ENGINE);
+
+                    if (Reflect.ownKeys(userEngine).includes('registerInstruction')) {
+                        userEngine['registerInstruction'](engine);
+                    }
+                } catch {}
+            }
+
             if (config.INI_VARIABLES.CHECK_ENGINE !== '') {
                 try {
                     stmt = stmt.toLowerCase();
