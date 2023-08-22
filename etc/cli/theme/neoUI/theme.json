@@ -1,0 +1,13 @@
+{
+    "forgecolor": {
+        "cli": "\u001b[38;5;154m",
+        "document": "\u001b[38;5;150m",
+        "command": "\u001b[38;5;152m",
+        "separator": "\u001b[38;5;130m",
+        "argument": "\u001b[38;5;158m"
+    },
+
+    "edit": {
+        "separator": "$"
+    }
+}
