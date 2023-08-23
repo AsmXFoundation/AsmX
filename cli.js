@@ -83,86 +83,65 @@ class Cli {
     //============================================================================================
     static usage() {
         let log = (message, params) => console.log(`\t${message}`, params ? params : '');
+        let theme;
 
-        if (config.INI_VARIABLES?.CLI_THEME == 'common') {
-            log(Color.FG_GRAY);
-            log('USAGE:');
-            log('-'.repeat(96));
-            log('asmx-cli [cmd] [options] -[flags] [options]');
-            log('asmx-cli usage \t\t\t- The command allows you to view a list of commands to use');
-            log('asmx-cli start');
-            log('asmx-cli doctor \t\t- The command allows you to check all AsmX tools');
-            log('asmx-cli update \t\t- The command allows you to update AsmX to the latest version');
-            log('');
-            log('asmx-cli build [arch] ./file ./out');
-            log('\t- The command allows you to build/compile an "[arch]" architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.');
-            log('');
-            log('asmx-cli run [arch] ./file ./out');
-            log('\t- The command allows you to run an "[arch]" architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.');
-            log('');
-            log('asmx-cli view exe ./file \t- The command allows you to view the inside of the EXE (Optional)  file');
-            log('asmx-cli micro ./file \t\t- The command allows you to run the AsmX collector');
-            log('asmx-cli engine \t\t- The command allows you to see which engine is installed for AsmX');
-            log('asmx-cli engine ./setfile \t- The command allows you to install the engine for AsmX');
-            log('asmx-cli os [name] \t- The command allows you to navigate the operating system with the name [name]');
-            log('FLAGS:');
-            log('-ls');
-            log(`${'-'.repeat(96)}`);
-            log('');
-        } else if (config.INI_VARIABLES?.CLI_THEME != 'common') {
-            const theme = require(`./etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
-            const forgecolor = {};
+        if (config.INI_VARIABLES?.CLI_THEME != 'common') {
+            theme = require(`./etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
+        } else theme = {};
 
-            const edit = {
-                separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
-            };
+        const forgecolor = {};
 
-            for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
-                forgecolor[property] = theme?.forgecolor[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
-            }
+        const edit = {
+            separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
+        };
 
-            let cli = `${forgecolor?.cli || Color.FG_GRAY}asmx-cli${Color.RESET}`;
-            let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
-            let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
-            let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
-            let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
-            let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
-            let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
-
-            function buildText(cli, command, separate, text, tabs, other = undefined) {
-                return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
-            }
-
-            log(theme?.forgecolor?.text || Color.FG_GRAY);
-            log(`USAGE:`);
-            log(`-`.repeat(96));
-            log(`${cli} [cmd] [options] -[flags] [options]`);
-            
-            log(buildText(cli, 'usage', edit.separator, 'The command allows you to view a list of commands to use'));
-            log(buildText(cli, 'start'));
-            log(buildText(cli, 'theme', edit.separator, 'The command allows you to output all existing themes', 3));
-            log(buildText(cli, 'theme', edit.separator, 'The command allows you to go to a topic named "name"', 1, `${params('[switch]')} ${arg('name')}`));
-            log(buildText(cli, 'doctor', edit.separator, 'The command allows you to check all AsmX tools', 2));
-            log(buildText(cli, 'update', edit.separator, 'The command allows you to update AsmX to the latest version', 2));
-            log(``);
-            log(`${cli} ${cmd('build')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
-            log(`\t${separator(edit.separator)} ${doc('The command allows you to build/compile an "[arch]" architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.')}`);
-            log(``);
-            log(`${cli} ${cmd('run')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
-            log(`\t${separator(edit.separator)} ${doc('The command allows you to run an "[arch]" architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
-            log(``);
-            log(buildText(cli, 'view', edit.separator, 'The command allows you to view the inside of the EXE (Optional)  file', 1, `exe ${arg('./file')}`));
-            log(buildText(cli, 'micro', edit.separator, 'The command allows you to run the AsmX collector', 2, arg('./file')));
-            log(buildText(cli, 'engine', edit.separator, 'The command allows you to see which engine is installed for AsmX', 2));
-            log(buildText(cli, 'engine', edit.separator, 'The command allows you to install the engine for AsmX', 1, arg('./setfile')));
-            log(`${cli} ${cmd('os')} ${arg('name')} \t\t${separator(edit.separator)} ${doc('The command allows you to navigate the operating system with the name "name"')}`);
-            log(`FLAGS:`);
-            log(`${flag('-ls')}`);
-            log(`${flag('-c')}`);
-            log(`${flag('-v')}`);
-            log(`${`-`.repeat(96)}`);
-            log(``);
+        for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
+            forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
         }
+
+        let cli = `${forgecolor?.cli || Color.FG_GRAY}asmx-cli${Color.RESET}`;
+        let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
+        let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
+        let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
+        let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
+        let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
+        let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
+
+        function buildText(cli, command, separate, text, tabs, other = undefined) {
+            return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
+        }
+
+        log(theme?.forgecolor?.text || Color.FG_GRAY);
+        log(`USAGE:`);
+        log(`-`.repeat(96));
+        log(`${cli} [cmd] [options] -[flags] [options]`);
+        
+        log(buildText(cli, 'usage', edit.separator, 'The command allows you to view a list of commands to use'));
+        log(buildText(cli, 'start'));
+        log(buildText(cli, 'theme', edit.separator, 'The command allows you to output all existing themes', 3));
+        log(buildText(cli, 'theme', edit.separator, 'The command allows you to go to a topic named "name"', 1, `${params('[switch]')} ${arg('name')}`));
+        log(buildText(cli, 'cide', edit.separator, 'The command allows you to go to CIDE (Console IDE)', 3));
+        log(buildText(cli, 'cide', edit.separator, 'The command allows you to get the CIDE (Console IDE) reference', 2, `${params('[help]')}`));
+        log(buildText(cli, 'doctor', edit.separator, 'The command allows you to check all AsmX tools', 2));
+        log(buildText(cli, 'update', edit.separator, 'The command allows you to update AsmX to the latest version', 2));
+        log(``);
+        log(`${cli} ${cmd('build')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
+        log(`\t${separator(edit.separator)} ${doc('The command allows you to build/compile an "[arch]" architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.')}`);
+        log(``);
+        log(`${cli} ${cmd('run')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
+        log(`\t${separator(edit.separator)} ${doc('The command allows you to run an "[arch]" architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
+        log(``);
+        log(buildText(cli, 'view', edit.separator, 'The command allows you to view the inside of the EXE (Optional)  file', 1, `exe ${arg('./file')}`));
+        log(buildText(cli, 'micro', edit.separator, 'The command allows you to run the AsmX collector', 2, arg('./file')));
+        log(buildText(cli, 'engine', edit.separator, 'The command allows you to see which engine is installed for AsmX', 2));
+        log(buildText(cli, 'engine', edit.separator, 'The command allows you to install the engine for AsmX', 1, arg('./setfile')));
+        log(`${cli} ${cmd('os')} ${arg('name')} \t\t${separator(edit.separator)} ${doc('The command allows you to navigate the operating system with the name "name"')}`);
+        log(`FLAGS:`);
+        log(`${flag('-ls')}`);
+        log(`${flag('-c')}`);
+        log(`${flag('-v')}`);
+        log(`${`-`.repeat(96)}`);
+        log(``);
     }
 
 
