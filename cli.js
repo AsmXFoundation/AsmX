@@ -16,6 +16,7 @@ const Color = require('./utils/color');
 // const { MicroParser } = require('./micro/parser');
 const ServerLog = require('./server/log');
 const { getAllFiles, getDirs, printDirs } = require('./fs');
+const CIDE = require('./tools/cide/cide');
 
 
 class ReadmeCLI {
@@ -361,16 +362,12 @@ class Cli {
     }
 
 
-    static vim() {
-        process.stdin.resume();
-        process.stdin.setEncoding('utf8');
-        let sourceVim = [];
-
-        process.stdin.on('data', function (data) {
-            sourceVim.push(data);
-            console.clear();
-            for (const code of sourceVim) process.stdout.write(highlightCLI.light(code));
-        });
+    static cide() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        parameters[0] == 'help' ? require('./tools/cide/cli').help() : CIDE.run();
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
     }
 
 
