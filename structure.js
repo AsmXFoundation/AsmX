@@ -70,5 +70,7 @@ Structure.new('destructor');
 //
 
 Structure.new('event');
+Structure.new('namespace');
+Structure.new('coroutine');
 
 module.exports = Structure;

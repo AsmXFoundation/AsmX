@@ -36,6 +36,24 @@ class Type {
     static new(name, rule) {
         this.types.push({ name, rule });
     }
+
+
+    static otherTypesCheck(type, value) {
+        let check = false;
+
+        if (['Object', 'object'].includes(type)) {
+            // if (typeof value === 'object' && !Array.isArray(value)) check = true;
+            // else check = false;
+
+            check = typeof value === 'object' && !Array.isArray(value) ? true : false;
+        } else if (['List', 'list'].includes(type)) {
+            if (typeof value === 'object' && Array.isArray(value)) check = true;
+            else if (value == '[]') check = true;
+            else check = false;
+        }
+
+        return check;
+    }
 }
 
 

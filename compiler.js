@@ -33,6 +33,7 @@ const Expression = require('./expression');
 const EventEmulator = require('./event');
 const engine = require('./engine/core');
 const EngineAdapter = require('./engine/adapter');
+const Coroutine = require('./coroutine');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -50,6 +51,7 @@ class Compiler {
         this.exceptions = [];
         this.trys = [];
         this.usings = [];
+        this.namespaces = [];
         this.collections = { struct: [], enum: [], class: [], collection: [] };
         this.interfaces = { structs: [], enums: [], collections: [] };
         this.registers = {};
@@ -836,6 +838,96 @@ class Compiler {
     }
 
 
+    compileNamespaceStatement(statement, index, tree) {
+        let Tree = tree;
+        let namespacename = Parser.parseNamespaceStatement(statement[0], index);
+        let ast = Parser.parse(statement.slice(1).join('\n'));
+
+        if ([...Reflect.ownKeys(this.collections), ...Reflect.ownKeys(this.This?.global), 'event', 'engine', 'json', 'global', 'local', 'kernelos', 'keys', 'values', 'json_ir', 'coroutine'].includes(namespacename.namespace)) {
+            new SystemCallException(`[${Color.FG_RED}NamespaceException${Color.FG_WHITE}]: Invalid namespace name`, {
+                code: statement[0], 
+                row: tree.parser.row || 0,
+                select: statement[0]
+            });
+
+            ServerLog.log('You are not allowed to use a backup namespace name. Come up with another namespace name that you need to set.', 'Possible fixes');
+            process.exit(1);
+        }
+
+        // this.namespaces.push({ [namespacename.namespace.name]: statement.slice(1) });
+
+        let allBinds = ast.every(tree => tree?.bind || tree?.property);
+
+        if (allBinds !== true) {
+            let idx = 0;
+            let tr = null;
+
+            ast.forEach((tree, index) => {
+                let keys = Reflect.ownKeys(tree).filter(t => !t?.parser)[0];
+
+                if (['property', 'bind'].includes(keys) == false) {
+                    idx = index;
+                    tr = tree;
+                }
+            });
+
+            let row = idx + Tree.parser.row;
+    
+            new SystemCallException(`[${Color.FG_RED}ClassException${Color.FG_WHITE}]: Unexpected instruction`, {
+                code: tr.parser.code, 
+                row,
+                select: tr.parser.code
+            });
+
+            ServerLog.log('You need to remove this instruction.', 'Possible fixes');
+            process.exit(1);
+        } else {
+            let properties = ast.filter(t => t?.property);
+            let releaseProperties = {};              
+            let obj_t = { property: {} };
+
+            for (let property of properties) {
+                property = property?.property;
+                releaseProperties[property.name] = property.type;
+            }
+
+            obj_t.property = releaseProperties;
+            this.namespaces.push({ [namespacename.namespace]: obj_t });
+        }
+    }
+
+
+    compileYieldStatement(statement, index, tree) {
+        if (this.scope == 'global') {
+            process.stdout.write('You must specify a global scope before you compile the statement in the current process');
+            this.compileInvoke({ address: 0x01 });
+        } else if (this.scope == 'local') {
+            this.coroutineYield = this.checkArgument(statement?.arg) == undefined ? statement?.arg : this.checkArgument(statement?.arg);
+        }
+    }
+
+
+    compileCoroutineStatement(statement, index, tree) {
+        let coroutineInfo = Parser.parseCoroutineStatement(statement[0], tree.parser.row);
+        let i7e = { body: statement.slice(1), info: coroutineInfo.coroutine, parser: coroutineInfo.parser };
+
+        if (i7e?.info?.grammars?.number && i7e?.info?.grammars?.number == 4) {
+            if (!Type.has(i7e.info.types)) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}TypeException${Color.FG_WHITE}]: Nonexistent type name.`, {
+                    code: statement[0],
+                    row: tree.parser.row,
+                    select: i7e.info.types
+                });
+
+                ServerLog.log(`You need to write an existing type name.\n`, 'Possible fixes');
+                process.exit(1);
+            }
+        }
+
+        Coroutine.create(i7e, coroutineInfo.coroutine.name);
+    }
+
+
     compileStructStatement(statement, index, tree) {
         let structname = Parser.parseStructStatement(statement[0], index);
         let ast = Parser.parse(statement.slice(1).join('\n'));
@@ -1355,6 +1447,20 @@ class Compiler {
         let tionInfo = Parser.parseTionStatement(statement[0], tree.parser.row);
         let i7e = { body: statement.slice(1), info: tionInfo.tion, parser: tionInfo.parser };
         const tion = tionInfo.tion;
+
+        if (i7e?.info?.grammars?.number && i7e?.info?.grammars?.number == 4) {
+            if (!Type.has(i7e.info.types)) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}TypeException${Color.FG_WHITE}]: Nonexistent type name.`, {
+                    code: statement[0],
+                    row: tree.parser.row,
+                    select: i7e.info.types
+                });
+
+                ServerLog.log(`You need to write an existing type name.\n`, 'Possible fixes');
+                process.exit(1);
+            }
+        }
+
         Interface.createCustomInterface(i7e, 'tion', tion.name);
     }
 
@@ -1600,6 +1706,13 @@ class Compiler {
                     this.$get = Object.values(this.$get);
                 else this.$get = 'Void';
             }
+        } else if (this.namespaces.map(n => Reflect.ownKeys(n)[0]).includes(properties[0])) {
+            let ns = this.namespaces.filter(n => n?.[properties[0]]);
+            ns = ns[ns.length - 1][properties[0]]['property'];
+
+            if (properties.length == 2) {
+                this.$get = ns?.[properties[1]] ? ns?.[properties[1]] : 'Void';
+            } else this.$get = 'Void';
         } else
         properties.forEach((property) => {
             if (property.indexOf(':') > -1) property = property.split(':');
@@ -1915,20 +2028,29 @@ class Compiler {
         }
 
 
-        if (statement?.structure && statement.structure == 'tion' && statement.name) {
-            const tions = Interface.customs.filter(custom => custom?.structureType && custom?.structureType == 'tion');
-            let idx = trace?.parser.row;
-            const filterTions = tions.filter(tio => tio?.structureName && tio.structureName == statement.name);
+        // if (statement?.structure && statement.structure == 'tion' && statement.name) { // v1
+        if (statement?.structure && ['tion', 'coroutine'].includes(statement.structure) && statement.name) {
+            let structure_vect, filterStructures;
+    
+            if (statement.structure == 'tion') {
+                structure_vect = Interface.customs.filter(custom => custom?.structureType && custom?.structureType == statement.structure);
+                filterStructures = structure_vect.filter(tio => tio?.structureName && tio.structureName == statement.name);
+            } else if (statement.structure == 'coroutine') {
+                structure_vect = Coroutine.getCoroutines(statement.name);
+                filterStructures = structure_vect;
+            }
 
-            if (filterTions.length == 0) {
-                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Not exist tion.`, {
+            let idx = trace?.parser.row;
+
+            if (filterStructures && filterStructures.length == 0) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Not exist ${statement?.structure}.`, {
                     code: trace?.parser?.code,
                     row: idx,
                     select: trace?.parser?.code
                 });
                 process.exit(1);
             } else {
-                let searchedTion = null;
+                let searchedStructure = null;
                 let argumentsHashMap = {};
                 let countArguments = 0;
                 let initArgs = statement.args.split(',').map(t => t.trim());
@@ -1938,40 +2060,60 @@ class Compiler {
                     initArgs[index] = this.checkArgument(argument, trace?.parser?.code, trace?.parser.row) || argument;
                 }
 
-                if (filterTions.length > 0) {
-                    const tions = filterTions;
+                if (filterStructures.length > 0) {
+                    const structure_vect = filterStructures;
                     ['()', ''].includes(statement.args) ? countArguments = 0 : countArguments = initArgs.length;
-                    let filterByTypes = tions.filter(tio => tio?.obj.info.isTypes == true);
+                    let filterByTypes;
+    
+                    if (statement.structure == 'tion') {
+                        filterByTypes = structure_vect.filter(st => st?.obj.info.isTypes == true);
+                    } else if (statement.structure == 'coroutine') {
+                        filterByTypes = structure_vect.filter(st => (st)?.[statement.name]?.info.isTypes == true);
+                    }
+
                     let filter = null;
 
-                    function baseFilter(tions, isTypes, countArguments) {
-                        let filterByTypes = tions.filter(tio => tio?.obj.info.isTypes == isTypes);
-                        filter = filterByTypes.filter(tio => tio?.obj.info.countArguments == countArguments);
+                    function baseFilter(vector, isTypes, countArguments) {
+                        let filterByTypes = vector.filter(st => st?.obj.info.isTypes == isTypes);
+                        filter = filterByTypes.filter(st => st?.obj.info.countArguments == countArguments);
+                        return filter;
+                    }
+
+                    function baseFilterCoroutine(vector, isTypes, countArguments) {
+                        let filterByTypes = vector.filter(st => (st)?.[statement.name]?.info.isTypes == isTypes);
+                        filter = filterByTypes.filter(st => (st)?.[statement.name]?.info.countArguments == countArguments);
                         return filter;
                     }
 
                     if (filterByTypes.length == 0) {
-                        let filter = baseFilter(tions, false, countArguments);
-                        searchedTion = filter[filter.length - 1];
+                        let filter;
+
+                        if (statement.structure == 'tion') {
+                            filter = baseFilter(structure_vect, false, countArguments);
+                        } else if (statement.structure == 'coroutine') {
+                            filter = baseFilterCoroutine(structure_vect, false, countArguments);
+                        }
+
+                        searchedStructure = filter[filter.length - 1];
                     } else {
-                        filter = tions.filter(tio => tio?.obj.info.countArguments == countArguments);
+                        filter = structure_vect.filter(st => st?.obj.info.countArguments == countArguments);
 
                         if (filter.length == 1) {
-                            searchedTion = filter[0];
+                            searchedStructure = filter[0];
                         } else if (filter.length > 1) {
                             let filterByGrammars = null;
 
                             if (initArgs.length == 1) {
-                                filterByGrammars = filter.filter(tio => tio.obj.info.grammars.number == 4);
+                                filterByGrammars = filter.filter(st => st.obj.info.grammars.number == 4);
                                 let typeArgument = null;
                                 for (const T of Type.types) if (Type.check(T.name, initArgs[0])) typeArgument = T.name;
-                                let filterByType = filterByGrammars.filter(tio => tio?.obj.info.types == typeArgument);
+                                let filterByType = filterByGrammars.filter(st => st?.obj.info.types == typeArgument);
 
                                 if (filterByType.length == 0) {
-                                    let filter = baseFilter(tions, false, countArguments);
-                                    searchedTion = filter[filter.length - 1];
+                                    let filter = baseFilter(structure_vect, false, countArguments);
+                                    searchedStructure = filter[filter.length - 1];
                                 } else {
-                                    searchedTion = filterByType[0];
+                                    searchedStructure = filterByType[0];
                                 }
                             } else if (initArgs.length > 1) {
                                 // type arg*
@@ -1979,23 +2121,42 @@ class Compiler {
                         }
                     }
                 } else {
-                   searchedTion = filterTions[0];
+                   searchedStructure = filterStructures[0];
                 }
 
-                const tion = searchedTion;
-                let body = tion?.obj.body;
+                const structure_t = searchedStructure;
+                let body;
+
+                if (statement.structure == 'tion') {
+                    body = structure_t?.obj.body;
+                } else if (statement.structure == 'coroutine') {
+                    body = structure_t[statement.name]?.body;
+                }
 
                 if (countArguments >= 1) {
                     let idx = 0;
-                    for (const argument of searchedTion.obj.info.arguments.split(',').map(t => t.trim())) {
+                    for (const argument of searchedStructure.obj.info.arguments.split(',').map(t => t.trim())) {
                         argumentsHashMap[argument] = initArgs[idx];
                         idx++;
                     }
                 }
 
-                if (tion !== null) {
-                    let compiler = new Compiler(Parser.parse(body.join('\n')), 'local', { argsScopeLocal: argumentsHashMap || {} });
-                    (compiler.$urt == null) ? this.$urt = 'Void' : this.$urt = compiler.$urt;
+
+                if (structure_t !== null) {
+                    if (statement.structure == 'tion') {
+                        let compiler = new Compiler(Parser.parse(body.join('\n')), 'local', { argsScopeLocal: argumentsHashMap || {} });
+                        (compiler.$urt == null) ? this.$urt = 'Void' : this.$urt = compiler.$urt;
+                    } else if (statement.structure == 'coroutine') {
+                        body = Parser.parse(body.join('\n'));
+
+                        if (statement.method = 'next') {
+                            let indexYield = body.findIndex(t => t?.yield) + 1;
+                            let compiler = new Compiler(body.slice(0, indexYield), 'local', { argsScopeLocal: argumentsHashMap || {} });
+                            this.$urt = compiler?.coroutineYield == undefined? 'Void' : compiler?.coroutineYield;
+                            console.log('coroutine: ' ,this.$urt);
+                            structure_t[statement.name].body = structure_t[statement.name].body.slice(indexYield);
+                        }
+                    }
                 }
             }
         }
@@ -2753,7 +2914,7 @@ class Compiler {
         statement.value = this.checkArgument(statement.value, trace.parser.code, trace.parser.row) || statement.value;
         trace.parser.code = trace?.parser.code.replace(forReplace.name, statement.name);
         trace.parser.code = trace?.parser.code.replace(forReplace.value, statement.value);
-        
+
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
         if (Task.last() && Task.last()['value'] == statement.value && Task.last()['name'] == 'input') {

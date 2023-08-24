@@ -382,6 +382,14 @@ class Parser {
             tokens = true;
         }
 
+        else if ((tokens = /\@[Cc]all\s+(\w+)\:\:(\w+)\:\:(\w+)\(([^]+)?\)/.exec(lineCode))) {
+            ast['call']['structure'] = tokens[1].trim();
+            ast['call']['name'] = tokens[2].trim();
+            ast['call']['method'] = tokens[3].trim();
+            ast['call']['args'] = tokens[4] == undefined ? '()' : tokens[3].trim();
+            tokens = true;
+        }
+
         else if ((tokens = /\@[Cc]all\s+(\w+)\-\>(\w+)\(([^]+)?\)/.exec(lineCode))) {
             ast['call']['class'] = tokens[1].trim();
             ast['call']['method'] = tokens[2].trim();
@@ -1096,6 +1104,80 @@ class Parser {
         let ast = this._parseStructure(line, row, /^\@[Ee]vent\s+[a-zA-Z][a-zA-Z0-9_]*\s+(\w+)(?=\s+\:|\:)/);
         let type = /^\@[Ee]vent\s+([a-zA-Z][a-zA-Z0-9_]*)\s+\w+(?=\s+\:|\:)/.exec(line)[1];
         return { event: ast.structure.name, type, parser: ast.parser };
+    }
+
+
+    static parseNamespaceStatement(line , row) {
+        let ast = this._parseStructure(line, row, /^\@[Nn]amespace\s+(\w+)(?=\s+\:|\:)/);
+        return { namespace: ast.structure.name, parser: ast.parser };
+    }
+
+
+    static parseCoroutineStatement(line , row) {
+        let ast = { coroutine: {}, parser: { code: line, row: row } };
+        line = this.parseAndDeleteEmptyCharacters(line);
+        this.lexerSymbol(line, { brackets: false, operators: ['=', '+', '-', '*', '%', '/'], angles: false });
+        if (typeof line !== 'string' || line.length === 0) return 'rejected';
+
+        if (/\@[Cc]oroutine\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\(\)/.test(line)) {
+            ast.coroutine.isArguments = false;
+            ast.coroutine.extends = false;
+            ast.coroutine.isTypes = false;
+            ast.coroutine.countArguments = 0;
+            ast.coroutine.grammars = { number: 1 };
+            const pattern = /\@[Cc]oroutine\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\(\)/;
+            ast.coroutine.name = pattern.exec(line)[1];
+        }
+
+        else if (/\@[Cc]oroutine\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\([a-zA-Z][a-zA-Z0-9_]*\)/.test(line)) {
+            ast.coroutine.isArguments = true;
+            ast.coroutine.extends = false;
+            ast.coroutine.isTypes = false;
+            ast.coroutine.countArguments = 1;
+            ast.coroutine.grammars = { number: 2 };
+            const pattern = /\@[Cc]oroutine\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\(([a-zA-Z][a-zA-Z0-9_]*)\)/;
+            const tokens = pattern.exec(line).filter(l => l).map(l => l.trim()).filter(l => l != '').slice(1);
+            ast.coroutine.name = tokens[0];
+            ast.coroutine.arguments = tokens[1];
+        }
+
+        else if (/\@[Cc]oroutine\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\((\s?\s+)?[a-zA-Z][a-zA-Z0-9_]*((\s?\s+)?,(\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*))*?(\s?\s+)?\)/.test(line)) {
+            ast.coroutine.isArguments = true;
+            ast.coroutine.extends = false;
+            ast.coroutine.isTypes = false;
+            ast.coroutine.grammars = { number: 3 };
+            const pattern = /\@[Cc]oroutine\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\((\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*((\s?\s+)?,(\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*))*?)(\s?\s+)?\)/;
+            const tokens = pattern.exec(line).filter(l => l).map(l => l.trim()).filter(l => l != '').slice(1);
+            ast.coroutine.countArguments = tokens[1].split(',').length;
+            ast.coroutine.name = tokens[0];
+            ast.coroutine.arguments = tokens[1];
+        }
+
+        else if (/\@[Cc]oroutine\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\((\s?\s+)?[a-zA-Z][a-zA-Z0-9_]*\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\)/.test(line)) {
+            ast.coroutine.isArguments = true;
+            ast.coroutine.extends = false;
+            ast.coroutine.isTypes = true;
+            ast.coroutine.countArguments = 1;
+            ast.coroutine.grammars = { number: 4 };
+            const pattern = /\@[Cc]oroutine\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\((\s?\s+)?([a-zA-Z][a-zA-Z0-9_]*)\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\)/;
+            const tokens = pattern.exec(line).filter(l => l).map(l => l.trim()).filter(l => l != '').slice(1);
+            ast.coroutine.name = tokens[0];
+            ast.coroutine.types = tokens[1];
+            ast.coroutine.arguments = tokens[2];
+        }
+
+        return ast;
+    }
+
+
+    static parseYieldStatement(line, row){
+        let ast = { yield: {}, parser: { code: line, row: row } };
+        line = this.parseAndDeleteEmptyCharacters(line);
+        const args = this.parserArgumentsInstruction(line);
+        this.checkLimitArguments(args,ast.parser, [1, 1]);
+        this.lexerSymbol(line, { brackets: ['(', ')', '{', '}'] });
+        ast['yield']['arg'] = args[0];
+        return ast;
     }
 
 

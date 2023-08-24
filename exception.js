@@ -62,8 +62,8 @@ class SymbolError {
 class ArgumentError {
     constructor(message, options) {
         this.options = options;
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine;
 
         if (this.options.select) {
@@ -92,8 +92,8 @@ class UnitError extends BackTraceError {
 
         if (lineCode != undefined || lineCode != null) {
             this.options = options;
-            let lastLine = `${Color.FG_GRAY}${this.options?.row} |\t\n`;
-            let middleLine = `${this.options?.row + 1} |\t`;
+            let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+            let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
             let nextLine = `${this.options?.row + 2} |\t`;
 
             console.log(`${Color.BRIGHT}${message}`);
@@ -143,8 +143,8 @@ class FileError extends BackTraceError {
 class ImportException {
     constructor(message, options) {
         this.options = options;
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine;
 
         if (this.options.select) {
@@ -171,8 +171,8 @@ class SyntaxError extends Error {
     constructor(message, options){
         super(message);
         this.options = options;
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine;
 
         if (this.options.select) {
@@ -199,8 +199,8 @@ class CodeStyleException {
     constructor(message, options) {
         this.options = options;
 
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine;
 
         if (options?.select) {
@@ -220,8 +220,8 @@ class CodeStyleException {
 class InstructionException {
     constructor(message, options){
         this.options = options;
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |${Color.FG_RED}\t^${'-'.repeat(this.options.code.length -1)}${Color.RESET}\n`;
 
         process.stdout.write(`${Color.BRIGHT}${message}\n`);
@@ -236,9 +236,8 @@ class InstructionException {
 class RegisterException {
     constructor(message, options) {
         this.options = options;
-
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine;
 
         if (options?.select) {
@@ -315,8 +314,8 @@ class UsingException {
     constructor(message, options) {
         this.options = options;
 
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine;
 
         if (this.options.select) {
@@ -342,8 +341,8 @@ class UsingException {
 class ConstException {
     constructor(message, options) {
         this.options = options;
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |\t${Color.FG_RED}^${'-'.repeat(this.options?.code.length - 1)}${Color.FG_WHITE}\n`;
 
         process.stdout.write(`${Color.BRIGHT}${message}\n`);
@@ -357,8 +356,8 @@ class ConstException {
 class SystemCallException {
     constructor(message, options) {
         this.options = options;
-        let lastLine = `${Color.FG_GRAY}${this.options.row} |\t\n`;
-        let middleLine = `${this.options.row + 1} |\t`;
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
         let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |\t${' '.repeat(this.options.code.indexOf(this.options.select))}${Color.FG_RED}^${'-'.repeat(this.options?.select.length - 1)}${Color.FG_WHITE}\n`;
 
         process.stdout.write(`${Color.BRIGHT}${message}\n`);
