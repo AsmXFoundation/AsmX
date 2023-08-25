@@ -909,7 +909,7 @@ class Compiler {
 
     compileCoroutineStatement(statement, index, tree) {
         let coroutineInfo = Parser.parseCoroutineStatement(statement[0], tree.parser.row);
-        let i7e = { body: statement.slice(1), info: coroutineInfo.coroutine, parser: coroutineInfo.parser };
+        let i7e = { body: statement.slice(1), bodyOriginal: statement.slice(1) , info: coroutineInfo.coroutine, parser: coroutineInfo.parser };
 
         if (i7e?.info?.grammars?.number && i7e?.info?.grammars?.number == 4) {
             if (!Type.has(i7e.info.types)) {
@@ -2096,7 +2096,11 @@ class Compiler {
 
                         searchedStructure = filter[filter.length - 1];
                     } else {
-                        filter = structure_vect.filter(st => st?.obj.info.countArguments == countArguments);
+                        if (statement.structure == 'tion') {
+                            filter = structure_vect.filter(st => st?.obj.info.countArguments == countArguments);
+                        } else if (statement.structure == 'coroutine') {
+                            filter = structure_vect.filter(st => (st)?.[statement.name]?.info.countArguments == countArguments);
+                        }
 
                         if (filter.length == 1) {
                             searchedStructure = filter[0];
@@ -2135,7 +2139,16 @@ class Compiler {
 
                 if (countArguments >= 1) {
                     let idx = 0;
-                    for (const argument of searchedStructure.obj.info.arguments.split(',').map(t => t.trim())) {
+                    let args;
+
+                    if (statement.structure == 'tion') {
+                        args = searchedStructure.obj.info.arguments;
+                    } else if (statement.structure == 'coroutine') {
+                        args = searchedStructure[statement.name]?.info?.arguments;
+                    }
+
+                    
+                    for (const argument of args.split(',').map(t => t.trim())) {
                         argumentsHashMap[argument] = initArgs[idx];
                         idx++;
                     }
@@ -2149,12 +2162,24 @@ class Compiler {
                     } else if (statement.structure == 'coroutine') {
                         body = Parser.parse(body.join('\n'));
 
-                        if (statement.method = 'next') {
+                        if (statement.method == 'next') {
                             let indexYield = body.findIndex(t => t?.yield) + 1;
                             let compiler = new Compiler(body.slice(0, indexYield), 'local', { argsScopeLocal: argumentsHashMap || {} });
-                            this.$urt = compiler?.coroutineYield == undefined? 'Void' : compiler?.coroutineYield;
-                            console.log('coroutine: ' ,this.$urt);
+                            this.$urt = { value: compiler?.coroutineYield == undefined ? 'Void' : compiler?.coroutineYield, done: compiler?.coroutineYield == undefined ? 'true' : 'false' };
                             structure_t[statement.name].body = structure_t[statement.name].body.slice(indexYield);
+                        } else if (statement.method == 'return') {
+                            this.$urt = Reflect.ownKeys(argumentsHashMap)[0] ? { value: argumentsHashMap[Reflect.ownKeys(argumentsHashMap)[0]], done: 'true' } : 'Void';
+                            structure_t[statement.name].body = [];
+                        } else if (statement.method == 'start') {
+                            structure_t[statement.name].body = searchedStructure[statement.name]?.bodyOriginal;
+                            this.$urt = { value:  Reflect.ownKeys(argumentsHashMap)[0] ? argumentsHashMap[Reflect.ownKeys(argumentsHashMap)[0]] : 'Void', done: 'false' };
+                        } else {
+                            new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}CallException${Color.FG_WHITE}]: Nonexistent method name.`, {
+                                ...trace.parser,
+                                select: statement.method 
+                            });
+
+                            process.exit(1);
                         }
                     }
                 }
