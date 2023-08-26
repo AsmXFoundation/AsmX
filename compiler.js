@@ -2176,7 +2176,7 @@ class Compiler {
                         } else {
                             new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}CallException${Color.FG_WHITE}]: Nonexistent method name.`, {
                                 ...trace.parser,
-                                select: statement.method 
+                                select: statement.method
                             });
 
                             process.exit(1);

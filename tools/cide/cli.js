@@ -42,7 +42,7 @@ class CLI {
                 this.counter++;
             }
 
-            if (this.counter == 0) console.log('get more information: asmx-cli usage');
+            if (this.counter == 0) console.log('get more information: cide-cli help');
         }
     }
     //============================================================================================

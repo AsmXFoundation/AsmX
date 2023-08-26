@@ -62,6 +62,8 @@ class Cli {
                 kernelCli.execute(['asmx-cli', ...args]);
             } else if (this.cdPath == 'cide') {
                 require('../../../tools/cide/cli').execute(['cide-cli', ...args]);
+            } else if (this.cdPath == 'app') {
+                require('../../../bin/app/cli').execute(['app-cli', ...args]);
             }
         }
     }
