@@ -85,7 +85,7 @@ class AsmXPackageManager {
                             
                             for (const cell_t of response) {
                                 if (cell_t?.type && cell_t?.type == 'file') {
-                                    response = execSync(`curl -X GET ${cell_t?.href} -i`); // { stdio: 'pipe' }
+                                    response = execSync(`curl -X GET ${cell_t?.href}`); // { stdio: 'pipe' }
                                     response = response.toString('utf8');
                                     fs.writeFileSync(`${PACKAGES_URL}/${name}/${cell_t?.name}`, response, { encoding: 'utf8'});
                                 } else if (cell_t?.type && cell_t?.type == 'dir') {

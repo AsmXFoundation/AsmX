@@ -91,6 +91,7 @@ class CLI {
         log(buildText(cli, 'install', edit.separator, 'the command allows you to install a package of type [type] with the name \'name\'', 1, `${params('[type]')} ${arg('name')}`));
         log(buildText(cli, 'uninstall', edit.separator, 'the command allows you to delete a package of type [type] with the name \'name\'', 1, `${params('[type]')} ${arg('name')}`));
         log(buildText(cli, 'is', edit.separator, 'the command lets you find out if there is a package of type [type] with the name \'name\'', 2, `${params('[type]')} ${arg('name')}`));
+        log(buildText(cli, 'verify', edit.separator, 'The command allows you to check a package of the type [type] with the name \'name\' for verification.', 1, `${params('[type]')} ${arg('name')}`));
         log(`-`.repeat(96));
     }
 
