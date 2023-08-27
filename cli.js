@@ -1,4 +1,6 @@
 const fs = require('fs');
+const dns = require('dns');
+const path = require('path');
 
 const Task = require('./task');
 const highlightCLI = require('./utils/highlight');
@@ -6,17 +8,17 @@ const highlightCLI = require('./utils/highlight');
 const CortexMARM = require('./bin/arm/arm');
 const MiddlewareSoftware = require('./middleware.software');
 const EXE = require('./bin/exe/exe');
-const path = require('path');
 const App = require('./bin/app/app');
 const Parser = require('./parser');
 const Compiler = require('./compiler');
-const { exec} = require('child_process');
+const { exec, execSync} = require('child_process');
 const config = require('./config');
 const Color = require('./utils/color');
 // const { MicroParser } = require('./micro/parser');
 const ServerLog = require('./server/log');
 const { getAllFiles, getDirs, printDirs } = require('./fs');
 const CIDE = require('./tools/cide/cide');
+// const AsmXPackageManager = require('./tools/apm/apm');
 
 
 class ReadmeCLI {
@@ -221,6 +223,23 @@ class Cli {
         this.flagUsage = false;
         this.isexit = true;
     }
+
+
+    // static install() {
+    //     const parameters = this.cli_args.slice(2);
+
+    //     if (parameters.length > 3) { 
+    //         ServerLog.log("too many parameters", 'Exception');
+    //         process.exit(1);
+    //     }
+
+    //     const cli = require('./tools/apm/cli');
+    //     // cli.execute(['apm-cli', 'install', ...parameters]);
+
+    //     this.commandUsage = false;
+    //     this.flagUsage = false;
+    //     this.isexit = true;
+    // }
 
 
     static start() {

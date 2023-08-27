@@ -34,6 +34,7 @@ const EventEmulator = require('./event');
 const engine = require('./engine/core');
 const EngineAdapter = require('./engine/adapter');
 const Coroutine = require('./coroutine');
+const AsmXPackageManager = require('./tools/apm/apm');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -213,6 +214,20 @@ class Compiler {
                     for (const tree of alias.reverse()) this.AbstractSyntaxTree.unshift(tree);
 
                 exececuted_imports.push(module.import.alias);
+            }
+        });
+
+        let packages = this.AbstractSyntaxTree.filter(tree => tree?.package);
+        let exececuted_packages = [];
+
+        packages.forEach(package_t => {
+            if (!exececuted_packages.includes(package_t.package.package)) {
+                const pkg = this.compilePackageStatement(package_t.package, package_t);
+                
+                if (pkg instanceof Array)
+                    for (const tree of pkg.reverse()) this.AbstractSyntaxTree.unshift(tree);
+
+                exececuted_packages.push(package_t.package.package);
             }
         });
 
@@ -2014,6 +2029,74 @@ class Compiler {
             if ([7, 8, 9].includes(stacktrace)) ServerLog.log('The stack trace limit is close to 10 for the output of the StackTraceException error', 'Warning');
             if (stacktrace == this.STACKTRACE_LIMIT) new StackTraceException();
         }
+    }
+
+
+    compilePackageStatement(statement, index, trace) {
+        let filePath = ValidatorByType.validateByTypeString(statement.package) ? statement.package.slice(1, -1) : statement.package;
+        let fileForCompiler, dots;
+        dots = filePath.indexOf('.') > -1 ? filePath.split('.') : filePath;
+        let isAll = false;
+        let ast;
+        let hadException = false;
+        if (dots[dots.length - 1].startsWith('*')) isAll = true;
+        if (dots[dots.length - 1].indexOf('*') > -1) if (dots[dots.length - 1].length > 1) hadException = true;
+
+        if (hadException) {
+            new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Invalid package name.`, {
+                ...trace?.parser,
+                select: trace?.parser?.code
+            });
+
+            process.exit(1);
+        }
+
+        Array.isArray(dots) && dots.pop();
+        
+        if (typeof dots == 'object' && Array.isArray(dots)) {
+            for (const dot of dots) {
+                let hadException = false;
+                if ((/[a-zA-Z][a-zA-Z0-9_]+/.exec(dot)[0] == dot) == false) hadException = true;
+
+                if (hadException) {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Invalid package name.`, {
+                        ...trace?.parser,
+                        select: trace?.parser?.code
+                    });
+
+                    process.exit(1);
+                }
+            }
+        }
+
+        try {
+            const PACKAGES_URL = '../packages';
+
+            if (!fs.existsSync(`${PACKAGES_URL}/${Array.isArray(dots) ? dots[0] : dots}`)) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: This package non-exists.`, {
+                    ...trace?.parser,
+                    select: trace?.parser?.code
+                });
+
+                process.exit(1);
+            }
+        
+
+            if (AsmXPackageManager.verify('box', Array.isArray(dots) ? dots[0] : dots, '--ns') == true) {
+                let settings = AsmXPackageManager.__getPackageSettings(Array.isArray(dots) ? dots[0] : dots);
+
+                if (settings.type == 'main') {
+                    let file = fs.readFileSync(`../packages/${Array.isArray(dots) ? dots[0] : dots}/${settings.main}`, {encoding: 'utf-8' });
+                    ast = Parser.parse(file);
+                }
+            } else {
+
+            }
+        } catch (exception) {
+            console.log(exception);
+        }
+
+        return ast;
     }
 
 

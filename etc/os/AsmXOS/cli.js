@@ -64,6 +64,8 @@ class Cli {
                 require('../../../tools/cide/cli').execute(['cide-cli', ...args]);
             } else if (this.cdPath == 'app') {
                 require('../../../bin/app/cli').execute(['app-cli', ...args]);
+            } else if (this.cdPath == 'apm') {
+                require('../../../tools/apm/cli').execute(['apm-cli', ...args]);
             }
         }
     }

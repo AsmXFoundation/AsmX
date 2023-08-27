@@ -1342,6 +1342,34 @@ class Parser {
     }
 
 
+    static parsePackageStatement(line, row){
+        let ast = { package: {}, parser: { code: line, row: row } };
+        let originalLine = line;
+        this.lexerSymbol(line, { operators: ['=', '+', '-', '%', ':', '/'] });
+        line = this.parseAndDeleteEmptyCharacters(line);
+        const [, Package] = line.split(' ');
+        if (!ValidatorByType.validateTypeIdentifier(Package)) Lexer.lexer(Alias, { code: originalLine, row: row + 1 });
+
+        if (line.split(' ').length > 2) {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You have too many arguments.`, {
+                row: row,     code:originalLine
+            });
+
+            process.exit(1);
+        }
+
+        if (Package == undefined) { 
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}PackageException${Color.FG_WHITE}]: package not found.`, {
+                row: row,     code:originalLine
+            });
+
+            process.exit(1);
+        } else ast.package.package = Package;
+
+        return ast;
+    }
+
+
     /**
      * This function parses the arguments of a given line of code in JavaScript.
      * @param lineCode - The code line that contains the instruction and its arguments.

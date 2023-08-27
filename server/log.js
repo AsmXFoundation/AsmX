@@ -1,6 +1,6 @@
 const Color = require("../utils/color");
 
-class ServerLog {
+class   ServerLog {
     static tags = [];
 
     /**
