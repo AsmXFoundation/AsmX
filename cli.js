@@ -128,10 +128,10 @@ class Cli {
         log(buildText(cli, 'update', edit.separator, 'The command allows you to update AsmX to the latest version', 2));
         log(``);
         log(`${cli} ${cmd('build')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
-        log(`\t${separator(edit.separator)} ${doc('The command allows you to build/compile an "[arch]" architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.')}`);
+        log(`\t${separator(edit.separator)} ${doc('The command allows you to build/compile an [arch] architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.')}`);
         log(``);
         log(`${cli} ${cmd('run')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
-        log(`\t${separator(edit.separator)} ${doc('The command allows you to run an "[arch]" architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
+        log(`\t${separator(edit.separator)} ${doc('The command allows you to run an [arch] architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
         log(``);
         log(buildText(cli, 'view', edit.separator, 'The command allows you to view the inside of the EXE (Optional)  file', 1, `exe ${arg('./file')}`));
         log(buildText(cli, 'micro', edit.separator, 'The command allows you to run the AsmX collector', 2, arg('./file')));

@@ -55,6 +55,53 @@ class CLI {
     }
     //============================================================================================
 
+
+    static help() {
+        let log = (message, params) => console.log(`\t${message}`, params ? params : '');
+        const forgecolor = {};
+        let theme;
+
+        if (config.INI_VARIABLES?.CLI_THEME != 'common') {
+            theme = require(`../../etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
+        } else theme = {};
+
+        const edit = {
+            separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
+        };
+
+        for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
+            forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
+        }
+
+        let cli = `${forgecolor?.cli || Color.FG_GRAY}app-cli${Color.RESET}`;
+        let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
+        let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
+        let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
+        let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
+        let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
+        let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
+
+        function buildText(cli, command, separate, text, tabs, other = undefined) {
+            return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
+        }
+
+        log(theme?.forgecolor?.text || Color.FG_GRAY);
+        log(`USAGE:`);
+        log(`-`.repeat(96));
+        log(`${cli} [cmd] [options] -[flags] [options]`);
+        log(buildText(cli, 'help', edit.separator, 'The command allows you to learn more about the App CLI'));
+        log(``);
+        log(`${cli} ${cmd('build')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
+        log(`\t${separator(edit.separator)} ${doc('The command allows you to build/compile an [arch] architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.')}`);
+        log(``);
+        log(`${cli} ${cmd('run')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
+        log(`\t${separator(edit.separator)} ${doc('The command allows you to run an [arch] architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
+        log(``);
+        log(buildText(cli, 'latest', edit.separator, 'The command allows you to find out the latest version of the compiler'));
+        log(buildText(cli, 'versions', edit.separator, 'The command allows you to find out all versions of the compiler', 2));
+    }
+
+
     static build(){
         const parameters = this.cli_args.slice(2).filter(arg => arg.trim() != '');
 
@@ -97,46 +144,34 @@ class CLI {
     }
 
 
-    static help() {
-        let log = (message, params) => console.log(`\t${message}`, params ? params : '');
-        const forgecolor = {};
-        let theme;
+    static run() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1);
 
-        if (config.INI_VARIABLES?.CLI_THEME != 'common') {
-            theme = require(`../../etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
-        } else theme = {};
-
-        const edit = {
-            separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
-        };
-
-        for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
-            forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
+        if (parameters.length > 2) { 
+            ServerLog.log("too many parameters", 'Exception');
+            process.exit(1);
         }
 
-        let cli = `${forgecolor?.cli || Color.FG_GRAY}app-cli${Color.RESET}`;
-        let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
-        let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
-        let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
-        let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
-        let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
-        let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
-
-        function buildText(cli, command, separate, text, tabs, other = undefined) {
-            return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
+        const architecture = parameters[0];
+        let file = parameters[1];
+        
+        if (architecture.indexOf('@') > -1) {
+            const [arch, version] = architecture.split('@');
+            try {
+                const complier = require(`./${version}/${arch}`);
+                if (file && !file.endsWith('.app')) file += '.app';
+                if (file == undefined) file = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.app`;
+                complier.Execute().execute(file);
+            } catch (exception) {
+                // console.log(exception);
+                ServerLog.log('Unknow version architecture', 'Exception');
+            }
+        } else if (architecture === 'app') {
+            App.Execute().execute(file);
+        } else {
+            ServerLog.log('Unknow architecture', 'Exception');
+            process.exit(1);
         }
-
-        log(theme?.forgecolor?.text || Color.FG_GRAY);
-        log(`USAGE:`);
-        log(`-`.repeat(96));
-        log(`${cli} [cmd] [options] -[flags] [options]`);
-        log(buildText(cli, 'help', edit.separator, 'The command allows you to learn more about the App CLI'));
-        log(``);
-        log(`${cli} ${cmd('build')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
-        log(`\t${separator(edit.separator)} ${doc('The command allows you to build/compile an "[arch]" architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.')}`);
-        log(``);
-        log(buildText(cli, 'latest', edit.separator, 'The command allows you to find out the latest version of the compiler'));
-        log(buildText(cli, 'versions', edit.separator, 'The command allows you to find out all versions of the compiler', 2));
     }
 
 
