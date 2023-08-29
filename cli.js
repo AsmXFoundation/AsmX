@@ -73,8 +73,6 @@ class Cli {
             }
 
             if (this.counter == 0) console.log('get more information: asmx-cli usage');
-        } else if (args[0] == 'exe-cli') {
-
         }
     }
     //============================================================================================

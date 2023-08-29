@@ -3,8 +3,8 @@ const Cli = require("./cli");
 const Tokenize = require("./parser");
 const cli = require("./cli");
 
-class MiniOS {
-    type = 'MiniOS';
+class AsmXOS {
+    type = 'AsmXOS';
     arch = 'AsmX';
     version = 'v1.0.0';
 
@@ -15,20 +15,17 @@ class MiniOS {
        while (1) while (1) this.connect();
     }
 
-    __logo() {
+    __logo() { 
         return [
-            '\t   _________________ \n',
-            '\t  /                 \\\n',
-            '\t /     ___________   \\\n',
-            '\t|   /    _____    \\   |\n',
-            '\t|__|   /      \\    |__|\n',
-            '\t      |        |        \n',
-            '\t      |        |        \n',
-            '\t __    \\______/     __ \n',
-            '\t|  |               |  |\n',
-            '\t|   \\_____________/   |\n',
-            '\t \\                   \/\n',
-            '\t  \\_________________\/\n\n',
+           `  /$$$$$$                          /$$   /$$        /$$$$$$   /$$$$$$ \n`,
+           ` /$$__  $$                        | $$  / $$       /$$__  $$ /$$__  $$\n`,
+           `| $$  \\ $$  /$$$$$$$ /$$$$$$/$$$$ |  $$/ $$/      | $$  \\ $$| $$  \\__/\n`,
+           `| $$$$$$$$ /$$_____/| $$_  $$_  $$ \\  $$$$/       | $$  | $$|  $$$$$$ \n`,
+           `| $$__  $$|  $$$$$$ | $$ \\ $$ \\ $$  >$$  $$       | $$  | $$ \\____  $$\n`,
+           `| $$  | $$ \\____  $$| $$ | $$ | $$ /$$/\\  $$      | $$  | $$ /$$  \\ $$\n`,
+           `| $$  | $$ /$$$$$$$/| $$ | $$ | $$| $$  \\ $$      |  $$$$$$/|  $$$$$$/\n`,
+           `|__/  |__/|_______/ |__/ |__/ |__/|__/  |__/       \\______/  \\______/ \n`
+                                                                                 
         ];
     }
 
@@ -37,7 +34,7 @@ class MiniOS {
         let isExit = true; 
 
         while (isExit) {
-            let prompt = this.createStream('input', { text: ` ${cli.cd()} ~# ` }).trim();
+            let prompt = this.createStream('input', { text: ` ${cli.cd(1)} ~# ` }).trim();
             let answer = Cli.execute(prompt.split(' '));
             if (typeof answer == 'string') console.log(answer);
         }
@@ -53,6 +50,6 @@ class MiniOS {
     }
 }
 
-const miniOS = new MiniOS();
+const asmxOS = new AsmXOS();
 
-module.exports = miniOS;
+module.exports = asmxOS;

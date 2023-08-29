@@ -1,9 +1,12 @@
+const fs = require('fs');
+const os = require("os");
+
 const kernelCli = require("../../../cli");
 const { getDirs, printDirs, getFiles } = require("../../../fs");
 const ServerLog = require("../../../server/log");
-const fs = require('fs');
 const Color = require("../../../utils/color");
 const config = require("../../../config");
+const { exec, execSync } = require('child_process');
 
 
 class Cli {
@@ -120,17 +123,26 @@ class Cli {
     }
 
 
-    cd() {
-        const parameters = this.cli_args;
-        const path = parameters[1];
-
-        if (parameters.length > 2) { 
-            ServerLog.log("too many parameters", 'Exception');
-        } else if (path) {
-            this.cdPath = path;
-        } else {
-            let cd = `${this.root}${this.separateCD}${this.cdPath}`;
+    cd(path) {
+        if (typeof path === 'number') {
+            let conf;
+            if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
+            let cd = `${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.root}\x1b[0m${this.separateCD}${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.cdPath}\x1b[0m`;
             return cd;
+        } else {
+            const parameters = this.cli_args;
+            const path = parameters[1];
+
+            if (parameters.length > 2) { 
+                ServerLog.log("too many parameters", 'Exception');
+            } else if (path) {
+                this.cdPath = path;
+            } else {
+                let conf;
+                if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
+                let cd = `${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.root}\x1b[0m${this.separateCD}${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.cdPath}\x1b[0m`;
+                return cd;
+            }
         }
     }
 
@@ -184,9 +196,49 @@ class Cli {
 
 
     neofetch() {
-        console.log('\t\t\t\t\tarchitecture: AsmX');
-        console.log('\t\t\t\t\tname os: AsmXOS');
-        console.log(`\t\t\t\t\tui: ${config.INI_VARIABLES?.CLI_THEME || 'common (default)'}`);
+        const parameters = this.cli_args;
+
+        if (parameters.length > 1) { 
+            ServerLog.log("too many parameters\n", 'Exception');
+        } else {
+            const log = (text) => console.log(`\t\t\t\t\t${text}`);
+            let conf;
+        
+            if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
+
+            log(`${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.root}\x1b[0m${this.separateCD}${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.cdPath}\x1b[0m`);
+            log('-'.repeat(18));
+
+            let info_t = {
+                OS: 'AsmX OS',
+                Kernel: 'AsmX Kernel',
+                Architecture: 'AsmX',
+                Theme: config.INI_VARIABLES?.CLI_THEME || 'common (default)',
+                CPU: os.cpus()[0]['model']
+            }
+
+
+            for (const property_t of Reflect.ownKeys(info_t)) {
+                log(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
+            }
+
+
+            if (process.platform == 'win32') {
+                let gpu = execSync('wmic path win32_VideoController get name');
+                log(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}GPU\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${gpu.toString('utf8').split('\n')[1].trim()}\x1b[0m`);
+            }
+
+
+            log('');
+            let stansartsColor = '';
+            for (let index = 0; index < 8; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+            log(stansartsColor);
+        
+            stansartsColor = '';
+            for (let index = 8; index < 8*2; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+            log(stansartsColor);
+            log('');
+        }
     }
 
 
