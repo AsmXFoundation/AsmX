@@ -97,6 +97,7 @@ class CLI {
         log(`${cli} ${cmd('run')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
         log(`\t${separator(edit.separator)} ${doc('The command allows you to run an [arch] architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
         log(``);
+        log(buildText(cli, 'decompile', edit.separator, 'The command allows you to find out information about the App file', 2));
         log(buildText(cli, 'latest', edit.separator, 'The command allows you to find out the latest version of the compiler'));
         log(buildText(cli, 'versions', edit.separator, 'The command allows you to find out all versions of the compiler', 2));
     }
@@ -104,11 +105,21 @@ class CLI {
 
     static build(){
         const parameters = this.cli_args.slice(2).filter(arg => arg.trim() != '');
+        let crypto_t;
 
-        if (parameters.length > 3) { 
+        if (parameters.length > 4) { 
             ServerLog.log("too many parameters", 'Exception');
             process.exit(1);
         }
+
+        if (parameters.indexOf('--crypto') == parameters.length - 2) {
+            crypto_t = parameters.at(-1);
+            if (crypto_t == undefined) ServerLog.log("argument type crypto not found", 'Exception');
+            if (!['l1'].includes(crypto_t.toLowerCase())) ServerLog.log("type crypto not found", 'Exception');
+            parameters.pop();
+            parameters.pop();
+        }
+
 
         const architecture = parameters[0];
         const file = parameters[1];
@@ -126,7 +137,7 @@ class CLI {
                 this.buildFile = outputfile;
 
                 if (arch == 'app')
-                    new complier(outputfile, 'x64', 'x64', sourceparse);
+                    new complier(outputfile, 'x64', 'x64', sourceparse, crypto_t);
                 else ServerLog.log('Unknow version architecture', 'Exception');
             } catch (exception) {
                 console.log(exception);
@@ -154,7 +165,7 @@ class CLI {
 
         const architecture = parameters[0];
         let file = parameters[1];
-        
+
         if (architecture.indexOf('@') > -1) {
             const [arch, version] = architecture.split('@');
             try {
@@ -172,6 +183,21 @@ class CLI {
             ServerLog.log('Unknow architecture', 'Exception');
             process.exit(1);
         }
+    }
+
+
+    static decompile() {
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
+
+        if (parameters.length > 2) { 
+            ServerLog.log("too many parameters", 'Exception');
+            process.exit(1);
+        }
+
+        let file = parameters[0];
+        if (file && !file.endsWith('.app')) file += '.app';
+        file = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.app`;
+        App.Decompiler().decompiler(file);
     }
 
 

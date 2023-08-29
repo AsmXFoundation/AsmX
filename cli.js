@@ -131,12 +131,13 @@ class Cli {
         log(`${cli} ${cmd('run')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
         log(`\t${separator(edit.separator)} ${doc('The command allows you to run an [arch] architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
         log(``);
+        log(buildText(cli, 'decompile', edit.separator, 'The command allows you to find out information about the App file', 2));
         log(buildText(cli, 'view', edit.separator, 'The command allows you to view the inside of the EXE (Optional)  file', 1, `exe ${arg('./file')}`));
         log(buildText(cli, 'micro', edit.separator, 'The command allows you to run the AsmX collector', 2, arg('./file')));
         log(buildText(cli, 'engine', edit.separator, 'The command allows you to see which engine is installed for AsmX', 2));
         log(buildText(cli, 'engine', edit.separator, 'The command allows you to install the engine for AsmX', 1, arg('./setfile')));
         log(`${cli} ${cmd('os')} ${arg('name')} \t\t${separator(edit.separator)} ${doc('The command allows you to navigate the operating system with the name "name"')}`);
-        log(`FLAGS:`);
+        log(`FLAGS:`); 
         log(`${flag('-ls')}`);
         log(`${flag('-c')}`);
         log(`${flag('-v')}`);
@@ -146,7 +147,7 @@ class Cli {
 
 
     static theme() {
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
 
         if (parameters.length > 2) { 
             ServerLog.log("too many parameters", 'Exception');
@@ -193,7 +194,7 @@ class Cli {
 
 
     static os() {
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
 
         if (parameters.length > 1) { 
             ServerLog.log("too many parameters", 'Exception');
@@ -369,7 +370,7 @@ class Cli {
 
     // build <arch> <input file> <out file>?
     static build(){
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
 
         if (parameters.length > 3) { 
             ServerLog.log("too many parameters", 'Exception');
@@ -431,7 +432,7 @@ class Cli {
 
 
     static engine() {
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
 
         if (parameters.length > 1) { 
             ServerLog.log("too many parameters", 'Exception');
@@ -452,7 +453,7 @@ class Cli {
 
 
     static micro() {
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
 
         if (parameters.length > 1) {
             ServerLog.log("too many parameters", 'Exception');
@@ -469,7 +470,7 @@ class Cli {
 
     // run <arch> <input file>
     static run() {
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
 
         if (parameters.length > 2) { 
             ServerLog.log("too many parameters", 'Exception');
@@ -516,7 +517,7 @@ class Cli {
 
     // decompile <arch> <input file>
     static decompile() {
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(this.beforeCounter + 1).filter(t => t.trim() !== '');
 
         if (parameters.length > 2) { 
             ServerLog.log("too many parameters", 'Exception');
