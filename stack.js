@@ -88,7 +88,7 @@ class Stack {
      * @param stackPointer - The amount to shift the stack pointer by.
      */
     static shiftStackPointer(stackPointer){
-        this.sp += stackPointer;
+        this.sp += stackPointer - 11;
     }
 
 
