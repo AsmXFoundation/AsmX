@@ -8,6 +8,43 @@ const App = require("./app");
 const config = require('../../config');
 const Color = require('../../utils/color');
 const { getDirs } = require('../../fs');
+const Auth = require('../../tools/auth');
+
+
+function filterByFlags(params) {
+    let list = [];
+    let index = 0;
+    let fixedIndex = 0;
+    let isNext = false;
+
+    for (const argument of params) {
+        if (!isNext && argument.startsWith('--')) {
+            if (list[index] == undefined) list[index] = [];
+            isNext = true;
+            fixedIndex = index;
+            list[index].push(argument);
+        } else if (isNext && !argument.startsWith('--')) {
+            list[fixedIndex].push(argument);
+        } else if (isNext && argument.startsWith('--')) {
+            if (list[index] == undefined) list[index] = [];
+            isNext = true;
+            fixedIndex = index;
+            list[index].push(argument);
+        } else if (!isNext) {
+            list.push(argument);
+        }
+
+        index++;
+    }
+
+    return list.filter(t => t);
+}
+
+
+function isArray(list) {
+    return list.filter(l => Array.isArray(l)).length > 0;
+}
+
 
 class CLI {
     static flagUsage = true;
@@ -103,11 +140,53 @@ class CLI {
     }
 
 
+    /**
+     * ================================================================
+     * build ./file (Done)
+     * build ./file ./out (Done)
+     * build ./file --crypto [type] (Done)
+     * build ./file --auth -u myusername -p 12345 ()
+     * build ./file --crypto [type] --auth -u myusername -p 12345
+     * ================================================================
+     */
     static build(){
-        const parameters = this.cli_args.slice(2).filter(arg => arg.trim() != '');
+        let parameters = this.cli_args.slice(2).filter(arg => arg.trim() != '');
         let crypto_t;
+        let auth;
 
-        if (parameters.length > 4) { 
+        // build app@v4 ./examples/bin-app/v4/hello.asmX
+        // build app@v4 ./examples/bin-app/v4/hello.asmX --auth -u myuser -p 12345
+        let flags = filterByFlags(parameters);
+
+        if (isArray(flags)) {
+            let count = flags.filter(f => Array.isArray(f)).length;
+
+            if (count > 2) {
+                ServerLog.log("too many parameters", 'Exception');
+                process.exit(1);
+            } else {
+                let names = flags.filter(f => Array.isArray(f)).map(f => f[0]);
+
+                for (const flag of names) {
+                    if (!['--auth', '--crypto'].includes(flag)) {
+                        ServerLog.log(`Not found flag (${flag})`, 'Exception');
+                        process.exit(1);
+                    }
+                }
+
+                let authSerialize = flags.filter(f => Array.isArray(f)).filter(f => f[0] == '--auth');
+                authSerialize = authSerialize[authSerialize.length - 1];
+                auth = Auth.serialize(authSerialize);
+
+                if ([auth.user, auth.password].includes(undefined)) {
+                    ServerLog.log("Not enough arguments", 'Exception');
+                    process.exit(1);
+                }
+
+                parameters = flags;
+                parameters = parameters.filter(p => !Array.isArray(p));
+            }
+        } else if (parameters.length > 4) { 
             ServerLog.log("too many parameters", 'Exception');
             process.exit(1);
         }
@@ -137,7 +216,7 @@ class CLI {
                 this.buildFile = outputfile;
 
                 if (arch == 'app')
-                    new complier(outputfile, 'x64', 'x64', sourceparse, crypto_t);
+                    new complier(outputfile, 'x64', 'x64', sourceparse, crypto_t, auth);
                 else ServerLog.log('Unknow version architecture', 'Exception');
             } catch (exception) {
                 console.log(exception);
@@ -174,7 +253,7 @@ class CLI {
                 if (file == undefined) file = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.app`;
                 complier.Execute().execute(file);
             } catch (exception) {
-                // console.log(exception);
+                console.log(exception);
                 ServerLog.log('Unknow version architecture', 'Exception');
             }
         } else if (architecture === 'app') {
