@@ -212,6 +212,7 @@ class App {
 
             static composeStubApp() {
                 this.app_stub = Buffer.alloc(this.SIZE_ROW_CELLS * 4);
+
                 if (this.crypto_t) {
                    if (this.crypto_t == 'l1') this.app_stub.write(CryptoGraphy.caesar(HeaderAppStub.MESSAGE, 4));
                 } else {

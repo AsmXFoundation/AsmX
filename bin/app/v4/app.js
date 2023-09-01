@@ -189,7 +189,8 @@ class App {
 
                     /**  DOS Header - 00 00 00 00-00 00 00-00 00 00-00 00 XX-XX XX XX */
                     this.app_offset = Buffer.alloc(this.SIZE_ROW_CELLS);
-                    this.app_offset.writeUInt16BE(0x100, this.SIZE_ROW_CELLS - 5);
+                    this.app_offset.writeUInt16BE(0x90, this.SIZE_ROW_CELLS - 5);
+
                     this.OFFSET_APP += 0xA;
                 }
             }
@@ -198,7 +199,7 @@ class App {
             static composeLinkerApp() {
                 if (this.OFFSET_APP == 0xA) {
                     this.app_linker = Buffer.alloc(this.SIZE_ROW_CELLS);
-                    const [MAJOR, MINOR, MICRO, ISBETA] = [3, 0, 0, 0];
+                    const [MAJOR, MINOR, MICRO, ISBETA] = [4, 0, 0, 0];
                     this.app_linker[2] = parseInt(MAJOR, 16).toString(16);
                     this.app_linker[3] = '-';
                     this.app_linker[4] = parseInt(MINOR, 10).toString(16);
@@ -213,6 +214,7 @@ class App {
 
             static composeStubApp() {
                 this.app_stub = Buffer.alloc(this.SIZE_ROW_CELLS * 4);
+
                 if (this.crypto_t) {
                    if (this.crypto_t == 'l1') this.app_stub.write(CryptoGraphy.caesar(HeaderAppStub.MESSAGE, 4));
                 } else {
@@ -234,12 +236,13 @@ class App {
                 }
                 
                 this.app_offset_source = Buffer.alloc(16);
-                this.app_offset_source.writeInt16BE(parseInt(0x120, 10).toString(16), this.SIZE_ROW_CELLS - 5);
+                this.app_offset_source.writeInt16BE(parseInt(0x110, 10).toString(16), this.SIZE_ROW_CELLS - 5);
 
-                this.app_crypto = Buffer.alloc(16);
+                this.app_crypto = Buffer.alloc(2);
                 this.crypto_t && this.app_crypto.write(this.crypto_t);
 
-                this.app_auth = Buffer.alloc(32);
+                this.app_auth = Buffer.alloc(16 * 2 - 2);
+                if (this.auth_t) this.app_auth.write(`.auth:${this.auth_t.user}:${this.auth_t.password}`);
 
                 this.app_machine.reverse();
             }
@@ -420,9 +423,22 @@ class App {
 
                     else if (this.app_offset > index) {
                         row = row.map(hex => hex.trim());
-                        
-                        if (index + 10 == this.app_offset) {
-                            this.app_crypto = this.convertToAscii(row.slice(0, 4).filter(hex => hex != '00').map(hex => hex.trim()));
+
+                        if (index + 20 == this.app_offset) {
+                            this.app_crypto = this.convertToAscii(row.slice(0, 2).filter(hex => hex != '00').map(hex => hex.trim()));
+
+                            if (this.convertToAscii(row.slice(2).filter(hex => hex != '00').map(hex => hex.trim())).startsWith('.auth'))
+                                this.app_auth = this.convertToAscii(row.slice(2).filter(hex => hex != '00').map(hex => hex.trim()));
+                        } else if (index + 10 == this.app_offset) {
+                            if (this.app_auth) {
+                                this.app_auth += this.convertToAscii(row.filter(hex => hex != '00').map(hex => hex.trim()));
+    
+                                if (this.app_auth.startsWith('.auth')) {
+                                    this.app_auth = this.app_auth.slice('.auth:'.length);
+                                    const [user, password] = this.app_auth.split(':');
+                                    this.app_auth = { user, password };
+                                }
+                            }
                         } else {
                             this.app_stub += ListToBuffer(row).toString();
                         }
@@ -481,10 +497,16 @@ class App {
                 this.app_stub = this.decompiler['app_stub'];
                 this.app_magic = this.decompiler['app_magic'];
                 this.app_offset_source = this.decompiler['app_offset_source'];
+                this.app_auth = this.decompiler['app_auth'];
 
                 if (this.decompiler['app_crypto']) this.app_stub = CryptoGraphy.caesar(this.app_stub, -4);
 
-                if (this.app_linker.major != 3) {
+                if (typeof this.app_auth === 'object' && !Array.isArray(this.app_auth)) {
+                    // console.log(1, this.app_auth_user);
+                    if (!this.app_auth_verify) process.exit(1);
+                }
+
+                if (this.app_linker.major != 4) {
                     process.stdout.write(this.app_stub);
                     process.exit(1);
                 }
@@ -495,9 +517,13 @@ class App {
                 }
 
                 this.app_source = this.decompiler['app_source'].map(list => list.map(item => item.trim()));
-                this.app_source[this.app_source.length - 1].every((item) => item == '00') && this.app_source.pop();
-                this.app_source = this.app_source.join(' ').split('00');
-                this.app_source = this.app_source.map(item => item.replaceAll(',', ' ').trim()).filter(line => line !== '');
+
+                if (this.app_source.length > 0){
+                    this.app_source[this.app_source.length - 1].every((item) => item == '00') && this.app_source.pop();
+                    this.app_source = this.app_source.join(' ').split('00');
+                    this.app_source = this.app_source.map(item => item.replaceAll(',', ' ').trim()).filter(line => line !== '');
+                }
+
                 // new app source formated
                 let nasf = [];
                 this.app_source.map((line) => nasf.push(Buffer.from(line.split(' ').join(''), 'hex').toString()));
@@ -528,6 +554,29 @@ class App {
                     process.stdout.write(`${Color.BRIGHT}[${Color.FG_RED}Exception${Color.FG_WHITE}]: ${this.app_stub}\n`);
                     process.exit(1);
                 }
+            }
+
+
+            static isAuth(path) {
+                this.decompiler = App.Decompiler();
+                this.decompiler.decompiler(path, false);
+                return this.decompiler['app_auth'] != undefined;
+            }
+
+ 
+            static Auth(user, password) {
+                this.app_auth_user = { user, password };
+            }
+
+
+            static isVerify() {
+                let auth = this.decompiler['app_auth'];
+                this.app_auth_verify = false;
+
+                if (auth.user == this.app_auth_user.user)
+                    if (auth.password == this.app_auth_user.password) this.app_auth_verify = true;
+
+                return this.app_auth_verify;
             }
         }
     }

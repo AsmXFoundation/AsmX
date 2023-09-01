@@ -9,6 +9,7 @@ const config = require('../../config');
 const Color = require('../../utils/color');
 const { getDirs } = require('../../fs');
 const Auth = require('../../tools/auth');
+const { question, questionNewPassword } = require('readline-sync');
 
 
 function filterByFlags(params) {
@@ -145,7 +146,7 @@ class CLI {
      * build ./file (Done)
      * build ./file ./out (Done)
      * build ./file --crypto [type] (Done)
-     * build ./file --auth -u myusername -p 12345 ()
+     * build ./file --auth -u myusername -p 12345 (Done)
      * build ./file --crypto [type] --auth -u myusername -p 12345
      * ================================================================
      */
@@ -181,6 +182,18 @@ class CLI {
                 if ([auth.user, auth.password].includes(undefined)) {
                     ServerLog.log("Not enough arguments", 'Exception');
                     process.exit(1);
+                }
+
+                if (auth) {
+                    if (auth.password.length < 5 || auth.password.length > 8) {
+                        ServerLog.log('The password can be written in length from 5 to 8 characters', 'AuthenticationException');
+                        process.exit(1);
+                    }
+                    
+                    if (auth.user.length < 2 || auth.user.length > 6) {
+                        ServerLog.log('the user name can be written from 3 to 5 characters long', 'AuthenticationException');
+                        process.exit(1);
+                    }
                 }
 
                 parameters = flags;
@@ -251,7 +264,17 @@ class CLI {
                 const complier = require(`./${version}/${arch}`);
                 if (file && !file.endsWith('.app')) file += '.app';
                 if (file == undefined) file = `${path.parse(file)['dir']}\\${path.parse(file)['name']}.app`;
-                complier.Execute().execute(file);
+
+                let compiler_t = complier.Execute();
+
+                if (compiler_t.isAuth(file)) {
+                    let user = question('user: ');
+                    let password = questionNewPassword('password: ', { max: 8, min: 5 });
+                    compiler_t.Auth(user, password);
+                    if (compiler_t.isVerify()) compiler_t.execute(file);
+                } else {
+                    compiler_t.execute(file);
+                }
             } catch (exception) {
                 console.log(exception);
                 ServerLog.log('Unknow version architecture', 'Exception');
