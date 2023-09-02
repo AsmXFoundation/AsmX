@@ -132,7 +132,7 @@ class Cli {
         log(`\t${separator(edit.separator)} ${doc('The command allows you to run an [arch] architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
         log(``);
         log(buildText(cli, 'decompile', edit.separator, 'The command allows you to find out information about the App file', 2));
-        log(buildText(cli, 'view', edit.separator, 'The command allows you to view the inside of the EXE (Optional)  file', 1, `exe ${arg('./file')}`));
+        log(buildText(cli, 'view', edit.separator, 'The command allows you to view the inside of the EXE (Optional)  file', 1, `${params('[exe]')} ${arg('./file')}`));
         log(buildText(cli, 'micro', edit.separator, 'The command allows you to run the AsmX collector', 2, arg('./file')));
         log(buildText(cli, 'engine', edit.separator, 'The command allows you to see which engine is installed for AsmX', 2));
         log(buildText(cli, 'engine', edit.separator, 'The command allows you to install the engine for AsmX', 1, arg('./setfile')));

@@ -112,6 +112,7 @@ class Cli {
         log(buildText(cli, 'help', edit.separator, 'The command allows you to get a reference for the mini operating system'));
         log(buildText(cli, 'mkfile', edit.separator, 'The command allows you to create a file', 2, `${arg('./file')}`));
         log(buildText(cli, 'mkdir', edit.separator, 'The command allows you to create a folder', 2, `${arg('./name')}`));
+        log(buildText(cli, 'colors', edit.separator, 'The command allows you to get colors', 2));
         log(buildText(cli, 'cd', edit.separator, 'The command allows you to find out the path', 3));
         log(buildText(cli, 'cd', edit.separator, 'The command allows you to set the path', 2, `${arg('./path')}`));
         log(`FLAGS:`);
@@ -241,6 +242,15 @@ class Cli {
         }
     }
 
+
+    colors() {
+        const log = (text) => console.log(`\t\t\t\t\t${text}`);
+        log('');
+        let stansartsColor = '';
+        for (let index = 1; index < 255; index++) stansartsColor += `\x1b[38;5;${String(index)}m ${index} \x1b[0m`;
+        log(stansartsColor);
+        log('');
+    }
 
     //============================================================================================
     // CLI FLAGS
