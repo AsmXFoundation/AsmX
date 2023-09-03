@@ -16,7 +16,7 @@ class Cli {
     static counter = 0;
     static beforeCounter = 0;
     static isexit = false;
-    static cli_args = [];
+    static cli_args = []; 
     static root = 'root';
     static separateCD = '@';
     static cdPath = 'asmxOS';
