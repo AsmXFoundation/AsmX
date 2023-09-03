@@ -18,7 +18,6 @@ const Color = require('./utils/color');
 const ServerLog = require('./server/log');
 const { getAllFiles, getDirs, printDirs } = require('./fs');
 const CIDE = require('./tools/cide/cide');
-// const AsmXPackageManager = require('./tools/apm/apm');
 
 
 class ReadmeCLI {
@@ -222,23 +221,6 @@ class Cli {
         this.flagUsage = false;
         this.isexit = true;
     }
-
-
-    // static install() {
-    //     const parameters = this.cli_args.slice(2);
-
-    //     if (parameters.length > 3) { 
-    //         ServerLog.log("too many parameters", 'Exception');
-    //         process.exit(1);
-    //     }
-
-    //     const cli = require('./tools/apm/cli');
-    //     // cli.execute(['apm-cli', 'install', ...parameters]);
-
-    //     this.commandUsage = false;
-    //     this.flagUsage = false;
-    //     this.isexit = true;
-    // }
 
 
     static start() {
@@ -628,14 +610,14 @@ class Cli {
 
     /** @returns the AsmX version */
     static v() {
-        process.stdout.write('AsmX v3.0');
+        process.stdout.write('AsmX v4.0');
         this.flagUsage = false;
         this.commandUsage = false;
     }
 
 
     static c() {
-        process.stdout.write('AsmX v3.0. ');
+        process.stdout.write('AsmX v4.0. ');
         console.log('\tAsmX Corporation. All rights reserved.');
         console.log('\t\tOpen source source: https://github.com/langprogramming-AsmX/AsmX');
         this.flagUsage = false;
