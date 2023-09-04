@@ -28,6 +28,6 @@ termux/
 .zip
 
 
-/etc/os/miniOS/usr/
+/etc/os/AsmXOS/usr/*
 
 /AsmX_Crash_Course/*

@@ -37,6 +37,15 @@ class Cli {
     //============================================================================================
     execute(args) {
         this.cli_args = args;
+        const HISTORY_PATH = `${__dirname}/usr/.history`;
+
+        if (!fs.existsSync(HISTORY_PATH)) {
+            fs.mkdirSync(HISTORY_PATH);
+        } else {
+            if (new Date().getHours() >= 23) fs.writeFileSync(HISTORY_PATH, '');
+            let currentContent = fs.readFileSync(HISTORY_PATH).toString('utf8');
+            fs.writeFileSync(HISTORY_PATH, `${currentContent}\n${args.join(' ')}`);
+        }
 
         if (this.root == 'root') {
             let flags = ['ls', 'graph', 'o', 'v', 'c'];
@@ -108,6 +117,7 @@ class Cli {
         log(`-`.repeat(96));
         log(`${cli} [cmd] [options] -[flags] [options]`);
         log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 2));
+        log(buildText(cli, 'history', edit.separator, 'The command allows you to find out the history of requests', 2));
         log(buildText(cli, 'cli', edit.separator, 'The command allows you to navigate to the desired CLI', 2, `${arg('name')}`));
         log(buildText(cli, 'help', edit.separator, 'The command allows you to get a reference for the mini operating system'));
         log(buildText(cli, 'mkfile', edit.separator, 'The command allows you to create a file', 2, `${arg('./file')}`));
@@ -121,6 +131,14 @@ class Cli {
         log(`${flag('-v')}`);
         log(`${`-`.repeat(96)}`);
         log(``);
+    }
+
+
+    history() {
+        const HISTORY_PATH = `${__dirname}/usr/.history`;
+
+        if (fs.existsSync(HISTORY_PATH))
+            for (const line of fs.readFileSync(HISTORY_PATH).toString('utf8').split('\n')) console.log(line);
     }
 
 

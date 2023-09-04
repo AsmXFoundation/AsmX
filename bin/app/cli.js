@@ -132,6 +132,9 @@ class CLI {
         log(`${cli} ${cmd('build')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
         log(`\t${separator(edit.separator)} ${doc('The command allows you to build/compile an [arch] architecture file with the file\n\t\t  name "./file" and have the last optional field for the path/file name.')}`);
         log(``);
+        log(buildText('', '', edit.separator, 'The command allows you to encrypt data in a compiled file', 4, `${flag('--crypto')} ${params('type')}`));
+        log(buildText('', '', edit.separator, 'The command allows you to create an account for the compiled file.', 1, `${flag('--auth')} ${flag('-u')} ${params('username')} ${flag('-p')} ${params('password')}`));
+        log(``);
         log(`${cli} ${cmd('run')} ${params('[arch]')} ${arg('./file')} ${arg('./out')}`);
         log(`\t${separator(edit.separator)} ${doc('The command allows you to run an [arch] architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
         log(``);

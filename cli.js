@@ -116,9 +116,11 @@ class Cli {
         log(`${cli} [cmd] [options] -[flags] [options]`);
         
         log(buildText(cli, 'usage', edit.separator, 'The command allows you to view a list of commands to use'));
+        log(buildText(cli, 'help', edit.separator, 'The command allows you to view a list of commands to use'));
+        log(buildText(cli, 'repl', edit.separator, 'REPL (Read-Eval-Print-Loop)', 3));
         log(buildText(cli, 'start'));
         log(buildText(cli, 'theme', edit.separator, 'The command allows you to output all existing themes', 3));
-        log(buildText(cli, 'theme', edit.separator, 'The command allows you to go to a topic named "name"', 1, `${params('[switch]')} ${arg('name')}`));
+        log(buildText(cli, 'theme', edit.separator, 'The command allows you to go to a topic named \'name\'', 1, `${params('[switch]')} ${arg('name')}`));
         log(buildText(cli, 'cide', edit.separator, 'The command allows you to go to CIDE (Console IDE)', 3));
         log(buildText(cli, 'cide', edit.separator, 'The command allows you to get the CIDE (Console IDE) reference', 2, `${params('[help]')}`));
         log(buildText(cli, 'doctor', edit.separator, 'The command allows you to check all AsmX tools', 2));
@@ -131,11 +133,12 @@ class Cli {
         log(`\t${separator(edit.separator)} ${doc('The command allows you to run an [arch] architecture file with the file name\n\t\t  "./file" and have the last optional field for the path/file name.')}`);
         log(``);
         log(buildText(cli, 'decompile', edit.separator, 'The command allows you to find out information about the App file', 2));
+        log(buildText(cli, 'config', edit.separator, 'The command allows you to find out the configuration of the settings at the end of the program', 2, flag('-ls')));
         log(buildText(cli, 'view', edit.separator, 'The command allows you to view the inside of the EXE (Optional)  file', 1, `${params('[exe]')} ${arg('./file')}`));
         log(buildText(cli, 'micro', edit.separator, 'The command allows you to run the AsmX collector', 2, arg('./file')));
         log(buildText(cli, 'engine', edit.separator, 'The command allows you to see which engine is installed for AsmX', 2));
         log(buildText(cli, 'engine', edit.separator, 'The command allows you to install the engine for AsmX', 1, arg('./setfile')));
-        log(`${cli} ${cmd('os')} ${arg('name')} \t\t${separator(edit.separator)} ${doc('The command allows you to navigate the operating system with the name "name"')}`);
+        log(`${cli} ${cmd('os')} ${arg('name')} \t\t${separator(edit.separator)} ${doc('The command allows you to navigate the operating system with the name \'name\'')}`);
         log(`FLAGS:`); 
         log(`${flag('-ls')}`);
         log(`${flag('-c')}`);
@@ -189,6 +192,24 @@ class Cli {
         this.commandUsage = false;
         this.flagUsage = false;
         this.isexit = true;
+    }
+
+
+    static help() { 
+        this.usage();
+    }
+
+
+    static repl() {
+        process.stdin.resume();
+        process.stdin.setEncoding('utf8');
+        process.stdout.write(`>>> `);
+        process.stdin.resume();
+
+        process.stdin.on('data', function (data) {
+            new Compiler(Parser.parse(data));
+            process.stdout.write(`>>> `);
+        });
     }
 
 
@@ -275,7 +296,7 @@ class Cli {
 
 
     static config() {
-        this.configData = configSettings.INI_VARIABLES;
+        this.configData = config?.INI_VARIABLES;
         this.task.new('config', this.configData, 'watch');
     }
 
@@ -545,7 +566,7 @@ class Cli {
      * asmx-cli readme <command>
      */
     static readme() {
-        const parameters = this.cli_args.slice(this.beforeCounter + 1);
+        const parameters = this.cli_args.slice(2);
         const command = parameters[0];
 
         if (parameters.length > 1) { 
