@@ -50,6 +50,8 @@ class Cli {
         if (this.root == 'root') {
             let flags = ['ls', 'graph', 'o', 'v', 'c'];
 
+            let clis = getDirs(`${__dirname}/usr/packages`);
+
             for (const argument of args) {
                 this.beforeCounter++;
                 if (this.isexit) process.exit(1);
@@ -232,6 +234,7 @@ class Cli {
                 OS: 'AsmX OS',
                 Kernel: 'AsmX Kernel',
                 Architecture: 'AsmX',
+                Packages: getDirs(`${__dirname}/usr/packages`)?.length,
                 Theme: config.INI_VARIABLES?.CLI_THEME || 'common (default)',
                 CPU: os.cpus()[0]['model']
             }
