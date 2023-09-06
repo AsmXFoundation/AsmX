@@ -2,7 +2,7 @@ const fs = require('fs');
 const os = require("os");
 
 const kernelCli = require("../../../cli");
-const { getDirs, printDirs, getFiles } = require("../../../fs");
+const { getDirs, printDirs, getFiles, getFileSize } = require("../../../fs");
 const ServerLog = require("../../../server/log");
 const Color = require("../../../utils/color");
 const config = require("../../../config");
@@ -12,7 +12,6 @@ const { exec, execSync } = require('child_process');
 class Cli {
     static flagUsage = true;
     static commandUsage = true;
-    static doctorData = null;
     static counter = 0;
     static beforeCounter = 0;
     static isexit = false;
@@ -23,7 +22,6 @@ class Cli {
 
     flagUsage = true;
     commandUsage = true;
-    doctorData = null;
     counter = 0;
     beforeCounter = 0;
     isexit = false;
@@ -36,13 +34,14 @@ class Cli {
     // Main function
     //============================================================================================
     execute(args) {
+        args = args.filter(t => t.trim() !== '');
         this.cli_args = args;
         const HISTORY_PATH = `${__dirname}/usr/.history`;
 
         if (!fs.existsSync(HISTORY_PATH)) {
             fs.mkdirSync(HISTORY_PATH);
         } else {
-            if (new Date().getHours() >= 23) fs.writeFileSync(HISTORY_PATH, '');
+            if (new Date().getHours() >= 22) fs.writeFileSync(HISTORY_PATH, '');
             let currentContent = fs.readFileSync(HISTORY_PATH).toString('utf8');
             fs.writeFileSync(HISTORY_PATH, `${currentContent}\n${args.join(' ')}`);
         }
@@ -50,7 +49,9 @@ class Cli {
         if (this.root == 'root') {
             let flags = ['ls', 'graph', 'o', 'v', 'c'];
 
-            let clis = getDirs(`${__dirname}/usr/packages`);
+            let packages = getDirs(`${__dirname}/usr/packages`);
+            let packagesCommands = [];
+            for (const pkg of packages) packagesCommands.push({ name: pkg, commands: Reflect.ownKeys(require(`${__dirname}/usr/packages/${pkg}/index`)).filter(p => !['length', 'name', 'prototype'].includes(p)) });
 
             for (const argument of args) {
                 this.beforeCounter++;
@@ -59,14 +60,19 @@ class Cli {
                 if (!flags.includes(argument.slice(1)))
                 if (this.counter == 0 && flags.includes(argument.slice(1)))
                     throw { error: 'Invalid argument ' + argument + ' in command ' };
-        
-                if (Object.getOwnPropertyNames(Cli.prototype).includes(argument)) return this[argument]();
 
+                if (Object.getOwnPropertyNames(Cli.prototype).includes(argument)) {
+                    return this[argument]();
+                } else {
+                    for (const pkg of packagesCommands)
+                    if (pkg.commands.includes(argument)) require(`${__dirname}/usr/packages/${pkg.name}/index`)[argument]['call'](this);
+                }
+                
                 if (this.counter >= 1) {
                     if(this.flagUsage == false || this.commandUsage == false) console.log('Unexpected argument ' + argument);
                 }
-
-                if (flags.includes(args[1])) this[args[1]]();
+                
+                if (flags.includes(argument.slice(1))) this[argument.slice(1)]();
                 this.counter++;
             }
 
@@ -121,6 +127,9 @@ class Cli {
         log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 2));
         log(buildText(cli, 'history', edit.separator, 'The command allows you to find out the history of requests', 2));
         log(buildText(cli, 'cli', edit.separator, 'The command allows you to navigate to the desired CLI', 2, `${arg('name')}`));
+        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2));
+        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2, flag('-ls')));
+        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages with a lot of information', 2, flag('-info')));
         log(buildText(cli, 'help', edit.separator, 'The command allows you to get a reference for the mini operating system'));
         log(buildText(cli, 'mkfile', edit.separator, 'The command allows you to create a file', 2, `${arg('./file')}`));
         log(buildText(cli, 'mkdir', edit.separator, 'The command allows you to create a folder', 2, `${arg('./name')}`));
@@ -141,6 +150,30 @@ class Cli {
 
         if (fs.existsSync(HISTORY_PATH))
             for (const line of fs.readFileSync(HISTORY_PATH).toString('utf8').split('\n')) console.log(line);
+    }
+
+
+    packages() {
+        const parameters = this.cli_args.slice(1);
+        let packages = getDirs(`${__dirname}/usr/packages`);
+
+        if (parameters.length == 0) {
+            for (const pkg of packages) console.log(`${pkg}.pkg`);
+        } else {
+            const flag = parameters[0];
+            const flags = ['-ls', '-info'];
+
+            if (flags.includes(flag)) {
+                if (flag == '-ls') {
+                    for (const pkg of packages) console.log(` ${pkg}.pkg`);
+                } else if (flag == '-info') {
+                    for (const pkg of packages)
+                        console.log(` \x1b[38;5;45m/usr/packages/${pkg}/\x1b[38;5;0m      \x1b[38;5;44m${pkg}.pkg\x1b[38;5;0m    ${pkg}       (.pkg)     ${getFileSize(`${__dirname}/usr/packages/${pkg}/index.js`)}`);
+                }
+            } else {
+                ServerLog.log('flag not found', 'Exception');
+            }
+        }
     }
 
 
@@ -234,7 +267,7 @@ class Cli {
                 OS: 'AsmX OS',
                 Kernel: 'AsmX Kernel',
                 Architecture: 'AsmX',
-                Packages: getDirs(`${__dirname}/usr/packages`)?.length,
+                Packages: getDirs(`${__dirname}/usr/packages`)?.length + ' (.pkg)',
                 Theme: config.INI_VARIABLES?.CLI_THEME || 'common (default)',
                 CPU: os.cpus()[0]['model']
             }
@@ -290,6 +323,7 @@ class Cli {
         this.flagUsage = false;
         this.commandUsage = false;
     }
+
 
     ls() {
         if (this.root == 'root' && this.cdPath == 'asmXOS') {

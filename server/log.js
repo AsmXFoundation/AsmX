@@ -54,5 +54,6 @@ ServerLog.newTag('Possible fixes', Color.FG_GREEN);
 ServerLog.newTag('Neural Log', Color.FG_YELLOW);
 ServerLog.newTag('Security Log', Color.FG_RED);
 ServerLog.newTag('AuthenticationException',  Color.FG_RED);
+ServerLog.newTag('Log', `\x1b[38;5;220m`);
 
 module.exports = ServerLog;
