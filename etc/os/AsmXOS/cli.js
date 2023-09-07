@@ -125,6 +125,7 @@ class Cli {
         log(`-`.repeat(96));
         log(`${cli} [cmd] [options] -[flags] [options]`);
         log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 2));
+        log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 1, flag('--help')));
         log(buildText(cli, 'history', edit.separator, 'The command allows you to find out the history of requests', 2));
         log(buildText(cli, 'cli', edit.separator, 'The command allows you to navigate to the desired CLI', 2, `${arg('name')}`));
         log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2));
@@ -250,49 +251,138 @@ class Cli {
 
 
     neofetch() {
-        const parameters = this.cli_args;
+        const parameters = this.cli_args.slice(1);
 
         if (parameters.length > 1) { 
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
+            const flag = parameters[0];
+            const flags = ['--colors', '--info', '--logo', '--help'];
             const log = (text) => console.log(`\t\t\t\t\t${text}`);
-            let conf;
+
+            function colors() {
+                log('');
+                let stansartsColor = '';
+                for (let index = 0; index < 8; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                log(stansartsColor);
+            
+                stansartsColor = '';
+                for (let index = 8; index < 8*2; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                log(stansartsColor);
+                log('');
+            }
+
+
+            function infoMatrix() {
+                let matrix = [];
+                let conf;
+                if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
+
+                matrix.push(`${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.root}\x1b[0m${this.separateCD}${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.cdPath}\x1b[0m`);
+                matrix.push('-'.repeat(18));
+
+                let info_t = {
+                    OS: 'AsmX OS',
+                    Kernel: 'AsmX Kernel',
+                    Architecture: 'AsmX',
+                    Packages: getDirs(`${__dirname}/usr/packages`)?.length + ' (.pkg)',
+                    Theme: config.INI_VARIABLES?.CLI_THEME || 'common (default)',
+                    CPU: os.cpus()[0]['model']
+                }
+
+
+                for (const property_t of Reflect.ownKeys(info_t)) {
+                    matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
+                }
+
+
+                if (process.platform == 'win32') {
+                    let gpu = execSync('wmic path win32_VideoController get name');
+                    matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}GPU\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${gpu.toString('utf8').split('\n')[1].trim()}\x1b[0m`);
+                }
+
+                return matrix;
+            }
+
+
+            function logoMatrix() {
+                return [
+                    '             \\##\\     /#      ',
+                    '              \\##\\   /#/      ',
+                    '               \\##\\ /#/       ',
+                    '                \\#/v#/        ',
+                    '                 /##/         ',
+                    '                /##/ _        ',
+                    '              /###/ /#\\       ',
+                    '             /###/  \\##\\      ',
+                    '            /###/    \\##\\     ',
+                    '           /###/      \\##\\    '
+                ]
+            }
+
+
+            function help() {
+                let log = (message, params) => console.log(`\t${message}`, params ? params : '');
+                const forgecolor = {};
+                let theme;
         
-            if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
-
-            log(`${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.root}\x1b[0m${this.separateCD}${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.cdPath}\x1b[0m`);
-            log('-'.repeat(18));
-
-            let info_t = {
-                OS: 'AsmX OS',
-                Kernel: 'AsmX Kernel',
-                Architecture: 'AsmX',
-                Packages: getDirs(`${__dirname}/usr/packages`)?.length + ' (.pkg)',
-                Theme: config.INI_VARIABLES?.CLI_THEME || 'common (default)',
-                CPU: os.cpus()[0]['model']
-            }
-
-
-            for (const property_t of Reflect.ownKeys(info_t)) {
-                log(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
-            }
-
-
-            if (process.platform == 'win32') {
-                let gpu = execSync('wmic path win32_VideoController get name');
-                log(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}GPU\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${gpu.toString('utf8').split('\n')[1].trim()}\x1b[0m`);
-            }
-
-
-            log('');
-            let stansartsColor = '';
-            for (let index = 0; index < 8; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
-            log(stansartsColor);
+                if (config.INI_VARIABLES?.CLI_THEME != 'common') {
+                    theme = require(`../../../etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
+                } else theme = {};
         
-            stansartsColor = '';
-            for (let index = 8; index < 8*2; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
-            log(stansartsColor);
-            log('');
+                const edit = {
+                    separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
+                };
+        
+                for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
+                    forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
+                }
+        
+                let cli = `${forgecolor?.cli || Color.FG_GRAY}${Color.RESET}`;
+                let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
+                let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
+                let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
+                let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
+                let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
+                let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
+        
+                function buildText(cli, command, separate, text, tabs, other = undefined) {
+                    return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
+                }
+        
+                log(theme?.forgecolor?.text || Color.FG_GRAY);
+                log(`USAGE:`);
+                log(`-`.repeat(96));
+                log(`${cli} [cmd] [options] -[flags] [options]`);
+                log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to display complete information about the OS', 3));
+                log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 2, flag('--help')));
+                log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to output information about the OS', 2, flag('--info')));
+                log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to display only the OS logo', 2, flag('--logo')));
+                log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to output only standard and dark OS colors', 2, flag('--colors')));
+            }
+
+
+            if (flags.includes(flag)) {
+                if (flag == '--colors') {
+                    colors();
+                } else if (flag == '--logo') {
+                    for (const line of logoMatrix()) console.log(line);
+                } else if (flag == '--info') {
+                    for (const line of infoMatrix.call(this)) log(line);
+                } else if (flag == '--help') {
+                    help();
+                }
+            } else if (flag == undefined) {
+                function printTable(left, right) {
+                    let max = Math.max(left.length, right.length);
+                    for (let index = 0; index < max; index++) console.log(`${left[index] ? left[index] : ''}          ${right[index] ? right[index] : ''}`);
+                }
+                
+                printTable(logoMatrix(), infoMatrix.call(this));
+                colors();
+            } else {
+                ServerLog.log('flag not found\n', 'Exception');
+            }
         }
     }
 
