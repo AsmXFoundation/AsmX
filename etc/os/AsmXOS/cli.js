@@ -2,7 +2,7 @@ const fs = require('fs');
 const os = require("os");
 
 const kernelCli = require("../../../cli");
-const { getDirs, printDirs, getFiles, getFileSize } = require("../../../fs");
+const { getDirs, printDirs, getFiles, getFileSize, sizeBytes } = require("../../../fs");
 const ServerLog = require("../../../server/log");
 const Color = require("../../../utils/color");
 const config = require("../../../config");
@@ -30,6 +30,14 @@ class Cli {
     separateCD = '@';
     cdPath = 'asmxOS';
 
+    variable = {
+        $SHELL: 'AsmX OS',
+        $PATH: '',
+        $OSTYPE: 'AsmX OS',
+        $HOME: 'usr/',
+        $MEM: os.freemem().toString()
+    }
+
     //============================================================================================
     // Main function
     //============================================================================================
@@ -56,6 +64,11 @@ class Cli {
             for (const argument of args) {
                 this.beforeCounter++;
                 if (this.isexit) process.exit(1);
+
+                if (Reflect.ownKeys(this.variable).includes(argument)) {
+                    if (args.length > 1) ServerLog.log(`${argument} is not a command \n`, 'Exception');
+                    else return this.variable[argument];
+                }
 
                 if (!flags.includes(argument.slice(1)))
                 if (this.counter == 0 && flags.includes(argument.slice(1)))
@@ -128,6 +141,7 @@ class Cli {
         log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 1, flag('--help')));
         log(buildText(cli, 'history', edit.separator, 'The command allows you to find out the history of requests', 2));
         log(buildText(cli, 'cli', edit.separator, 'The command allows you to navigate to the desired CLI', 2, `${arg('name')}`));
+        log(buildText(cli, 'doge', edit.separator, 'The command allows you to display the contents of the file', 2, arg('name')));
         log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2));
         log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2, flag('-ls')));
         log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages with a lot of information', 2, flag('-info')));
@@ -174,6 +188,22 @@ class Cli {
             } else {
                 ServerLog.log('flag not found', 'Exception');
             }
+        }
+    }
+
+
+    doge() {
+        const parameters = this.cli_args.slice(1);
+
+        if (parameters.length > 3) { 
+            ServerLog.log("too many parameters\n", 'Exception');
+        } else {
+            const file = parameters[0];
+            const path = `${__dirname}/${this.variable['$HOME']}${file}`;
+            const encodeList = ['utf8', 'utf-8', 'hex', 'base64', 'binary', 'utf16le', 'ucs2', 'ucs-2', 'ascii', 'base64url', 'latin1'];
+            const encodeFlag = parameters[1] == '--encode';
+            const encode = parameters[2];
+            if (fs.existsSync(path)) return fs.readFileSync(path).toString(encodeFlag ? encodeList.includes(encode) ? encode : 'utf8' : 'utf8');
         }
     }
 
@@ -257,7 +287,7 @@ class Cli {
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
             const flag = parameters[0];
-            const flags = ['--colors', '--info', '--logo', '--help'];
+            const flags = ['--colors', '--info', '--logo', '--help', '--left', '--right'];
             const log = (text) => console.log(`\t\t\t\t\t${text}`);
 
             function colors() {
@@ -285,7 +315,9 @@ class Cli {
                     OS: 'AsmX OS',
                     Kernel: 'AsmX Kernel',
                     Architecture: 'AsmX',
+                    Uptime: Math.floor(os.uptime() / 60 / 60) + ' mins',
                     Packages: getDirs(`${__dirname}/usr/packages`)?.length + ' (.pkg)',
+                    Shell: this.variable.$SHELL,
                     Theme: config.INI_VARIABLES?.CLI_THEME || 'common (default)',
                     CPU: os.cpus()[0]['model']
                 }
@@ -301,6 +333,8 @@ class Cli {
                     matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}GPU\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${gpu.toString('utf8').split('\n')[1].trim()}\x1b[0m`);
                 }
 
+
+                matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}Memory\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.freemem())}\x1b[0m`);
                 return matrix;
             }
 
@@ -359,23 +393,28 @@ class Cli {
                 log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to output information about the OS', 2, flag('--info')));
                 log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to display only the OS logo', 2, flag('--logo')));
                 log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to output only standard and dark OS colors', 2, flag('--colors')));
+                log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to display the left part of the information about the operating system', 2, flag('--left')));
+                log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to display the right part of the information about the operating system', 2, flag('--right')));
             }
 
 
             if (flags.includes(flag)) {
                 if (flag == '--colors') {
                     colors();
-                } else if (flag == '--logo') {
+                } else if (['--logo', '--left'].includes(flag)) {
                     for (const line of logoMatrix()) console.log(line);
                 } else if (flag == '--info') {
                     for (const line of infoMatrix.call(this)) log(line);
                 } else if (flag == '--help') {
                     help();
+                } else if (flag == '--right') {
+                    for (const line of infoMatrix.call(this)) log(line);
+                    colors();
                 }
             } else if (flag == undefined) {
                 function printTable(left, right) {
                     let max = Math.max(left.length, right.length);
-                    for (let index = 0; index < max; index++) console.log(`${left[index] ? left[index] : ''}          ${right[index] ? right[index] : ''}`);
+                    for (let index = 0; index < max; index++) console.log(`${left[index] ? left[index] : right[index] ? ' '.repeat(Math.max(...logoMatrix().map(s => s.length))) : ''}          ${right[index] ? right[index] : ''}`);
                 }
                 
                 printTable(logoMatrix(), infoMatrix.call(this));

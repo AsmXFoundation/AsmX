@@ -41,7 +41,11 @@ function printDirs(dirs) {
 
 
 function getFileSize(path, lower) {
-    let bytes = fs.statSync(path).size;
+    return sizeBytes(fs.statSync(path).size, lower);
+}
+
+
+function sizeBytes(bytes, lower) {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const index = Math.floor(Math.log(bytes) / Math.log(1000));
     return `${parseFloat((bytes / Math.pow(1000, index)).toFixed(2))}${lower ? sizes[index].toLowerCase() : sizes[index]}`;
@@ -54,5 +58,6 @@ module.exports = {
     getDirs: getDirs,
     getFiles: getFiles,
     printDirs: printDirs,
-    getFileSize: getFileSize
+    getFileSize: getFileSize,
+    sizeBytes: sizeBytes
 }
