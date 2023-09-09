@@ -38,6 +38,12 @@ class AsmXOS {
             let prompt = this.createStream('input', { text: ` ${cli.cd(1)} ~# ` }).trim();
             let answer = Cli.execute(prompt.split(' '));
             if (typeof answer == 'string') console.log(answer);
+
+            else if (typeof answer == 'object' && !Array.isArray(answer)) {
+                if (answer?.type && answer.type == 'thread') {
+                    for (const answer_t of answer.response) console.log(answer_t);
+                }
+            }
         }
     }
 

@@ -54,51 +54,74 @@ class Cli {
             fs.writeFileSync(HISTORY_PATH, `${currentContent}\n${args.join(' ')}`);
         }
 
-        if (this.root == 'root') {
-            let flags = ['ls', 'graph', 'o', 'v', 'c'];
+        let isRoot = (this.pwdConfig ? this.pwdConfig?.root ? this.pwdConfig?.root : this.root : this.root) == 'root';
 
-            let packages = getDirs(`${__dirname}/usr/packages`);
-            let packagesCommands = [];
-            for (const pkg of packages) packagesCommands.push({ name: pkg, commands: Reflect.ownKeys(require(`${__dirname}/usr/packages/${pkg}/index`)).filter(p => !['length', 'name', 'prototype'].includes(p)) });
+        const OPERATOR_AND = args.indexOf('&&');
 
-            for (const argument of args) {
-                this.beforeCounter++;
-                if (this.isexit) process.exit(1);
+        if (OPERATOR_AND > -1) {
+            let cmds = [];
+            let i = 0;
+            let answer = [];
+
+            for (const arg of args) {
+                if (arg == '&&') i++;
+                if (cmds[i] == undefined) cmds[i] = [];
+                if (arg != '&&') cmds[i].push(arg);
+            }
+
+            for (const thread of cmds) answer.push(this.execute(thread));
+
+            return {
+                response: answer.filter(Boolean),
+                type: 'thread'
+            }
+        } else {
+            if (isRoot) {
+                let flags = ['ls', 'graph', 'o', 'v', 'c'];
+
+                let packages = getDirs(`${__dirname}/usr/packages`);
+                let packagesCommands = [];
+                for (const pkg of packages) packagesCommands.push({ name: pkg, commands: Reflect.ownKeys(require(`${__dirname}/usr/packages/${pkg}/index`)).filter(p => !['length', 'name', 'prototype'].includes(p)) });
+
+                for (const argument of args) {
+                    this.beforeCounter++;
+                    if (this.isexit) process.exit(1);
 
                 if (Reflect.ownKeys(this.variable).includes(argument)) {
                     if (args.length > 1) ServerLog.log(`${argument} is not a command \n`, 'Exception');
                     else return this.variable[argument];
                 }
 
-                if (!flags.includes(argument.slice(1)))
-                if (this.counter == 0 && flags.includes(argument.slice(1)))
-                    throw { error: 'Invalid argument ' + argument + ' in command ' };
+                    if (!flags.includes(argument.slice(1)))
+                    if (this.counter == 0 && flags.includes(argument.slice(1)))
+                        throw { error: 'Invalid argument ' + argument + ' in command ' };
 
-                if (Object.getOwnPropertyNames(Cli.prototype).includes(argument)) {
-                    return this[argument]();
-                } else {
-                    for (const pkg of packagesCommands)
-                    if (pkg.commands.includes(argument)) require(`${__dirname}/usr/packages/${pkg.name}/index`)[argument]['call'](this);
+                    if (Object.getOwnPropertyNames(Cli.prototype).includes(argument)) {
+                        return this[argument]();
+                    } else {
+                        for (const pkg of packagesCommands)
+                            if (pkg.commands.includes(argument)) return require(`${__dirname}/usr/packages/${pkg.name}/index`)[argument]['call'](this);
+                    }
+                    
+                    if (this.counter >= 1) {
+                        if(this.flagUsage == false || this.commandUsage == false) console.log('Unexpected argument ' + argument);
+                    }
+                    
+                    if (flags.includes(argument.slice(1))) this[argument.slice(1)]();
+                    this.counter++;
                 }
-                
-                if (this.counter >= 1) {
-                    if(this.flagUsage == false || this.commandUsage == false) console.log('Unexpected argument ' + argument);
-                }
-                
-                if (flags.includes(argument.slice(1))) this[argument.slice(1)]();
-                this.counter++;
-            }
 
-            if (this.counter == 0) console.log('get more information: asmx-cli usage');
-        } else if (this.root == 'cli') {
-            if (this.cdPath == 'asmx') {
-                kernelCli.execute(['asmx-cli', ...args]);
-            } else if (this.cdPath == 'cide') {
-                require('../../../tools/cide/cli').execute(['cide-cli', ...args]);
-            } else if (this.cdPath == 'app') {
-                require('../../../bin/app/cli').execute(['app-cli', ...args]);
-            } else if (this.cdPath == 'apm') {
-                require('../../../tools/apm/cli').execute(['apm-cli', ...args]);
+                if (this.counter == 0) console.log('get more information: asmx-cli usage');
+            } else if (this.root == 'cli') {
+                if (this.cdPath == 'asmx') {
+                    kernelCli.execute(['asmx-cli', ...args]);
+                } else if (this.cdPath == 'cide') {
+                    require('../../../tools/cide/cli').execute(['cide-cli', ...args]);
+                } else if (this.cdPath == 'app') {
+                    require('../../../bin/app/cli').execute(['app-cli', ...args]);
+                } else if (this.cdPath == 'apm') {
+                    require('../../../tools/apm/cli').execute(['apm-cli', ...args]);
+                }
             }
         }
     }
@@ -121,7 +144,7 @@ class Cli {
             forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
         }
 
-        let cli = `${forgecolor?.cli || Color.FG_GRAY}cide-cli${Color.RESET}`;
+        let cli = `${forgecolor?.cli || Color.FG_GRAY}asmxos-cli${Color.RESET}`;
         let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
         let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
         let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
@@ -144,9 +167,9 @@ class Cli {
         log(buildText(cli, 'doge', edit.separator, 'The command allows you to display the contents of the file', 2, arg('name')));
         log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2));
         log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2, flag('-ls')));
-        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages with a lot of information', 2, flag('-info')));
-        log(buildText(cli, 'help', edit.separator, 'The command allows you to get a reference for the mini operating system'));
-        log(buildText(cli, 'mkfile', edit.separator, 'The command allows you to create a file', 2, `${arg('./file')}`));
+        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages with a lot of information', 1, flag('-info')));
+        log(buildText(cli, 'help', edit.separator, 'The command allows you to get a reference for the mini operating system', 2));
+        log(buildText(cli, 'mkfile', edit.separator, 'The command allows you to create a file', 1, `${arg('./file')}`));
         log(buildText(cli, 'mkdir', edit.separator, 'The command allows you to create a folder', 2, `${arg('./name')}`));
         log(buildText(cli, 'colors', edit.separator, 'The command allows you to get colors', 2));
         log(buildText(cli, 'cd', edit.separator, 'The command allows you to find out the path', 3));
@@ -160,11 +183,33 @@ class Cli {
     }
 
 
-    history() {
+    history() {        
+        const parameters = this.cli_args.slice(1);
         const HISTORY_PATH = `${__dirname}/usr/.history`;
+        const flag = parameters[0];
 
-        if (fs.existsSync(HISTORY_PATH))
-            for (const line of fs.readFileSync(HISTORY_PATH).toString('utf8').split('\n')) console.log(line);
+        if (parameters.length > 1) {
+            ServerLog.log("too many parameters\n", 'Exception');
+        } else {
+            const content_t = () => fs.readFileSync(HISTORY_PATH).toString('utf8').split('\n');
+            const existHistory = (cb) => { if (fs.existsSync(HISTORY_PATH)) cb() };
+
+            if (flag) {
+                if (['--unique', '--count'].includes(flag)) {
+                    if (flag == '--unique') {
+                        let list = new Set();
+                        existHistory(_ => content_t().map(line => list.add(line)));
+                        list.forEach(item => console.log(item));
+                        list.clear();
+                    } else if (flag == '--count') {
+                        existHistory(_ => console.log(String(content_t().length)));
+                    }
+                } else
+                    ServerLog.log('flag not found', 'Exception');
+            } else {
+                existHistory(_ => content_t().map(line => console.log(line)));
+            }
+        }
     }
 
 
@@ -204,6 +249,89 @@ class Cli {
             const encodeFlag = parameters[1] == '--encode';
             const encode = parameters[2];
             if (fs.existsSync(path)) return fs.readFileSync(path).toString(encodeFlag ? encodeList.includes(encode) ? encode : 'utf8' : 'utf8');
+        }
+    }
+
+
+    grep() {
+        const parameters = this.cli_args.slice(1);
+
+        if (parameters.length > 3) { 
+            ServerLog.log("too many parameters\n", 'Exception');
+        } else {
+            const file = parameters[0];
+            const path = `${__dirname}/${this.variable['$HOME']}${file}`;
+            let template, flag;
+
+            if (['--count', '-l'].includes(parameters[1])) {
+                flag = parameters[1];
+                template = parameters.slice(2); 
+            } else template = parameters.slice(1);
+
+            if (fs.existsSync(path)) {
+                let content = fs.readFileSync(path).toString();
+                let answer = [];
+
+                if (flag == '--count') {
+                    let count = 0;
+
+                    content.split('\n').forEach(line => {
+                        if (line.matchAll(new RegExp(template, 'g')))
+                            for (const token of line.matchAll(new RegExp(template, 'g'))) count += token[0] ? 1 : 0;
+                    });
+
+                    return String(count);
+                } 
+
+                for (const line of content.split('\n')) {
+                    answer.push(new RegExp(template, 'g').test(line) ? line.replaceAll(template, (v) => `\x1b[38;5;231m${v}\x1b[0m`) : flag == '-l' ? false : line);
+                }
+
+                answer = answer.filter(Boolean);
+                return answer.join('\n');
+            }
+        }
+    }
+
+
+    pwd() {
+        const parameters = this.cli_args.slice(1);
+        const flag = parameters[0];
+
+        if (parameters.length > 1) { 
+            ServerLog.log("too many parameters", 'Exception');
+        } else {
+            if (flag) {
+                if (['--hide', '--visible'].includes(flag)) {
+                    if (flag == '--hide') {
+                        if (this.pwdConfig == undefined) {
+                            this.pwdConfig = {
+                                root: this.root,
+                                separateCD: this.separateCD,
+                                cdPath: this.cdPath
+                            }
+
+                            this.root = '';
+                            this.separateCD = '';
+                            this.cdPath = '';
+                        }
+                    } else if (flag == '--visible') {
+                        if (this.pwdConfig) {
+                            this.root =  this.pwdConfig.root;
+                            this.separateCD =  this.pwdConfig.separateCD;
+                            this.cdPath =  this.pwdConfig.cdPath;
+                            this.pwdConfig = undefined;
+                        }
+                    }
+                } else {
+                    ServerLog.log('flag not found\n', 'Exception');
+                }
+            } else {
+                let conf;
+                if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
+                let cd = `${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.root}\x1b[0m${this.separateCD}${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.cdPath}\x1b[0m`;
+                return cd;
+            }
         }
     }
 
