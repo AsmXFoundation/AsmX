@@ -631,7 +631,7 @@ class Cli {
 
     /** @returns the AsmX version */
     static v() {
-        process.stdout.write('AsmX v4.0');
+        console.log('AsmX v4.0');
         this.flagUsage = false;
         this.commandUsage = false;
     }

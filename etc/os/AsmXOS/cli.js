@@ -7,6 +7,7 @@ const ServerLog = require("../../../server/log");
 const Color = require("../../../utils/color");
 const config = require("../../../config");
 const { exec, execSync } = require('child_process');
+const Theme = require('../../../tools/theme');
 
 
 class Cli {
@@ -102,11 +103,11 @@ class Cli {
                         for (const pkg of packagesCommands)
                             if (pkg.commands.includes(argument)) return require(`${__dirname}/usr/packages/${pkg.name}/index`)[argument]['call'](this);
                     }
-                    
+
                     if (this.counter >= 1) {
-                        if(this.flagUsage == false || this.commandUsage == false) console.log('Unexpected argument ' + argument);
+                        if (this.flagUsage == false || this.commandUsage == false) console.log('Unexpected argument ' + argument);
                     }
-                    
+
                     if (flags.includes(argument.slice(1))) this[argument.slice(1)]();
                     this.counter++;
                 }
@@ -129,61 +130,32 @@ class Cli {
 
     help() {
         let log = (message, params) => console.log(`\t${message}`, params ? params : '');
-        const forgecolor = {};
-        let theme;
-
-        if (config.INI_VARIABLES?.CLI_THEME != 'common') {
-            theme = require(`../../../etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
-        } else theme = {};
-
-        const edit = {
-            separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
-        };
-
-        for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
-            forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
-        }
-
-        let cli = `${forgecolor?.cli || Color.FG_GRAY}asmxos-cli${Color.RESET}`;
-        let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
-        let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
-        let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
-        let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
-        let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
-        let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
-
-        function buildText(cli, command, separate, text, tabs, other = undefined) {
-            return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
-        }
-
-        log(theme?.forgecolor?.text || Color.FG_GRAY);
+        log(Color.FG_GRAY);
+        let cli = `asmxos-cli`;
         log(`USAGE:`);
         log(`-`.repeat(96));
         log(`${cli} [cmd] [options] -[flags] [options]`);
-        log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 2));
-        log(buildText(cli, 'neofetch', edit.separator, 'The command allows you to learn the basic about the OS', 1, flag('--help')));
-        log(buildText(cli, 'history', edit.separator, 'The command allows you to find out the history of requests', 2));
-        log(buildText(cli, 'cli', edit.separator, 'The command allows you to navigate to the desired CLI', 2, `${arg('name')}`));
-        log(buildText(cli, 'doge', edit.separator, 'The command allows you to display the contents of the file', 2, arg('name')));
-        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2));
-        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages', 2, flag('-ls')));
-        log(buildText(cli, 'packages', edit.separator, 'The command allows you to get a list of OS packages with a lot of information', 1, flag('-info')));
-        log(buildText(cli, 'help', edit.separator, 'The command allows you to get a reference for the mini operating system', 2));
-        log(buildText(cli, 'mkfile', edit.separator, 'The command allows you to create a file', 1, `${arg('./file')}`));
-        log(buildText(cli, 'mkdir', edit.separator, 'The command allows you to create a folder', 2, `${arg('./name')}`));
-        log(buildText(cli, 'colors', edit.separator, 'The command allows you to get colors', 2));
-        log(buildText(cli, 'cd', edit.separator, 'The command allows you to find out the path', 3));
-        log(buildText(cli, 'cd', edit.separator, 'The command allows you to set the path', 2, `${arg('./path')}`));
-        log(`FLAGS:`);
-        log(`${flag('-ls')}`);
-        log(`${flag('-c')}`);
-        log(`${flag('-v')}`);
-        log(`${`-`.repeat(96)}`);
-        log(``);
+        Theme.setCallbackPrint(log);
+        Theme.print(cli, 'neofetch', 'The command allows you to learn the basic about the OS', 2);
+        Theme.print(cli, 'neofetch', 'The command allows you to learn the basic about the OS', 1, { flag: '--help' });
+        Theme.print(cli, 'history', 'The command allows you to find out the history of requests', 2);
+        Theme.print(cli, 'cli', 'The command allows you to navigate to the desired CLI', 2, { arg: 'name' });
+        Theme.print(cli, 'doge', 'The command allows you to display the contents of the file', 2, { arg: 'name' });
+        Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages', 2);
+        Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages', 2, { flag: '-ls' });
+        Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages with a lot of information', 1, { flag: '-info' });
+        Theme.print(cli, 'help', 'The command allows you to get a reference for the mini operating system', 2);
+        Theme.print(cli, 'touch', 'The command allows you to create a file', 1, { arg: 'name' });
+        Theme.print(cli, 'leaf', 'The command allows you to create a text file', 1, { arg: 'name' });
+        Theme.print(cli, 'mkdir', 'The command allows you to create a folder', 2, { arg: './name' });
+        Theme.print(cli, 'colors', 'The command allows you to get colors', 2);
+        Theme.print(cli, 'cd', 'The command allows you to find out the path', 3);
+        Theme.print(cli, 'cd', 'The command allows you to set the path', 2, { arg: './path' });
+        log(`-`.repeat(96) + '\n');
     }
 
 
-    history() {        
+    history() {
         const parameters = this.cli_args.slice(1);
         const HISTORY_PATH = `${__dirname}/usr/.history`;
         const flag = parameters[0];
@@ -240,7 +212,7 @@ class Cli {
     doge() {
         const parameters = this.cli_args.slice(1);
 
-        if (parameters.length > 3) { 
+        if (parameters.length > 3) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
             const file = parameters[0];
@@ -256,16 +228,16 @@ class Cli {
     grep() {
         const parameters = this.cli_args.slice(1);
 
-        if (parameters.length > 3) { 
+        if (parameters.length > 3) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
             const file = parameters[0];
             const path = `${__dirname}/${this.variable['$HOME']}${file}`;
             let template, flag;
 
-            if (['--count', '-l'].includes(parameters[1])) {
+            if (['--count', '-l', '--help'].includes(parameters[1])) {
                 flag = parameters[1];
-                template = parameters.slice(2); 
+                template = parameters.slice(2);
             } else template = parameters.slice(1);
 
             if (fs.existsSync(path)) {
@@ -281,7 +253,7 @@ class Cli {
                     });
 
                     return String(count);
-                } 
+                }
 
                 for (const line of content.split('\n')) {
                     answer.push(new RegExp(template, 'g').test(line) ? line.replaceAll(template, (v) => `\x1b[38;5;231m${v}\x1b[0m`) : flag == '-l' ? false : line);
@@ -298,7 +270,7 @@ class Cli {
         const parameters = this.cli_args.slice(1);
         const flag = parameters[0];
 
-        if (parameters.length > 1) { 
+        if (parameters.length > 1) {
             ServerLog.log("too many parameters", 'Exception');
         } else {
             if (flag) {
@@ -317,9 +289,9 @@ class Cli {
                         }
                     } else if (flag == '--visible') {
                         if (this.pwdConfig) {
-                            this.root =  this.pwdConfig.root;
-                            this.separateCD =  this.pwdConfig.separateCD;
-                            this.cdPath =  this.pwdConfig.cdPath;
+                            this.root = this.pwdConfig.root;
+                            this.separateCD = this.pwdConfig.separateCD;
+                            this.cdPath = this.pwdConfig.cdPath;
                             this.pwdConfig = undefined;
                         }
                     }
@@ -346,7 +318,7 @@ class Cli {
             const parameters = this.cli_args;
             const path = parameters[1];
 
-            if (parameters.length > 2) { 
+            if (parameters.length > 2) {
                 ServerLog.log("too many parameters", 'Exception');
             } else if (path) {
                 this.cdPath = path;
@@ -364,12 +336,12 @@ class Cli {
         const parameters = this.cli_args;
         const path = parameters[1];
 
-        if (parameters.length > 2) { 
+        if (parameters.length > 2) {
             ServerLog.log("too many parameters", 'Exception');
         } else if (path) {
             if (this.root == 'root' && this.cdPath == 'miniOS') {
-                fs.mkdir(__dirname + '/usr/' + path, () => {});
-            } else fs.writeFile(path, ' ', () => {});
+                fs.mkdir(__dirname + '/usr/' + path, () => { });
+            } else fs.writeFile(path, ' ', () => { });
         } else {
             let cd = `${this.root}${this.separateCD}${this.cdPath}`;
             return cd;
@@ -377,19 +349,36 @@ class Cli {
     }
 
 
-    mkfile() {
+    touch() {
         const parameters = this.cli_args;
         const path = parameters[1];
 
-        if (parameters.length > 2) { 
+        if (parameters.length > 2) {
             ServerLog.log("too many parameters", 'Exception');
         } else if (path) {
-            if (this.root == 'root' && this.cdPath == 'miniOS') {
-                fs.writeFile(__dirname + '/usr/' + path, ' ', () => {});
-            } else fs.writeFile(path, ' ', () => {});
+            if (this.root == 'root' && this.cdPath == 'asmxOS') {
+                fs.writeFile(__dirname + '/usr/' + path, ' ', () => { });
+            } else fs.writeFile(path, ' ', () => { });
         } else {
             let cd = `${this.root}${this.separateCD}${this.cdPath}`;
-            return cd;
+            return cd; 
+        }
+    }
+
+
+    leaf() {
+        const parameters = this.cli_args.slice(1);
+        let path = parameters[0];
+        
+        if (parameters.length > 1) {
+            ServerLog.log("too many parameters", 'Exception');
+        } else if (path) {
+            if (path.endsWith('.')) path += 'txt';
+            else if (!path.endsWith('.txt')) path += '.txt';
+
+            if (this.root == 'root' && this.cdPath == 'asmxOS') {
+                fs.writeFile(__dirname + '/usr/' + path, ' ', () => { });
+            } else fs.writeFile(path, ' ', () => { });
         }
     }
 
@@ -397,13 +386,13 @@ class Cli {
     cli() {
         const parameters = this.cli_args;
 
-        if (parameters.length > 2) { 
+        if (parameters.length > 2) {
             ServerLog.log("too many parameters", 'Exception');
         } else if (parameters[1]) {
             this.root = 'cli';
             this.cdPath = parameters[1];
         } else {
-            ServerLog.log('Insufficient number of arguments\n', 'Exception'); 
+            ServerLog.log('Insufficient number of arguments\n', 'Exception');
         }
     }
 
@@ -411,7 +400,7 @@ class Cli {
     neofetch() {
         const parameters = this.cli_args.slice(1);
 
-        if (parameters.length > 1) { 
+        if (parameters.length > 1) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
             const flag = parameters[0];
@@ -423,9 +412,9 @@ class Cli {
                 let stansartsColor = '';
                 for (let index = 0; index < 8; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
                 log(stansartsColor);
-            
+
                 stansartsColor = '';
-                for (let index = 8; index < 8*2; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                for (let index = 8; index < 8 * 2; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
                 log(stansartsColor);
                 log('');
             }
@@ -487,19 +476,19 @@ class Cli {
                 let log = (message, params) => console.log(`\t${message}`, params ? params : '');
                 const forgecolor = {};
                 let theme;
-        
+
                 if (config.INI_VARIABLES?.CLI_THEME != 'common') {
                     theme = require(`../../../etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
                 } else theme = {};
-        
+
                 const edit = {
                     separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
                 };
-        
+
                 for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
                     forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
                 }
-        
+
                 let cli = `${forgecolor?.cli || Color.FG_GRAY}${Color.RESET}`;
                 let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
                 let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
@@ -507,11 +496,11 @@ class Cli {
                 let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
                 let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
                 let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
-        
+
                 function buildText(cli, command, separate, text, tabs, other = undefined) {
                     return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
                 }
-        
+
                 log(theme?.forgecolor?.text || Color.FG_GRAY);
                 log(`USAGE:`);
                 log(`-`.repeat(96));

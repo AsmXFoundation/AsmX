@@ -5,6 +5,7 @@
 const config = require("../../config");
 const ServerLog = require("../../server/log");
 const Color = require("../../utils/color");
+const Theme = require("../theme");
 const AsmXPackageManager = require("./apm");
 
 const fs = require('fs');
@@ -54,44 +55,21 @@ class CLI {
     }
     //============================================================================================
 
+
     static help() {
         let log = (message, params) => console.log(`\t${message}`, params ? params : '');
-        const forgecolor = {};
-        let theme;
-
-        if (config.INI_VARIABLES?.CLI_THEME != 'common') {
-            theme = require(`../../etc/cli/theme/${config.INI_VARIABLES?.CLI_THEME}/theme.json`);
-        } else theme = {};
-
-        const edit = {
-            separator: theme?.edit?.separator ? theme?.edit?.separator : '-'
-        };
-
-        for (const property of ['cli', 'title', 'document', 'command', 'params', 'flag', 'separator', 'argument']) {
-            forgecolor[property] = (theme?.forgecolor)?.[property] ? Reflect.ownKeys(Color).slice(3).includes(`FG_${theme?.forgecolor[property]}`) ? Color[`FG_${theme?.forgecolor[property]}`] : theme?.forgecolor[property] : Color.FG_GRAY;
-        }
-
-        let cli = `${forgecolor?.cli || Color.FG_GRAY}apm-cli${Color.RESET}`;
-        let doc = (text) => `${forgecolor.document}${text}${Color.RESET}`;
-        let cmd = (text) => `${forgecolor.command}${text}${Color.RESET}`;
-        let params = (text) => `${forgecolor.params}${text}${Color.RESET}`;
-        let arg = (text) => `${forgecolor.argument}${text}${Color.RESET}`;
-        let flag = (text) => `${forgecolor.flag}${text}${Color.RESET}`;
-        let separator = (text) => `${forgecolor.separator}${text}${Color.RESET}`;
-
-        function buildText(cli, command, separate, text, tabs, other = undefined) {
-            return `${cli} ${cmd(command)} ${other || ''}${tabs ? '\t'.repeat(tabs) : '\t\t\t'}${separate ? separator(separate) : ''} ${text ? doc(text) : ''}`;
-        }
-
-        log(theme?.forgecolor?.text || Color.FG_GRAY);
+        Theme.setCallbackPrint(log);
+        let cli = 'apm-cli';
+        log(Color.FG_GRAY);
         log(`USAGE:`);
         log(`-`.repeat(96));
         log(`${cli} [cmd] [options] -[flags] [options]`);
-        log(buildText(cli, 'help', edit.separator, 'the command lets you learn more about AsmX Package Manager',));
-        log(buildText(cli, 'install', edit.separator, 'the command allows you to install a package of type [type] with the name \'name\'', 1, `${params('[type]')} ${arg('name')}`));
-        log(buildText(cli, 'uninstall', edit.separator, 'the command allows you to delete a package of type [type] with the name \'name\'', 1, `${params('[type]')} ${arg('name')}`));
-        log(buildText(cli, 'is', edit.separator, 'the command lets you find out if there is a package of type [type] with the name \'name\'', 2, `${params('[type]')} ${arg('name')}`));
-        log(buildText(cli, 'verify', edit.separator, 'The command allows you to check a package of the type [type] with the name \'name\' for verification.', 1, `${params('[type]')} ${arg('name')}`));
+        let list = [{ params: '[type]' }, { arg: 'name' }];
+        Theme.print(cli, 'help', 'the command lets you learn more about AsmX Package Manager');
+        Theme.print(cli, 'install', 'the command allows you to install a package of type [type] with the name \'name\'', 1, list);
+        Theme.print(cli, 'uninstall', 'the command allows you to delete a package of type [type] with the name \'name\'', 1, list);
+        Theme.print(cli, 'is', 'the command lets you find out if there is a package of type [type] with the name \'name\'', 2, list);
+        Theme.print(cli, 'verify', 'The command allows you to check a package of the type [type] with the name \'name\' for verification.', 1, list);
         log(`-`.repeat(96));
     }
 

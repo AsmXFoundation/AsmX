@@ -32,3 +32,4 @@ termux/
 !/etc/os/AsmXOS/usr/*
 
 /AsmX_Crash_Course/*
+etc/os/AsmXOS/usr/.history

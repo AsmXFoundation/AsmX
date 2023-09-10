@@ -1,0 +1,113 @@
+
+tar ./examples/add.asmX
+tar ./examples/add.asmX
+tar ./examples/add.asmX
+tar ./examples/add.asmX
+tar ./examples/add.asmX
+tar ./examples/add.asmX ./examples/tar
+tar ./examples/add.asmX ./examples/tar
+tar ./examples/add.asmX ./examples/tar
+tar ./examples/add.asmX ./examples/tar
+tar ./examples/add.asmX ./examples/tar
+tar ./examples/add.asmX ./examples/tar
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add
+tar ./examples/add ./examples/add.asmX
+tar ./examples/add ./examples/add.asmX
+tar ./examples/add
+tar ./examples/add
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.asmX ./examples/add.asmX
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add --watch
+tar ./examples/add.asmX
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add && tar ./examples/add.tar --watch
+tar ./examples/add.asmX ./examples/add
+tar ./examples/add.tar --watch
+tar ./examples/ ./examples/expl
+tar ./examples/ ./examples/expl && tar ./examples/expl.tar --watch
+tar ./examples/ ./examples/expl
+tar ./examples/expl.tar --watch
+tar ./examples/ ./examples/expl && tar ./examples/expl.tar --watch
+tar ./examples/ ./examples/expl
+tar ./examples/expl.tar --watch
+tar ./examples/expl.tar --watch
+tar ./examples/expl.tar --watch
+tar ./examples/* ./examples/expl && tar ./examples/expl.tar --watch
+tar ./examples/* ./examples/expl
+tar ./examples/expl.tar --watch
+leaf text
+pkg tar
+pkg tar --is
+pkg tar --is
+pkg tar
+pkg tar
+pkg tar -is
+pkg tar --is
+pkg tar --is
+pkg tar --is
+pkg tar --is
+pkg tar --is
+pkg tar --is
+pkg ar --is
+pkg ar --is
+pkg tar --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlib --is
+pkg stdlibr --is
