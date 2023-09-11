@@ -137,16 +137,19 @@ class Cli {
         log(`${cli} [cmd] [options] -[flags] [options]`);
         Theme.setCallbackPrint(log);
         Theme.print(cli, 'neofetch', 'The command allows you to learn the basic about the OS', 2);
-        Theme.print(cli, 'neofetch', 'The command allows you to learn the basic about the OS', 1, { flag: '--help' });
+        Theme.print(cli, 'neofetch', 'The command allows you to get a reference for the neofetch command', 1, { flag: '--help' });
         Theme.print(cli, 'history', 'The command allows you to find out the history of requests', 2);
+        Theme.print(cli, 'history', 'The command allows you to get a reference for the history command', 1, [{ flag: '--help' }]);
         Theme.print(cli, 'cli', 'The command allows you to navigate to the desired CLI', 2, { arg: 'name' });
         Theme.print(cli, 'doge', 'The command allows you to display the contents of the file', 2, { arg: 'name' });
+        Theme.print(cli, 'grep', 'The command allows you to get a reference for the grep command', 2, [{ flag: '--help' }]);
+        Theme.print(cli, 'pwd', 'The command allows you to get a reference for the pwd command', 2, { flag: '--help' });
         Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages', 2);
         Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages', 2, { flag: '-ls' });
         Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages with a lot of information', 1, { flag: '-info' });
         Theme.print(cli, 'help', 'The command allows you to get a reference for the mini operating system', 2);
-        Theme.print(cli, 'touch', 'The command allows you to create a file', 1, { arg: 'name' });
-        Theme.print(cli, 'leaf', 'The command allows you to create a text file', 1, { arg: 'name' });
+        Theme.print(cli, 'touch', 'The command allows you to create a file', 2, { arg: 'name' });
+        Theme.print(cli, 'leaf', 'The command allows you to create a text file', 2, { arg: 'name' });
         Theme.print(cli, 'mkdir', 'The command allows you to create a folder', 2, { arg: './name' });
         Theme.print(cli, 'colors', 'The command allows you to get colors', 2);
         Theme.print(cli, 'cd', 'The command allows you to find out the path', 3);
@@ -167,7 +170,7 @@ class Cli {
             const existHistory = (cb) => { if (fs.existsSync(HISTORY_PATH)) cb() };
 
             if (flag) {
-                if (['--unique', '--count'].includes(flag)) {
+                if (['--unique', '--count', '--help'].includes(flag)) {
                     if (flag == '--unique') {
                         let list = new Set();
                         existHistory(_ => content_t().map(line => list.add(line)));
@@ -175,9 +178,17 @@ class Cli {
                         list.clear();
                     } else if (flag == '--count') {
                         existHistory(_ => console.log(String(content_t().length)));
+                    } else if (flag == '--help') {
+                        let log = (message, params) => console.log(`\t${message}`, params ? params : '');
+                        let cli = `asmxos-cli`;
+                        Theme.setCallbackPrint(log);
+                        Theme.print(cli, 'history', 'The command allows you to display the entire query history', 2);
+                        Theme.print(cli, 'history', 'The command allows you to get a reference for the history command', 1, { flag: '--help' });
+                        Theme.print(cli, 'history', 'The command allows you to output only unique queries', 1, { flag: '--unique' });
+                        Theme.print(cli, 'history', 'The command allows you to output the number of requests', 1, { flag: '--count' });
                     }
                 } else
-                    ServerLog.log('flag not found', 'Exception');
+                    ServerLog.log('flag not found\n', 'Exception');
             } else {
                 existHistory(_ => content_t().map(line => console.log(line)));
             }
@@ -235,12 +246,21 @@ class Cli {
             const path = `${__dirname}/${this.variable['$HOME']}${file}`;
             let template, flag;
 
-            if (['--count', '-l', '--help'].includes(parameters[1])) {
+            if (['--count', '-l'].includes(parameters[1])) {
                 flag = parameters[1];
                 template = parameters.slice(2);
             } else template = parameters.slice(1);
 
-            if (fs.existsSync(path)) {
+
+            if (parameters[0] == '--help') {
+                let cli = 'asmxos-cli';
+                let log = (message, params) => console.log(`\t${message}`, params ? params : '');
+                Theme.setCallbackPrint(log);
+                Theme.print(cli, 'grep', 'The command allows you to get a reference for the grep command', 4, { flag: '--help' });
+                Theme.print(cli, 'grep', 'The command allows you to find lines in which there is a specified template [template] in the \'name\' file', 2, [{ arg: 'name' }, { arg: '[template]' }]);
+                Theme.print(cli, 'grep', 'The command allows you to find the number of rows found in which there is a given template [template] in the \'name\' file', 1, [{ arg: 'name' }, { flag: '--count' }, { arg: '[template]' }]);
+                Theme.print(cli, 'grep', 'The command allows you to output lines in which there is a specified template [template] in the \'name\' file', 2, [{ arg: 'name' }, { flag: '-l' }, { arg: '[template]' }]);
+            } else if (fs.existsSync(path)) {
                 let content = fs.readFileSync(path).toString();
                 let answer = [];
 
@@ -274,7 +294,7 @@ class Cli {
             ServerLog.log("too many parameters", 'Exception');
         } else {
             if (flag) {
-                if (['--hide', '--visible'].includes(flag)) {
+                if (['--hide', '--visible', '--help'].includes(flag)) {
                     if (flag == '--hide') {
                         if (this.pwdConfig == undefined) {
                             this.pwdConfig = {
@@ -294,6 +314,14 @@ class Cli {
                             this.cdPath = this.pwdConfig.cdPath;
                             this.pwdConfig = undefined;
                         }
+                    } else if (flag == '--help') {
+                        let log = (message, params) => console.log(`\t${message}`, params ? params : '');
+                        let cli = `asmxos-cli`;
+                        Theme.setCallbackPrint(log);
+                        Theme.print(cli, 'pwd', 'The command allows you to output the full path from the root directory to the current working directory', 3);
+                        Theme.print(cli, 'pwd', 'The command allows you to get a reference for the pwd command', 2, { flag: '--help' });
+                        Theme.print(cli, 'pwd', 'The command allows you to hide the full path from the root directory to the current working directory', 2, { flag: '--hide' });
+                        Theme.print(cli, 'pwd', 'The command allows you to make visible the full path from the root directory to the current working directory', 1, { flag: '--visible' });
                     }
                 } else {
                     ServerLog.log('flag not found\n', 'Exception');
