@@ -981,52 +981,83 @@ class Compiler {
         let IA = {};
         let currentValue = 0;
 
-        for (let property of ast) {
-            property = property?.property;
-            if (property?.type == undefined) IA[property?.name] = currentValue;
+        if (enumname?.isAttribute) {
+            if (enumname?.attribute == 'scalar') {
+                for (let property of ast) {
+                    property = property?.property;
+    
+                    if (property?.type == undefined) {
+                        IA[property?.name] = property.name;
+                    } else if (property?.type !== undefined) {
+                        new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}StructureException${Color.FG_WHITE}]: Invalid value.`, {
+                            code: ast[currentValue]?.parser?.code,
+                            row: 0,
+                            select: property?.type
+                        });
+        
+                        ServerLog.log(`You need to remove the value\n`, 'Possible fixes');
+                        process.exit(1);
+                    }
+    
+                    currentValue++;
+                }
+            } else {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}StructureException${Color.FG_WHITE}]: Invalid attribute name.`, {
+                    code: statement[0],
+                    row: 0,
+                    select: statement[0],
+                });
 
-            else if (property?.type !== undefined) {
-                if (Type.check('String', property?.type)) {
-                    let word = property?.type.slice(1, -1);
-                    let value = 0;
-                    for (const char of word) value += char.charCodeAt();
-                    IA[property?.name] = value;
-                    currentValue = value;
-                } else if (Type.check('Int', property?.type) || Type.check('Float', property?.type)) {
-                    let value = Number(property?.type);
-                    IA[property?.name] = value;
-                    currentValue = value;
-                } else if (Type.check('Bool', property?.type)) {
-                    let value = 0;
-                    if (property?.type == 'false') value = 0;
-                    if (property?.type == 'true') value = 1;
-                    IA[property?.name] = value;
-                    currentValue = value;
-                } else {
-                    if (Type.types.map(t => t.name).includes(property?.type)) {
+                process.exit(1);
+            }
+        } else {
+            for (let property of ast) {
+                property = property?.property;
+                if (property?.type == undefined) IA[property?.name] = currentValue;
+
+                else if (property?.type !== undefined) {
+                    if (Type.check('String', property?.type)) {
+                        let word = property?.type.slice(1, -1);
                         let value = 0;
-                        if (['string', 'bool'].includes(property?.type.toLowerCase())) value = 1;
-                        if (property?.type.toLowerCase() == 'int') value = 2;
-                        if (property?.type.toLowerCase() == 'float') value = 4;
+                        for (const char of word) value += char.charCodeAt();
+                        IA[property?.name] = value;
+                        currentValue = value;
+                    } else if (Type.check('Int', property?.type) || Type.check('Float', property?.type)) {
+                        let value = Number(property?.type);
+                        IA[property?.name] = value;
+                        currentValue = value;
+                    } else if (Type.check('Bool', property?.type)) {
+                        let value = 0;
+                        if (property?.type == 'false') value = 0;
+                        if (property?.type == 'true') value = 1;
                         IA[property?.name] = value;
                         currentValue = value;
                     } else {
-                        if (property?.type == 'void' || property?.type == 'Vloid') {
-                            value = 0;
+                        if (Type.types.map(t => t.name).includes(property?.type)) {
+                            let value = 0;
+                            if (['string', 'bool'].includes(property?.type.toLowerCase())) value = 1;
+                            if (property?.type.toLowerCase() == 'int') value = 2;
+                            if (property?.type.toLowerCase() == 'float') value = 4;
                             IA[property?.name] = value;
                             currentValue = value;
                         } else {
-                            let word = property?.type;
-                            let value = 0;
-                            for (const char of word) value += char.charCodeAt();
-                            IA[property?.name] = value;
-                            currentValue = value;
+                            if (property?.type == 'void' || property?.type == 'Vloid') {
+                                value = 0;
+                                IA[property?.name] = value;
+                                currentValue = value;
+                            } else {
+                                let word = property?.type;
+                                let value = 0;
+                                for (const char of word) value += char.charCodeAt();
+                                IA[property?.name] = value;
+                                currentValue = value;
+                            }
                         }
                     }
                 }
-            }
 
-            currentValue++;
+                currentValue++;
+            }
         }
 
         Interface.create(IA, 'enum', enumname.enum);

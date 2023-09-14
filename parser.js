@@ -1089,8 +1089,15 @@ class Parser {
 
 
     static parseEnumStatement(line , row) {
-        let ast = this._parseStructure(line, row, /^\@[E|e]num\s+(\w+)(?=\s+\:|\:)/);
-        return { enum: ast.structure.name, parser: ast.parser };
+        if (/^\@[E|e]num\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.test(line)) {
+            line = this.parseAndDeleteEmptyCharacters(line);
+            this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
+            let ast = this._parseStructure(line.replace(/^\@[E|e]num\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.exec(line)[1], ''), row, /^\@[E|e]num\s+(\w+)(?=\s+\:|\:)/);
+            return { enum: ast.structure.name, isAttribute: true, attribute: /^\@[E|e]num\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.exec(line)[1], parser: ast.parser };
+        } else {
+            let ast = this._parseStructure(line, row, /^\@[E|e]num\s+(\w+)(?=\s+\:|\:)/);
+            return { enum: ast.structure.name, parser: ast.parser };
+        }
     }
 
 
