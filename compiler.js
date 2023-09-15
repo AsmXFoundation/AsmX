@@ -1001,6 +1001,54 @@ class Compiler {
     
                     currentValue++;
                 }
+            } else if (enumname?.attribute == 'unique') {
+                for (let property of ast) {
+                    property = property?.property;
+                    if (property?.type == undefined) IA[property?.name] = currentValue;
+    
+                    else if (property?.type !== undefined) {
+                        if (Type.check('String', property?.type)) {
+                            let word = property?.type.slice(1, -1);
+                            let value = 0;
+                            for (const char of word) value += char.charCodeAt();
+                            IA[property?.name] = value;
+                            currentValue = value;
+                        } else if (Type.check('Int', property?.type) || Type.check('Float', property?.type)) {
+                            let value = Number(property?.type);
+                            IA[property?.name] = value;
+                            currentValue = value;
+                        } else if (Type.check('Bool', property?.type)) {
+                            let value = 0;
+                            if (property?.type == 'false') value = 0;
+                            if (property?.type == 'true') value = 1;
+                            IA[property?.name] = value;
+                            currentValue = value;
+                        } else {
+                            if (Type.types.map(t => t.name).includes(property?.type)) {
+                                let value = 0;
+                                if (['string', 'bool'].includes(property?.type.toLowerCase())) value = 1;
+                                if (property?.type.toLowerCase() == 'int') value = 2;
+                                if (property?.type.toLowerCase() == 'float') value = 4;
+                                IA[property?.name] = value;
+                                currentValue = value;
+                            } else {
+                                if (property?.type == 'void' || property?.type == 'Vloid') {
+                                    value = 0;
+                                    IA[property?.name] = value;
+                                    currentValue = value;
+                                } else {
+                                    let word = property?.type;
+                                    let value = 0;
+                                    for (const char of word) value += char.charCodeAt();
+                                    IA[property?.name] = value;
+                                    currentValue = value;
+                                }
+                            }
+                        }
+                    }
+    
+                    currentValue++;
+                }
             } else {
                 new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}StructureException${Color.FG_WHITE}]: Invalid attribute name.`, {
                     code: statement[0],
@@ -1060,7 +1108,18 @@ class Compiler {
             }
         }
 
-        Interface.create(IA, 'enum', enumname.enum);
+
+        let i7e = Interface.getCustomInterfaces('enum', enumname.enum);
+        i7e = i7e.filter(i => i?.obj?.isAttribute && i?.obj?.attribute == 'unique');
+
+        if (i7e.length == 0) {
+            Interface.create(IA, 'enum', enumname.enum);
+        } else {
+            i7e = i7e[i7e.length - 1];
+            if (!(i7e?.obj?.attribute && i7e?.obj?.attribute == 'unique')) Interface.create(IA, 'enum', enumname.enum);
+        }
+
+        Interface.createCustomInterface(enumname, 'enum', enumname.enum);
         //
 
         this.interfaces['enums'].push({ [enumname?.enum]: statement.slice(1) });
