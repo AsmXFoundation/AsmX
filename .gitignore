@@ -33,3 +33,5 @@ termux/
 
 /AsmX_Crash_Course/*
 etc/os/AsmXOS/usr/.history
+
+bin/*

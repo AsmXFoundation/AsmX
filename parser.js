@@ -1102,8 +1102,15 @@ class Parser {
 
 
     static parseCollectionStatement(line , row) {
-        let ast = this._parseStructure(line, row, /^\@[Cc]ollection\s+(\w+)(?=\s+\:|\:)/);
-        return { collection: ast.structure.name, parser: ast.parser };
+        if (/^\@[Cc]ollection\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.test(line)) {
+            line = this.parseAndDeleteEmptyCharacters(line);
+            this.lexerSymbol(line, { operators: ['=', '+', '-', '*', '%', '/'] });
+            let ast = this._parseStructure(line.replace(/^\@[Cc]ollection\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.exec(line)[1], ''), row, /^\@[Cc]ollection\s+(\w+)(?=\s+\:|\:)/);
+            return { collection: ast.structure.name, isAttribute: true, attribute: /^\@[Cc]ollection\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.exec(line)[1], parser: ast.parser };
+        } else {
+            let ast = this._parseStructure(line, row, /^\@[Cc]ollection\s+(\w+)(?=\s+\:|\:)/);
+            return { collection: ast.structure.name, parser: ast.parser };
+        }
     }
 
 

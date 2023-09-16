@@ -1109,7 +1109,7 @@ class Compiler {
         }
 
 
-        let i7e = Interface.getCustomInterfaces('enum', enumname.enum);
+        let i7e = Interface.getCustomInterfaces('declaration-enum', enumname.enum);
         i7e = i7e.filter(i => i?.obj?.isAttribute && i?.obj?.attribute == 'unique');
 
         if (i7e.length == 0) {
@@ -1119,7 +1119,7 @@ class Compiler {
             if (!(i7e?.obj?.attribute && i7e?.obj?.attribute == 'unique')) Interface.create(IA, 'enum', enumname.enum);
         }
 
-        Interface.createCustomInterface(enumname, 'enum', enumname.enum);
+        Interface.createCustomInterface(enumname, 'declaration-enum', enumname.enum);
         //
 
         this.interfaces['enums'].push({ [enumname?.enum]: statement.slice(1) });
@@ -1143,8 +1143,32 @@ class Compiler {
             IA[property?.name] = property?.type;
         }
 
-        Interface.create(IA, 'collection', collectionname.collection);
-        //
+        // Interface.create(IA, 'collection', collectionname.collection); // v1
+
+        if (collectionname?.isAttribute) {
+            if (!['unique'].includes(collectionname?.attribute)) {
+                new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}StructureException${Color.FG_WHITE}]: Invalid attribute name.`, {
+                    code: statement[0],
+                    row: 0,
+                    select: statement[0],
+                });
+
+                process.exit(1);
+            }
+        }
+
+        let i7e = Interface.getCustomInterfaces('declaration-collection', collectionname.collection);
+        i7e = i7e.filter(i => i?.obj?.isAttribute && i?.obj?.attribute == 'unique');
+
+        if (i7e.length == 0) {
+            Interface.create(IA, 'collection', collectionname.collection);
+        } else {
+            i7e = i7e[i7e.length - 1];
+            if (!(i7e?.obj?.attribute && i7e?.obj?.attribute == 'unique')) Interface.create(IA, 'collection', collectionname.collection);
+        }
+
+        Interface.createCustomInterface(collectionname, 'declaration-collection', collectionname.collection);
+        
 
         this.interfaces['collections'].push({ [collectionname.collection]: statement.slice(1) });
     }
@@ -2679,7 +2703,7 @@ class Compiler {
     compileRetStatement(statement, index, trace) {
         if (this.scope == 'global') {
             process.stdout.write('You must specify a global scope before you compile the statement in the current process');
-            this.compileInvoke({ address: 0x01 });
+            this.compileInvokeStatement({ address: 0x01 });
         } else if (this.scope == 'local') {
             this.$urt = this.checkArgument(statement.arg, trace?.parser?.code, trace?.parser.row) || this.$ret || null;
         }
