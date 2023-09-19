@@ -519,17 +519,19 @@ class Cli {
 
 
     touch() {
-        const parameters = this.cli_args;
+        let parameters = this.cli_args;
+        parameters = [...parameters.slice(0, 2), parameters.slice(2).join(' ')];
         const path = parameters[1];
+        const text = parameters[2]; 
 
-        if (parameters.length > 2) {
+        if (parameters.length > 3) {
             ServerLog.log("too many parameters", 'Exception');
         } else if (path) {
             if (this.root == 'root' && this.cdPath == 'asmxOS') {
-                fs.writeFile(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`, '', () => { });
+                fs.writeFileSync(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`, text ? text : '', { encoding: 'utf8' });
             } else if (this.root == 'root') {
-                fs.writeFile(`${__dirname}/${this.cdPath}/${path}`, '', () => { });
-            } else fs.writeFile(path, '', () => { });
+                fs.writeFileSync(`${__dirname}/${this.cdPath}/${path}`, text ? text : '', { encoding: 'utf8' });
+            } else fs.writeFileSync(path, text ? text : '', { encoding: 'utf8' });
         } else {
             let cd = `${this.root}${this.separateCD}${this.cdPath}`;
             return cd; 
@@ -571,7 +573,16 @@ class Cli {
 
 
     neofetch() {
-        const parameters = this.cli_args.slice(1);
+        let parameters = this.cli_args.slice(1);
+        let colorsIndex;
+        
+        if (parameters[0] == '--colors') {
+            if (parameters[1] && /[0-9]+/.test(parameters[1])) {
+                colorsIndex = parameters[1];
+                parameters.pop();
+            }
+        }
+
 
         if (parameters.length > 1) {
             ServerLog.log("too many parameters\n", 'Exception');
@@ -580,14 +591,22 @@ class Cli {
             const flags = ['--colors', '--info', '--logo', '--help', '--left', '--right'];
             const log = (text) => console.log(`\t\t\t\t\t${text}`);
 
-            function colors() {
+            function colors(index_t) {
                 log('');
                 let stansartsColor = '';
-                for (let index = 0; index < 8; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
-                log(stansartsColor);
 
-                stansartsColor = '';
-                for (let index = 8; index < 8 * 2; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                if (index_t) {
+                    for (let index = 8 * index_t; index < (8 * index_t) + 8; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                    log(stansartsColor);
+                    stansartsColor = '';
+                    for (let index = (8 * index_t) + 8; index < (8 * index_t) + 16; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                } else {
+                    for (let index = 0; index < 8; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                    log(stansartsColor);
+                    stansartsColor = '';
+                    for (let index = 8; index < 8 * 2; index++) stansartsColor += `\x1b[48;5;${String(index)}m   \x1b[0m`;
+                }
+
                 log(stansartsColor);
                 log('');
             }
@@ -690,7 +709,7 @@ class Cli {
 
             if (flags.includes(flag)) {
                 if (flag == '--colors') {
-                    colors();
+                    colors(colorsIndex ? +colorsIndex : undefined);
                 } else if (['--logo', '--left'].includes(flag)) {
                     for (const line of logoMatrix()) console.log(line);
                 } else if (flag == '--info') {
