@@ -525,7 +525,7 @@ class Cli {
         const text = parameters[2]; 
 
         if (parameters.length > 3) {
-            ServerLog.log("too many parameters", 'Exception');
+            ServerLog.log("too many parameters\n", 'Exception');
         } else if (path) {
             if (this.root == 'root' && this.cdPath == 'asmxOS') {
                 fs.writeFileSync(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`, text ? text : '', { encoding: 'utf8' });
@@ -540,20 +540,22 @@ class Cli {
 
 
     leaf() {
-        const parameters = this.cli_args.slice(1);
+        let parameters = this.cli_args.slice(1);
+        parameters = [...parameters.slice(0, 1), parameters.slice(1).join(' ')];
         let path = parameters[0];
-        
-        if (parameters.length > 1) {
-            ServerLog.log("too many parameters", 'Exception');
+        const text = parameters[1];
+
+        if (parameters.length > 2) {
+            ServerLog.log("too many parameters\n", 'Exception');
         } else if (path) {
             if (path.endsWith('.')) path += 'txt';
             else if (!path.endsWith('.txt')) path += '.txt';
 
             if (this.root == 'root' && this.cdPath == 'asmxOS') {
-                fs.writeFile(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`, '', () => { });
+                fs.writeFileSync(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`, text ? text : '', { encoding: 'utf8' });
             } else if (this.root == 'root') {
-                fs.writeFile(`${__dirname}/${this.cdPath}/${path}`, '', () => { });
-            } else fs.writeFile(path, '', () => { });
+                fs.writeFileSync(`${__dirname}/${this.cdPath}/${path}`, text ? text : '', { encoding: 'utf8' });
+            } else fs.writeFileSync(path, text ? text : '', { encoding: 'utf8' });
         }
     }
 
@@ -774,9 +776,6 @@ class Cli {
         } else if (this.root == 'root') {
             path = parameters[0] ? `${__dirname}/${this.cdPath}/${parameters[0]}` : `${__dirname}/${this.cdPath}`;
         }
-
-        // mapDirs(path, (dir) => console.log(` \x1b[38;5;45musr/${dir}/\x1b[38;5;0m`));
-        // mapFiles(path, (file) => console.log(` \x1b[38;5;231m${file}\x1b[38;5;0m`));
 
         let answer = [];
 
