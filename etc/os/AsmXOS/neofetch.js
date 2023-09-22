@@ -7,9 +7,13 @@ const Color = require('../../../utils/color');
 const { getDirs, getFiles, getFileSize, sizeBytes } = require("../../../fs");
 const { execSync } = require('child_process');
 const Theme = require('../../../tools/theme');
+const { question } = require('readline-sync');
+const { table } = require('console');
 
 
 class Neofetch {
+    static URL_NEOFETCH_CONFIG = `${__dirname}/etc/neofetch.conf`
+
     static neofetch(parameters) {
         let colorsIndex, pageIndex;
         
@@ -22,7 +26,20 @@ class Neofetch {
         }
 
 
-        if (parameters.length > 1) {
+        if (parameters[0] == 'config') {
+            let conf;
+            if (fs.existsSync(Neofetch.URL_NEOFETCH_CONFIG)) conf = JSON.parse(fs.readFileSync(Neofetch.URL_NEOFETCH_CONFIG).toString('utf8') || '{}');
+            if (conf?.config == undefined) conf.config = {};
+            const flag = parameters[1];
+
+            if (['--get'].includes(flag)) {
+                Neofetch.Config().run(flag.slice(2));
+            } else {
+                ServerLog.log('flag not found\n', 'Exception');
+            }
+
+            fs.writeFileSync(Neofetch.URL_NEOFETCH_CONFIG, JSON.stringify(conf), { encoding: 'utf8' });
+        }  else if (parameters.length > 1) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
             const flag = parameters[0];
@@ -52,8 +69,13 @@ class Neofetch {
 
             function infoMatrix() {
                 let matrix = [];
-                let conf;
-                if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
+                let conf, privateProperties;
+
+                if (fs.existsSync(Neofetch.URL_NEOFETCH_CONFIG)) {
+                    let neofetchConfig = JSON.parse(fs.readFileSync(Neofetch.URL_NEOFETCH_CONFIG).toString('utf8') || '{}');
+                    conf = neofetchConfig?.styles;
+                    privateProperties = neofetchConfig?.config;
+                }
 
                 matrix.push(`${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.root}\x1b[0m${this.separateCD}${conf?.home ? `\x1b[38;5;${conf?.home}m` : ''}${this.cdPath}\x1b[0m`);
                 matrix.push('-'.repeat(18));
@@ -72,17 +94,25 @@ class Neofetch {
 
 
                 for (const property_t of Reflect.ownKeys(info_t)) {
-                    matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
+                    if (!privateProperties?.hide?.includes(property_t)) {
+                        matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
+                    }
                 }
 
 
                 if (process.platform == 'win32') {
                     let gpu = execSync('wmic path win32_VideoController get name');
-                    matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}GPU\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${gpu.toString('utf8').split('\n')[1].trim()}\x1b[0m`);
+
+                    if (!privateProperties?.hide?.includes('GPU')) {
+                        matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}GPU\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${gpu.toString('utf8').split('\n')[1].trim()}\x1b[0m`);
+                    }
                 }
 
 
-                matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}Memory\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.freemem())}\x1b[0m / ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.totalmem())}\x1b[0m`);
+                if (!privateProperties?.hide?.includes('Memory')) {
+                    matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}Memory\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.freemem())}\x1b[0m / ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.totalmem())}\x1b[0m`);
+                }
+
                 return matrix;
             }
 
@@ -161,6 +191,32 @@ class Neofetch {
     }
 
 
+    static Config() {
+        return class {
+            static run(call_t) {
+                this[call_t]();
+            }
+
+
+            static get() {
+                let neofetchConfig = JSON.parse(fs.readFileSync(Neofetch.URL_NEOFETCH_CONFIG).toString('utf8') || '{}');
+                let conf = neofetchConfig?.styles;
+                let privateProperties = neofetchConfig?.config;
+                let obj_t = {};
+                if (conf) obj_t.styples = conf;
+
+                if (privateProperties?.hide) {
+                    let hide_f = {};
+                    for (const property_t of privateProperties?.hide) hide_f[property_t] = true;
+                    obj_t.hide = hide_f;
+                }
+
+                table(obj_t);
+            }
+        }
+    }
+
+
     static Page() {
         return class {
             static open(index) {
@@ -170,11 +226,9 @@ class Neofetch {
                     1: () => {
                         let conf;
                         let matrix = [];
-
-                        if (fs.existsSync('etc/config/neofetch.conf')) conf = JSON.parse(fs.readFileSync('etc/config/neofetch.conf').toString('utf8'));
+                        if (fs.existsSync(Neofetch.URL_NEOFETCH_CONFIG)) conf = JSON.parse(fs.readFileSync(Neofetch.URL_NEOFETCH_CONFIG).toString('utf8') || '{}')?.styles;
 
                         matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}Memory\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.freemem())}\x1b[0m / ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.totalmem())}\x1b[0m`);
-         
 
                         // for (const property_t of Reflect.ownKeys(info_t)) {
                         //     matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);

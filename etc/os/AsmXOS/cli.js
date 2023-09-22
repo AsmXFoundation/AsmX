@@ -580,6 +580,11 @@ class Cli {
     }
 
 
+    xfetch() {
+        Neofetch.neofetch.call(this, this.cli_args.slice(1));
+    }
+
+
     colors() {
         const log = (text) => console.log(`\t\t\t\t\t${text}`);
         log('');
