@@ -10,7 +10,6 @@ const { exec, execSync } = require('child_process');
 const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException, InstructionException } = require('./exception');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
-const Issues = require("./issue");
 const { Memory, MemoryAddress, MemoryVariables } = require("./memory");
 const Parser = require('./parser');
 const Route = require("./route");
@@ -3228,7 +3227,7 @@ class Compiler {
      */
     compileIssueStatement(statement, usestate) {
        this.$arg0 = statement.state;
-       process.stdout.write(Issues.ISSUES_DEFINE_STATUS);
+       process.stdout.write('[AsmX]: issues define status..\n');
        statement.state == 'true' ? usestate.state = true : usestate.state = false;
     }
 

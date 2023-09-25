@@ -9,6 +9,7 @@ class EventEmulator {
         !this.types.includes(type) && this.types.push(type);
     }
 
+
     static new(name, type, data) {
         if (!this.has(type, name)) {
             this.events.push({ name, type, data: data || {} });
@@ -18,13 +19,16 @@ class EventEmulator {
         }
     }
 
+
     static has(type, name) {
         return this.events.filter(event => event?.name == name && event?.type == type).length != 0;
     }
 
+
     static get(type, name) {
         if (this.has(type, name)) return this.events.filter(event => event?.name == name && event?.type == type);
     }
+
 
     static on(type, cb) {
         if (this.types.includes(type)) {
@@ -32,6 +36,7 @@ class EventEmulator {
             if (events.length > 0) cb(events, events[events.length - 1]);
         }
     }
+
 
     static isType(type) {
         return this.types.includes(type);

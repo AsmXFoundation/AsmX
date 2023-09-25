@@ -17,9 +17,7 @@ class Type {
                     check = true;
                     break;
                 }
-            }  
-    
-            // rules.forEach(rule => check = rule.rule.test(value));
+            }
         } else {
             check = rules[0]['rule'].test(value);
         }
@@ -40,9 +38,6 @@ class Type {
         let check = false;
 
         if (['Object', 'object'].includes(type)) {
-            // if (typeof value === 'object' && !Array.isArray(value)) check = true;
-            // else check = false;
-
             check = typeof value === 'object' && !Array.isArray(value) ? true : false;
         } else if (['List', 'list'].includes(type)) {
             if (typeof value === 'object' && Array.isArray(value)) check = true;
