@@ -1746,9 +1746,9 @@ class Compiler {
                     if (this.$get == null) this.$get = 'Void';
                 } catch {
                     new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: Non-existent variale name.`, {
-                        code:  trace?.parser.code,
-                        row:  trace?.parser.row,
-                        select:  trace?.parser.code
+                        code: trace?.parser.code,
+                        row: trace?.parser.row,
+                        select: trace?.parser.code
                     });
                     process.exit(1);
                 }
@@ -1954,30 +1954,6 @@ class Compiler {
                     this._executeCode(event.data.body);
                     this.executeEventData = null;
                 });
-
-                // console.log(this[namespace]);
-
-                // let filter = this.collections[structure.type].filter(strctr => !strctr[structure.name]);
-                // let buckup = Object.create({ });
-                // buckup = { interface: new String(searchedStructure.interface).valueOf(), [structure.name]: {} };
-
-                // for (const property of Reflect.ownKeys(searchedStructure[structure.name])) {
-                //     buckup[structure.name][property] = new String(searchedStructure[structure.name][property]).valueOf();
-                // }
-
-                // buckup[structure.name][statement.name] = statement.value;
-                // buckup = JSON.parse(JSON.stringify(buckup));
-                // this.collections[structure.type] = [...filter, buckup];
-
-                // let filter = this[namespace].filter(s => s?.name == name);
-                // let copy = this[namespace].filter(s => s?.name !== name);
-                // let value = this.checkArgument(statement.args[1]) || statement.args[1];
-                // if (typeof value === 'string' && Type.check('int', value)) value = Number(value);
-                // filter[0].value?.push(value);
-                // console.log(filter);
-                // console.log([...copy, filter]);
-                // this[namespace] = [...copy, filter];
-                // console.log(this[namespace]);
             }
         } else {
             this.$stack.push(this.$arg0);
@@ -2575,7 +2551,6 @@ class Compiler {
 
                 if (methodArgs !== false) {
                     for (const argument of Reflect.ownKeys(initArgs)) {
-                        // hashArguments[argument] = initArgs2[hashIndex]; v1
                         hashArguments[argument] = this.checkArgument(initArgs2[hashIndex]) == null ? 'Void' : (this.checkArgument(initArgs2[hashIndex]) || initArgs2[hashIndex]); //v2
                         hashIndex++;
                     }
@@ -2668,9 +2643,18 @@ class Compiler {
         else if (unitCall.has(statement.name)) {
             let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args, options);
 
-            for (const argument of Object.keys(argsMap))
-                argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument];
-            
+            for (const argument of Object.keys(argsMap)) {
+                if (['string', 'number', 'object'].includes(typeof this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row))) {
+                    argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row);
+                } else if (typeof ['string', 'number', 'object', 'boolean'].includes(this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument])) {
+                    argsMap[argument] = 'Void';
+                } else {
+                    argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument];
+                }
+
+                // argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument]; // v1
+            }
+
             let argsFor = Object.values(argsMap).join(',');
             let unitcall = unitCall.get(trace?.parser?.code, statement.name, argsFor, options);
             let compiler = new Compiler(unitcall, 'local', { argsScopeLocal: argsMap });
@@ -3142,11 +3126,7 @@ class Compiler {
             statement.value = `'${statement.value}'`;
         }
 
-        // v1
-        // if (this.checkArgument(forReplace.name) != undefined || this.checkArgument(forReplace.value) != undefined) {
-        //     isType = true;
-        // }
-    
+
         else if (forReplace.value.startsWith('json::')) isType = true;
 
         else if (statement.type == 'Object') {
