@@ -25,6 +25,27 @@ class EngineAdapter {
             }
         }
     }
+
+
+    static registerUnit(tree, args, parser) {
+        const callback = tree?.cb || tree?.callback;
+
+        if (callback) {
+            const response = callback(args, parser?.parser || {});
+
+            if (response) {
+                const list = Object.getOwnPropertyNames(response.constructor['prototype']);
+
+                if (list.includes('instance')) {
+                    const instance = response.instance();
+
+                    if (instance == 'Return') {
+                        this['$urt'] = response.value;
+                    }
+                }
+            }
+        }
+    }
 }
 
 module.exports = EngineAdapter;

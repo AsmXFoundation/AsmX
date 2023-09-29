@@ -2200,7 +2200,6 @@ class Compiler {
         }
 
 
-        // if (statement?.structure && statement.structure == 'tion' && statement.name) { // v1
         if (statement?.structure && ['tion', 'coroutine'].includes(statement.structure) && statement.name) {
             let structure_vect, filterStructures;
     
@@ -2644,12 +2643,14 @@ class Compiler {
             let argsMap = unitCall.getArgumentsHashMap(statement.name, statement.args, options);
 
             for (const argument of Object.keys(argsMap)) {
-                if (['string', 'number', 'object'].includes(typeof this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row))) {
+                if (['string', 'number'].includes(typeof this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row))) {
                     argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row);
-                } else if (typeof ['string', 'number', 'object', 'boolean'].includes(this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument])) {
-                    argsMap[argument] = 'Void';
+                } else if (['object', 'boolean'].includes(typeof this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row))) {
+                    argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row);
                 } else {
-                    argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument];
+                    if (this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument]) {
+                        argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument];
+                    } else argsMap[argument] = 'Void';
                 }
 
                 // argsMap[argument] = this.checkArgument(argsMap[argument], trace?.parser?.code, trace?.parser?.row) || argsMap[argument]; // v1
@@ -2661,7 +2662,12 @@ class Compiler {
             compiler.$urt == false ? this.$urt = 0x00 : this.$ret = this.$urt = compiler.$urt;
             if (compiler.$urt != false) this.$list['$urt'].push(this.$urt);
         } else {
-            new UnitError(trace?.parser?.code , UnitError.UNIT_UNKNOWN, options);
+            if (engine.hasUnit(statement.name)) {
+                const unit = engine.getUnit(statement.name);
+                EngineAdapter.registerUnit.call(this, unit[unit.length - 1], statement.args, trace);
+            } else {
+                new UnitError(trace?.parser?.code , UnitError.UNIT_UNKNOWN, options);
+            }
         }
     }
 

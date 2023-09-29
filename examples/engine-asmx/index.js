@@ -12,6 +12,10 @@ const EngineProvider = {
             return Engine.changeRegister('$ret', String(result));
         });
 
+        Engine.registerUnit('AsmXEngine', (arguments) => {
+            return Engine.return(arguments);
+        });
+
         Engine.registerInstruction('msg', (arguments) => {
             return Engine.callUnit('print', arguments.split(',').map(t => t.trim()));
         });

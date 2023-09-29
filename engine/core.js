@@ -1,6 +1,7 @@
 class Engine {
     constructor() {
         this.instruction = []; // { name: String, data: callback }
+        this.unit = []; // { name: String, data: callback }
     }
 
 
@@ -49,6 +50,29 @@ class Engine {
 
     callInstruction(name, data) {
         console.log(this.getInstruction(name));
+    }
+
+
+    registerUnit(name, cb) {
+        cb && this.unit.push({ name, cb: cb });
+    }
+
+    return(value) {
+        class Return {
+            constructor(value) { this.value = value; }
+            instance(){ return 'Return' };
+        }
+
+        return new Return(value);
+    }
+
+    hasUnit(name) {
+        return this.unit.filter(unit => unit?.name == name).length > 0;
+    }
+
+
+    getUnit(name) {
+        return this.hasUnit(name) && this.unit.filter(unit => unit?.name == name);
     }
 }
 
