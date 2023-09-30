@@ -479,7 +479,7 @@ class Cli {
             return cd;
         } else {
             const parameters = this.cli_args.slice(1);
-            const path = parameters[0];
+            let path = parameters[0];
 
             if (parameters.length > 1) {
                 ServerLog.log("too many parameters", 'Exception');
@@ -487,8 +487,22 @@ class Cli {
                 if (this.root == 'root' && this.cdPath == 'asmxOS') {
                     if (fs.existsSync(`${__dirname}/${path}`)) this.cdPath = path;
                 } else if (this.root == 'root') {
-                    // if (fs.existsSync(`${__dirname}/${path}`)) this.cdPath += path;
-                    if (fs.existsSync(`${__dirname}/${this.cdPath}${path[0] == '/' ? '' : '/'}${path}`)) this.cdPath += `${path[0] == '/' ? '' : '/'}${path}`;
+                    if (path.startsWith('../')) {
+                        let pathFull = this.cdPath;
+
+                        while (path.startsWith('../')) {
+                            pathFull = pathFull.slice(0, pathFull.lastIndexOf('/'));
+                            path = path.slice(path.indexOf('/') + 1);
+                            if (pathFull == './usr') break;
+                        }
+
+                        path = `${pathFull}${path}`;
+                        if (`${path[path.length - 2]}${path[path.length - 1]}` == '//') path = path.slice(0, -1);
+                        let pathCheck = `${__dirname}${path[0] == '/' ? '' : `${path[0]}${path[1]}` == './' ? '/' : ''}${path}`;
+                        if (fs.existsSync(pathCheck)) this.cdPath = path;
+                    }
+
+                    else if (fs.existsSync(`${__dirname}/${this.cdPath}${path[0] == '/' ? '' : '/'}${path}`)) this.cdPath += `${path[0] == '/' ? '' : '/'}${path}`;
                 }
             } else {
                 let conf;
