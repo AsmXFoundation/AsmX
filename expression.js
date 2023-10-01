@@ -80,14 +80,14 @@ class Scanner {
     }
 
 
-    addTokenType(type) {
-        this.addToken(type, null);
+    addTokenType(type, char) {
+        this.addToken(type, null, char);
     }
 
 
-    addToken(type, literal) {
+    addToken(type, literal, char) {
         let text = this.#source.substring(this.start, this.current);
-        this.#tokens.push(new Token(type, text, literal, this.line, this.current));
+        this.#tokens.push(new Token(type, char ? char : text, literal, this.line, this.current));
     }
 
 
@@ -146,7 +146,13 @@ class Scanner {
                 break;
 
             default:
-                if (this._matchInt(char)) this.addTokenType(EXPRESSION_TOKEN_TYPE.NUMBER); 
+                if (this._matchInt(char)) this.addTokenType(EXPRESSION_TOKEN_TYPE.NUMBER);
+
+                else if (`${char}${this.#source.charAt(this.current) || ''}` == 'pi') {
+                    this.addTokenType(EXPRESSION_TOKEN_TYPE.NUMBER, 3.14);
+                    this.current++;
+                }
+
                 else {
                     new ExpressionException(`expr'${this.#source}'`, "Unexpected character.", this.line, this.current + 4);
                     ServerLog.log('Letters and symbols that are not related to mathematics are prohibited in a mathematical expression.', 'Possible fixes');
@@ -304,7 +310,6 @@ class Expression {
             }
 
             list = list.filter(i => i);
-            // console.log(list);
             return list;
         }
 

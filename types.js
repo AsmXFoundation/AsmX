@@ -43,9 +43,16 @@ class Type {
             if (typeof value === 'object' && Array.isArray(value)) check = true;
             else if (value == '[]') check = true;
             else check = false;
+        } else if (/i[0-9]+/.test(type)) {
+            check = this.isIntX(+type.slice(1), value);
         }
 
         return check;
+    }
+
+
+    static isIntX(t, num) {
+        return 0 < num ? (Math.pow(2, t) - 1) >= num : false;
     }
 }
 

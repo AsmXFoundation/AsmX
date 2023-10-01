@@ -34,6 +34,7 @@ const engine = require('./engine/core');
 const EngineAdapter = require('./engine/adapter');
 const Coroutine = require('./coroutine');
 const AsmXPackageManager = require('./tools/apm/apm');
+const JavaScript = require('./javascript');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -89,7 +90,13 @@ class Compiler {
         this.$arg3 = 0x00;
         this.$arg4 = 0x00;
         this.$arg5 = 0x00;
-        
+
+        // math registers
+        this.$add = 0x00;
+        this.$sub = 0x00;
+        this.$mul = 0x00;
+        this.$div = 0x00;
+        this.$mod = 0x00;
         
         /* Setting up the compiler. */
         // models
@@ -103,26 +110,33 @@ class Compiler {
         this.$sp = this.$stack.sp; // Stack pointer
         this.$lis = this.$stack.list[this.$stack.sp - 1]?.value; // Last item in stack
         this.$fis = this.$stack.list[0x00]?.value; // First item in stack
+
         // Other
         this.$offset = 0x00;
         this.$name = 0x00;
         this.$text = ''; // Text to display
         this.$math = 0x00;
+
         // Command
         this.$cmd = '';
         this.$cmdargs = '';
         this.$cmdret = null;
+
         // jmp
         this.$count = 0x01;
+
         // return
         this.$urt = null;
         this.$ret = false;
+
         // Execute registers
         this.$mov = 0x00;
         this.$get = 0x00;
+
         // Boolean registers
         this.$true = 1;
         this.$false = 0;
+
         // Logical registers
         this.$eq = 0x00;    // a == b
         this.$seq = 0x00; // a === b
@@ -132,6 +146,7 @@ class Compiler {
         this.$or = false;   // a || b
         this.$b_and = false; // a & b
         this.$b_or = false; // a | b
+
         // Immutable registers
         this.$input = 0x00;
         this.$arch = "AsmX";
@@ -174,6 +189,12 @@ class Compiler {
             this.scope = this.options.registers['scope'];
             this.type = this.options.registers['type'];
             this._task = this.options.registers['_task'] || [];
+            // math registers
+            this.$add = this.options.registers['$add'];
+            this.$sub = this.options.registers['$sub'];
+            this.$mul = this.options.registers['$mul'];
+            this.$div = this.options.registers['$div'];
+            this.$mod = this.options.registers['$mod'];
             // Logical registers
             this.$eq = this.options.registers['$eq'];
             this.$seq = this.options.registers['$seq'];
@@ -416,7 +437,13 @@ class Compiler {
                         $and: this.$and,
                         $or: this.$or,
                         $b_and: this.$b_and,
-                        $b_or: this.$b_or
+                        $b_or: this.$b_or,
+                        // math registers
+                        $add: this.$add,
+                        $sub: this.$sub,
+                        $mul: this.$mul,
+                        $div: this.$div,
+                        $mod: this.$mod
                     }
                 });
                 
@@ -427,6 +454,13 @@ class Compiler {
                 this.$b_and = compile.$b_and;
                 this.$b_or = compile.$b_or;
                 this.$eq = compile.$eq;
+
+                // Math registers
+                this.$add = compile.$add;
+                this.$sub = compile.$sub;
+                this.$mul = compile.$mul;
+                this.$div = compile.$div;
+                this.$mod = compile.$mod;
 
                 this.$cmd = compile.$cmd;
                 this.$cmdargs = compile.$cmdargs;
@@ -2094,29 +2128,42 @@ class Compiler {
             stacktrace++;
         }
 
-        /* Reading a file from the file system. */
-        try {
-            if (ValidatorByType.validateByTypeString(statement.alias)) {
-                typeAlias = 'module';
-                fileForCompiler = fs.readFileSync(filePath, {encoding: 'utf-8' });
-            } else if (ValidatorByType.validateTypeIdentifier(statement.alias)) {
-                typeAlias = 'library';
-                fileForCompiler = fs.readFileSync(`./libs/${filePath}.asmX`, {encoding: 'utf-8' });
+
+        if (filePath.startsWith('javascript.')) {
+            try {
+                JavaScript.set(filePath.split('.').slice(1).join('').trim(), filePath.split('.').slice(1).join('').trim());
+            } catch {
+                new ImportException(`You are using a non-existent ${typeAlias} to import`, {
+                    row: trace?.parser?.row,
+                    code: trace?.parser?.code,
+                    select: statement.alias
+                });
             }
+        } else {
+            /* Reading a file from the file system. */
+            try {
+                if (ValidatorByType.validateByTypeString(statement.alias)) {
+                    typeAlias = 'module';
+                    fileForCompiler = fs.readFileSync(filePath, {encoding: 'utf-8' });
+                } else if (ValidatorByType.validateTypeIdentifier(statement.alias)) {
+                    typeAlias = 'library';
+                    fileForCompiler = fs.readFileSync(`./libs/${filePath}.asmX`, {encoding: 'utf-8' });
+                }
 
-            let parser = Parser.parse(fileForCompiler);
-            return parser;
-        } catch {
-            new ImportException(`You are using a non-existent ${typeAlias} to import`, {
-                row: trace?.parser?.row,
-                code: trace?.parser?.code,
-                select: statement.alias
-            });
+                let parser = Parser.parse(fileForCompiler);
+                return parser;
+            } catch {
+                new ImportException(`You are using a non-existent ${typeAlias} to import`, {
+                    row: trace?.parser?.row,
+                    code: trace?.parser?.code,
+                    select: statement.alias
+                });
 
-            stacktrace++;
+                stacktrace++;
 
-            if ([7, 8, 9].includes(stacktrace)) ServerLog.log('The stack trace limit is close to 10 for the output of the StackTraceException error', 'Warning');
-            if (stacktrace == this.STACKTRACE_LIMIT) new StackTraceException();
+                if ([7, 8, 9].includes(stacktrace)) ServerLog.log('The stack trace limit is close to 10 for the output of the StackTraceException error', 'Warning');
+                if (stacktrace == this.STACKTRACE_LIMIT) new StackTraceException();
+            }
         }
     }
 
@@ -2199,8 +2246,17 @@ class Compiler {
             code: trace?.parser?.code
         }
 
+        if (statement?.javascript) {
+            if (JavaScript.isModule(statement.module)) {
+                let arguments_t = statement.args == '()' ? undefined : statement.args.split(',');
+                if (arguments_t) arguments_t = arguments_t.map((arg) => typeof arg === 'string' && ['"', '\''].includes(arg[0]) ? arg.slice(1, -1) : arg);
+                let ret = JavaScript.call(statement.module, statement.name, arguments_t);
+                this.$urt = [null, undefined].includes(ret) ? 'Void' : ret;
+            }
+        }
 
-        if (statement?.structure && ['tion', 'coroutine'].includes(statement.structure) && statement.name) {
+
+        else if (statement?.structure && ['tion', 'coroutine'].includes(statement.structure) && statement.name) {
             let structure_vect, filterStructures;
     
             if (statement.structure == 'tion') {
@@ -2713,6 +2769,7 @@ class Compiler {
             
         // WARNING: Experimental mode
         MiddlewareSoftware.compileStatement({ instruction: 'invoke', invoke: { name: statement.address } });
+
         if (this.$arg0 == 0x01) {
             process.exit(0);
         } else if (this.$arg0 == 0X02) {
@@ -2847,6 +2904,8 @@ class Compiler {
             for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
         }
         //
+
+        this.$add = this.$ret;
     }
 
 
@@ -2889,6 +2948,8 @@ class Compiler {
             for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
         }
         //
+
+        this.$sub = this.$ret;
     }
 
 
@@ -2930,6 +2991,8 @@ class Compiler {
             for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
         }
         //
+
+        this.$div = this.$ret;
     }
 
 
@@ -2965,6 +3028,8 @@ class Compiler {
             for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
         }
         //
+
+        this.$mod = this.$ret;
     }
 
 
@@ -3006,6 +3071,8 @@ class Compiler {
             for (let index = 0; index < repeatPush; index++) this.$stack.push({ value: this.$ret });
         }
         //
+
+        this.$mul = this.$ret;
     }
 
 
@@ -3128,10 +3195,13 @@ class Compiler {
 
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
-        if (Task.last() && Task.last()['value'] == statement.value && Task.last()['name'] == 'input') {
-            statement.value = `'${statement.value}'`;
+        if (statement.type != 'List' && Type.otherTypesCheck(statement.type, statement.value)) {
+            isType = true;
         }
 
+        else if (Task.last() && Task.last()['value'] == statement.value && Task.last()['name'] == 'input') {
+            statement.value = `'${statement.value}'`;
+        }
 
         else if (forReplace.value.startsWith('json::')) isType = true;
 
@@ -3153,7 +3223,6 @@ class Compiler {
             if (isType = false && /[_a-zA-Z][_a-zA-Z0-9]{0,30}/.test(forReplace.value)) {
                 statement.value = `'${statement.value}'`;
             }
-
             isType = true;
         } else {
             if (typeInList == false) {

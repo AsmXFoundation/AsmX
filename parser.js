@@ -375,7 +375,15 @@ class Parser {
         // let tokens = /\@[c|C]all\s+(\w+)\(([^]+)?\)/.exec(lineCode);
         let tokens;
 
-        if ((tokens = /\@[Cc]all\s+(\w+)\:\:(\w+)\(([^]+)?\)/.exec(lineCode))) {
+        if ((tokens = /\@[Cc]all\s+javascript\.(\w+)\.(\w+)\(([^]+)?\)/.exec(lineCode))) {
+            ast['call']['javascript'] = true;
+            ast['call']['module'] = tokens[1].trim();
+            ast['call']['name'] = tokens[2].trim();
+            ast['call']['args'] = tokens[3] == undefined ? '()' : tokens[3].trim();
+            tokens = true;
+        }
+
+        else if ((tokens = /\@[Cc]all\s+(\w+)\:\:(\w+)\(([^]+)?\)/.exec(lineCode))) {
             ast['call']['structure'] = tokens[1].trim();
             ast['call']['name'] = tokens[2].trim();
             ast['call']['args'] = tokens[3] == undefined ? '()' : tokens[3].trim();
@@ -403,7 +411,7 @@ class Parser {
         }
         
         else {
-            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]:  You don't have enough arguments.`, {
+            new InstructionException(`${Color.BRIGHT}[${Color.FG_RED}InstructionException${Color.FG_WHITE}]: Invalid grammar`, {
                 row: row,     code: ast.parser.code
             });
 
