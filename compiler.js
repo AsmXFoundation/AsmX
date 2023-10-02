@@ -1822,6 +1822,22 @@ class Compiler {
 
             if (typeof json  === 'object' && !Array.isArray(json)) for (const field of fields) json = pull(json, this.checkArgument(field) || field);
             this.$get = json;
+        } else if (properties[0] == 'list') {
+            const pull = (obj, field) => obj[field];
+            let parser = [trace?.parser.code, trace?.parser.row];
+            let json = this.__checkArgumentStrict__(properties[1], ...parser);
+            let fields;
+
+            if (['set', 'const'].includes(properties[1])) {
+                json = this.__checkArgumentStrict__(`${properties[1]}::${properties[2]}`, ...parser);
+                fields = properties.slice(3);
+            } else if (Reflect.ownKeys(this.collections).includes(properties[1])) {
+                if (properties[2]) json = this.__checkArgumentStrict__(`${properties[1]}::${properties[2]}`, ...parser);
+                fields = properties.slice(3);
+            } else fields = properties.slice(2);
+
+            if (typeof json  === 'object' && Array.isArray(json)) for (const field of fields) json = pull(json, this.__checkArgumentStrict__(field, ...parser));
+            this.$get = this.__handleValue__(json);
         } else if (properties[0] == 'json_t') {
             const structure_t = properties[1];
             const structure_n = properties[2];
@@ -3195,7 +3211,7 @@ class Compiler {
 
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
-        if (statement.type != 'List' && Type.otherTypesCheck(statement.type, statement.value)) {
+        if (!['List', 'Object'].includes(statement.type) && Type.otherTypesCheck(statement.type, statement.value)) {
             isType = true;
         }
 
@@ -3565,6 +3581,27 @@ class Compiler {
                 process.exit(1);
             }
         }
+    }
+
+
+    __checkArgumentStrict__(arg, code, row, strict) {
+        let arg_t = this.checkArgument(arg, code, row, strict);
+
+        if (['number', 'string', 'boolean'].includes(typeof arg_t)) {
+            return arg_t;
+        } else if (['object'].includes(typeof arg_t)) {
+            return arg_t;
+        } else if ([undefined, null, NaN].includes(arg_t)) {
+            if (/[0-9]+/.test(arg)) return arg;
+            else if (['number', 'string', 'boolean'].includes(typeof arg)) return arg;
+            else if (['object'].includes(typeof arg)) return arg;
+            return 'Void';
+        }
+    }
+
+
+    __handleValue__(value) {
+        return [undefined, null, NaN].includes(value) ? 'Void' : value;
     }
 }
 

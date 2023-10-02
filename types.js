@@ -45,6 +45,8 @@ class Type {
             else check = false;
         } else if (/i[0-9]+/.test(type)) {
             check = this.isIntX(+type.slice(1), value);
+        } else if (/s[0-9]+/.test(type)) {
+            check = this.isStringX(+type.slice(1), value.slice(1, -1));
         }
 
         return check;
@@ -53,6 +55,11 @@ class Type {
 
     static isIntX(t, num) {
         return 0 < num ? (Math.pow(2, t) - 1) >= num : false;
+    }
+
+
+    static isStringX(num, str) {
+        return num >= str.length;
     }
 }
 
