@@ -9,6 +9,7 @@ const { execSync } = require('child_process');
 const Theme = require('../../../tools/theme');
 const { question } = require('readline-sync');
 const { table } = require('console');
+const { PRODUCT_NAME, PRODUCT_ID, PRODUCCT_RELEASE, PRODUCT_REPOSITORY, PRODUCT_TYPE_SOURCE } = require('./config');
 
 
 class Neofetch {
@@ -224,15 +225,29 @@ class Neofetch {
                     0: () => console.log('This is Elon Musk'),
 
                     1: () => {
-                        let conf;
                         let matrix = [];
-                        if (fs.existsSync(Neofetch.URL_NEOFETCH_CONFIG)) conf = JSON.parse(fs.readFileSync(Neofetch.URL_NEOFETCH_CONFIG).toString('utf8') || '{}')?.styles;
+                        let conf, privateProperties;
 
-                        matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}Memory\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.freemem())}\x1b[0m / ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${sizeBytes(os.totalmem())}\x1b[0m`);
+                        if (fs.existsSync(Neofetch.URL_NEOFETCH_CONFIG)) {
+                            let neofetchConfig = JSON.parse(fs.readFileSync(Neofetch.URL_NEOFETCH_CONFIG).toString('utf8') || '{}');
+                            conf = neofetchConfig?.styles;
+                            privateProperties = neofetchConfig?.config;
+                        }
 
-                        // for (const property_t of Reflect.ownKeys(info_t)) {
-                        //     matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
-                        // }
+
+                        let info_t = {
+                            'PRODUCT NAME': PRODUCT_NAME,
+                            'PRODUCT ID': PRODUCT_ID,
+                            'PRODUCT RELEASE': PRODUCCT_RELEASE,
+                            'PRODUCT TYPE SOURCE': PRODUCT_TYPE_SOURCE,
+                            'PRODUCT REPOSITORY': PRODUCT_REPOSITORY
+                        }
+
+                        for (const property_t of Reflect.ownKeys(info_t)) {
+                            if (!privateProperties?.hide?.includes(property_t)) {
+                                matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
+                            }
+                        }
 
                         for (const info_t of matrix) console.log(`${'\t'.repeat(5)}${info_t}`);
                     }
