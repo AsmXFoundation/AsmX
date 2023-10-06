@@ -8,8 +8,8 @@ const { getDirs, getFiles, getFileSize, sizeBytes } = require("../../../fs");
 const { execSync } = require('child_process');
 const Theme = require('../../../tools/theme');
 const { question } = require('readline-sync');
-const { table } = require('console');
-const { PRODUCT_NAME, PRODUCT_ID, PRODUCCT_RELEASE, PRODUCT_REPOSITORY, PRODUCT_TYPE_SOURCE } = require('./config');
+const { table, info } = require('console');
+const { PRODUCT_NAME, PRODUCT_ID, PRODUCCT_RELEASE, PRODUCT_REPOSITORY, PRODUCT_TYPE_SOURCE, ASMX_PRODUCT_NAME, ASMX_PRODUCT_ID, ASMX_PRODUCCT_RELEASE, ASMX_PRODUCT_TYPE_SOURCE, ASMX_PRODUCT_REPOSITORY } = require('./config');
 
 
 class Neofetch {
@@ -235,18 +235,32 @@ class Neofetch {
                         }
 
 
-                        let info_t = {
-                            'PRODUCT NAME': PRODUCT_NAME,
-                            'PRODUCT ID': PRODUCT_ID,
-                            'PRODUCT RELEASE': PRODUCCT_RELEASE,
-                            'PRODUCT TYPE SOURCE': PRODUCT_TYPE_SOURCE,
-                            'PRODUCT REPOSITORY': PRODUCT_REPOSITORY
-                        }
+                        let info_t = [
+                            {
+                                'PRODUCT NAME': PRODUCT_NAME,
+                                'PRODUCT ID': PRODUCT_ID,
+                                'PRODUCT RELEASE': PRODUCCT_RELEASE,
+                                'PRODUCT TYPE SOURCE': PRODUCT_TYPE_SOURCE,
+                                'PRODUCT REPOSITORY': PRODUCT_REPOSITORY,
+                            },
 
-                        for (const property_t of Reflect.ownKeys(info_t)) {
-                            if (!privateProperties?.hide?.includes(property_t)) {
-                                matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${info_t[property_t]}\x1b[0m`);
+                            {
+                                'PRODUCT NAME': ASMX_PRODUCT_NAME,
+                                'PRODUCT ID': ASMX_PRODUCT_ID,
+                                'PRODUCT RELEASE': ASMX_PRODUCCT_RELEASE,
+                                'PRODUCT TYPE SOURCE': ASMX_PRODUCT_TYPE_SOURCE,
+                                'PRODUCT REPOSITORY': ASMX_PRODUCT_REPOSITORY
                             }
+                        ]
+
+                        for (const item_t of info_t) {
+                            for (const property_t of Reflect.ownKeys(item_t)) {
+                                if (!privateProperties?.hide?.includes(property_t)) {
+                                    matrix.push(`${conf?.property ? `\x1b[38;5;${conf?.property}m` : ''}${property_t}\x1b[0m: ${conf?.text ? `\x1b[38;5;${conf?.text}m` : ''}${item_t[property_t]}\x1b[0m`);
+                                }
+                            }
+
+                            matrix.push('');
                         }
 
                         for (const info_t of matrix) console.log(`${'\t'.repeat(5)}${info_t}`);
