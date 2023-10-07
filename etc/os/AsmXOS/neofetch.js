@@ -9,7 +9,26 @@ const { execSync } = require('child_process');
 const Theme = require('../../../tools/theme');
 const { question } = require('readline-sync');
 const { table, info } = require('console');
-const { PRODUCT_NAME, PRODUCT_ID, PRODUCCT_RELEASE, PRODUCT_REPOSITORY, PRODUCT_TYPE_SOURCE, ASMX_PRODUCT_NAME, ASMX_PRODUCT_ID, ASMX_PRODUCCT_RELEASE, ASMX_PRODUCT_TYPE_SOURCE, ASMX_PRODUCT_REPOSITORY } = require('./config');
+
+const { 
+    ASMXOS_PRODUCT_NAME,
+    ASMXOS_PRODUCT_ID,
+    ASMXOS_PRODUCCT_RELEASE,
+    ASMXOS_PRODUCT_REPOSITORY,
+    ASMXOS_PRODUCT_TYPE_SOURCE,
+
+    ASMX_PRODUCT_NAME,
+    ASMX_PRODUCT_ID,
+    ASMX_PRODUCCT_RELEASE,
+    ASMX_PRODUCT_TYPE_SOURCE,
+    ASMX_PRODUCT_REPOSITORY,
+
+    ASMX_SHELL_PRODUCT_NAME,
+    ASMX_SHELL_PRODUCT_ID,
+    ASMX_SHELL_PRODUCCT_RELEASE,
+    ASMX_SHELL_PRODUCT_TYPE_SOURCE,
+    ASMX_SHELL_PRODUCT_REPOSITORY
+} = require('./config');
 
 
 class Neofetch {
@@ -237,11 +256,19 @@ class Neofetch {
 
                         let info_t = [
                             {
-                                'PRODUCT NAME': PRODUCT_NAME,
-                                'PRODUCT ID': PRODUCT_ID,
-                                'PRODUCT RELEASE': PRODUCCT_RELEASE,
-                                'PRODUCT TYPE SOURCE': PRODUCT_TYPE_SOURCE,
-                                'PRODUCT REPOSITORY': PRODUCT_REPOSITORY,
+                                'PRODUCT NAME': ASMXOS_PRODUCT_NAME,
+                                'PRODUCT ID': ASMXOS_PRODUCT_ID,
+                                'PRODUCT RELEASE': ASMXOS_PRODUCCT_RELEASE,
+                                'PRODUCT TYPE SOURCE': ASMXOS_PRODUCT_TYPE_SOURCE,
+                                'PRODUCT REPOSITORY': ASMXOS_PRODUCT_REPOSITORY,
+                            },
+
+                            {
+                                'PRODUCT NAME': ASMX_SHELL_PRODUCT_NAME,
+                                'PRODUCT ID': ASMX_SHELL_PRODUCT_ID,
+                                'PRODUCT RELEASE': ASMX_SHELL_PRODUCCT_RELEASE,
+                                'PRODUCT TYPE SOURCE': ASMX_SHELL_PRODUCT_TYPE_SOURCE,
+                                'PRODUCT REPOSITORY': ASMX_SHELL_PRODUCT_REPOSITORY  
                             },
 
                             {

@@ -247,6 +247,7 @@ class Cli {
         Theme.print(cli, 'leaf', 'The command allows you to create a text file', 2, { arg: 'name' });
         Theme.print(cli, 'mkdir', 'The command allows you to create a folder', 2, { arg: './name' });
         Theme.print(cli, 'colors', 'The command allows you to get colors', 2);
+        Theme.print(cli, 'clear', 'The command allows you to clear the terminal', 2);
         Theme.print(cli, 'cd', 'The command allows you to find out the path', 3);
         Theme.print(cli, 'cd', 'The command allows you to set the path', 2, { arg: './path' });
         log(`-`.repeat(96) + '\n');
@@ -606,6 +607,17 @@ class Cli {
         for (let index = 1; index < 255; index++) stansartsColor += `\x1b[38;5;${String(index)}m ${index} \x1b[0m`;
         log(stansartsColor);
         log('');
+    }
+
+
+    clear() {
+        const parameters = this.cli_args.slice(1);
+
+        if (parameters.length > 0) {
+            ServerLog.log("too many parameters\n", 'Exception');
+        } else {
+            console.clear();
+        }
     }
 
     //============================================================================================
