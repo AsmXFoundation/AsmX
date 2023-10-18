@@ -223,12 +223,13 @@ AsmX
 
 Список whitespace:
 
-| code |          name          |
-|------|------------------------|
-|  \t  |    Line tabulation     |
-|  \n  |    Line feed (LF)      |
-|  \r  |    from feed (FF)      |
-|  \f  |  carriage return (CR)  |
+| code |               name             |
+|------|--------------------------------|
+|  \n  | The newline character          |
+|  \r  | The carriage return character  |
+|  \t  | The horizontal tab character   |
+|  \v  | The vertical tab character     |
+|  \f  | The form feed character        |
 
 ## Числа
 
