@@ -32,6 +32,8 @@ class Cli {
     separateCD = '@';
     cdPath = 'asmxOS';
     USER_DIRECTORY_NAME = 'usr';
+    modeCLI = 'public';
+    HISTORY_PATH = `${__dirname}/usr/.history`;
 
     variable = {
         $SHELL: 'AsmX Shell (.ash)',
@@ -59,6 +61,8 @@ class Cli {
             let currentContent = fs.readFileSync(HISTORY_PATH).toString('utf8');
             fs.writeFileSync(HISTORY_PATH, `${currentContent}\n${args.join(' ')}`);
         }
+
+        if (this.modeCLI == 'private') fs.writeFileSync(HISTORY_PATH, '');
 
         let isRoot = (this.pwdConfig ? this.pwdConfig?.root ? this.pwdConfig?.root : this.root : this.root) == 'root';
 
@@ -292,6 +296,25 @@ class Cli {
     }
 
 
+    mode() {
+        const parameters = this.cli_args.slice(1);
+        const flag = parameters[0];
+
+        if (parameters.length > 1) {
+            ServerLog.log("too many parameters\n", 'Exception');
+        } else if (flag) {
+            if (['--anonymous', '--private'].includes(flag))  {
+                fs.writeFileSync(this.HISTORY_PATH, '');
+                this.modeCLI = 'private';
+            } else if (flag == '--public') {
+                this.modeCLI = 'public';
+            } else ServerLog.log('flag not found\n', 'Exception');
+        } else {
+            return this.modeCLI;
+        }
+    }
+
+    
     packages() {
         const parameters = this.cli_args.slice(1);
         let packages = getDirs(`${__dirname}/usr/packages`);

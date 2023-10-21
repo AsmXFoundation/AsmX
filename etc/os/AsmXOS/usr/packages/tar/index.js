@@ -1,4 +1,4 @@
-const pat = require('path');
+const path = require('path');
 const { exec, execSync } = require('child_process');
 const ServerLog = require('../../../../../../server/log');
 
