@@ -62,7 +62,10 @@ class Cli {
             fs.writeFileSync(HISTORY_PATH, `${currentContent}\n${args.join(' ')}`);
         }
 
-        if (this.modeCLI == 'private') fs.writeFileSync(HISTORY_PATH, '');
+        if (this.modeCLI == 'private') {
+            fs.writeFileSync(HISTORY_PATH, '');
+            console.clear();
+        }
 
         let isRoot = (this.pwdConfig ? this.pwdConfig?.root ? this.pwdConfig?.root : this.root : this.root) == 'root';
 
