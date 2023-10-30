@@ -233,6 +233,24 @@ class InstructionException {
 }
 
 
+class TokenException {
+    constructor(message, options){
+        this.options = options;
+
+        let lastLine = `${Color.FG_GRAY}${this.options.row}${' '.repeat(String(this.options.row + 2).length - String(this.options.row).length)} |\t\n`;
+        let middleLine = `${this.options.row + 1}${' '.repeat(String(this.options.row + 2).length - String(this.options.row + 1).length)} |\t`;
+        let index = this.options.code?.indexOf(this.options?.select);
+        let nextLine = `${Color.BRIGHT}${Color.FG_GRAY}${this.options.row + 2} |\t${' '.repeat(index > -1 ? index : 0)}${Color.FG_RED}^${'-'.repeat(this.options?.select ? this.options?.select?.length - 1 : options.code.length)}${Color.FG_WHITE}\n`;
+
+        process.stdout.write(`${Color.BRIGHT}[${Color.FG_RED}${options?.type ? options.type : ''}Exception${Color.FG_WHITE}]: ${Color.BRIGHT}${message}\n`);
+        process.stdout.write(lastLine);
+        process.stdout.write(`${middleLine}${highlightCLI.light(this.options.code)}\n`);
+        process.stdout.write(nextLine);
+        process.exit();
+    }
+}
+
+
 class RegisterException {
     constructor(message, options) {
         this.options = options;
@@ -462,5 +480,6 @@ module.exports = {
     UsingException: UsingException,
     ConstException: ConstException,
     SystemCallException: SystemCallException,
-    ExpressionException: ExpressionException
+    ExpressionException: ExpressionException,
+    TokenException: TokenException
 }

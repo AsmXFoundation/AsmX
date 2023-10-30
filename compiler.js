@@ -7,7 +7,7 @@ const fs = require('fs');
 const { exec, execSync } = require('child_process');
 
 // Components that compiler
-const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException, InstructionException } = require('./exception');
+const { UnitError, TypeError, RegisterException, ArgumentError, ImportException, StackTraceException, UsingException, ConstException, SystemCallException, InstructionException, TokenException } = require('./exception');
 const ValidatorByType = require('./checker');
 const { FlowOutput, FlowInput } = require('./flow');
 const { Memory, MemoryAddress, MemoryVariables } = require("./memory");
@@ -35,6 +35,7 @@ const EngineAdapter = require('./engine/adapter');
 const Coroutine = require('./coroutine');
 const AsmXPackageManager = require('./tools/apm/apm');
 const JavaScript = require('./javascript');
+const TypeMethod = require('./methods');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -2270,7 +2271,36 @@ class Compiler {
                 this.$urt = [null, undefined].includes(ret) ? 'Void' : ret;
             }
         }
+        
+        
+        else if (statement?.structure == 'set' && statement?.method) {
+            let variable = this.set.filter(v => v?.name == statement?.name);
+            variable = variable[variable.length - 1];
 
+            if (Type.has(variable.type)) {
+                const T = Reflect.ownKeys(TypeMethod).filter(p => ![ 'length', 'name', 'prototype'].includes(p));
+
+                if (T.includes(variable.type.toLowerCase())) {
+                    const methods = Reflect.ownKeys(TypeMethod[variable.type.toLowerCase()]()).filter(p => ![ 'length', 'name', 'prototype'].includes(p));
+
+                    if (methods.includes(statement.method)) {
+                        let response = TypeMethod[variable.type.toLowerCase()]()[statement.method](variable, statement.args.split(',').map(a => a.trim()));
+                        this.$urt = response;
+                    } else {
+                        new TokenException('Unknow method', {
+                           ...trace?.parser,
+                           select: statement.method,
+                           type: 'Method'
+                        });
+                    }
+                } else {
+                    new TokenException(`There are no methods for this type: ${variable.type}`, {
+                        ...trace?.parser,
+                        type: 'Method'
+                    });
+                }
+            }
+        }
 
         else if (statement?.structure && ['tion', 'coroutine'].includes(statement.structure) && statement.name) {
             let structure_vect, filterStructures;
@@ -2739,6 +2769,7 @@ class Compiler {
                 EngineAdapter.registerUnit.call(this, unit[unit.length - 1], statement.args, trace);
             } else {
                 new UnitError(trace?.parser?.code , UnitError.UNIT_UNKNOWN, options);
+                process.exit();
             }
         }
     }
