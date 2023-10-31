@@ -13,3 +13,6 @@
 @call print($return);
 @call set::str2::repeat(2);
 @call print($return);
+
+@call set::str2::reverse();
+@call print($return);

@@ -15,6 +15,9 @@ class TypeMethod {
                 return variable?.value?.slice(1, -1)?.split(...args);
             }
 
+            static reverse(variable, args) {
+                return variable?.value?.slice(1, -1)?.split('').reverse().join('');
+            }
 
             static code(variable, args) {
                 if (Type.check('int', args[0])) {
