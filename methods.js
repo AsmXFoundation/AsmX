@@ -10,6 +10,21 @@ class TypeMethod {
                 }
             }
 
+            static has(variable, args) {
+                return variable?.value?.slice(1, -1)?.indexOf(Type.check('string', args[0]) ? args[0].slice(1, -1) : args[0]) > -1 ? true : false;
+            }
+
+            static index(variable, args) {
+                return variable?.value?.slice(1, -1)?.indexOf(Type.check('string', args[0]) ? args[0].slice(1, -1) : args[0]);
+            }
+
+            static get(variable, args) {
+                if (Type.check('int', args[0])) return variable?.value?.slice(1, -1)?.[+args[0]];
+            }
+
+            static hasSpace(variable, args) {
+                return variable?.value?.slice(1, -1)?.indexOf(' ') > -1 ? true : false;
+            }
 
             static split(variable, args) {
                 return variable?.value?.slice(1, -1)?.split(...args);
