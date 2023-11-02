@@ -25,3 +25,8 @@
 @call print($return);
 @call set::str2::hasSpace();
 @call print($return);
+
+@call set::str2::hasInt();
+@call print($return);
+@call set::str2::hasChar();
+@call print($return);

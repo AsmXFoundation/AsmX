@@ -26,6 +26,15 @@ class TypeMethod {
                 return variable?.value?.slice(1, -1)?.indexOf(' ') > -1 ? true : false;
             }
 
+            static hasInt(variable, args) {
+                return /[0-9]/g.test(variable?.value?.slice(1, -1));
+            }
+
+            static hasChar(variable, args) {
+                return /[a-zA-Z]/g.test(variable?.value?.slice(1, -1));
+            }
+
+
             static split(variable, args) {
                 return variable?.value?.slice(1, -1)?.split(...args);
             }
