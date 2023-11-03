@@ -19,7 +19,7 @@ class TypeMethod {
             }
 
             static get(variable, args) {
-                if (Type.check('int', args[0])) return variable?.value?.slice(1, -1)?.[+args[0]];
+                if (Type.check('int', args[0])) return variable?.value?.slice(1, -1)?.[+args[0]] ?? 'Void';
             }
 
             static hasSpace(variable, args) {
@@ -34,6 +34,19 @@ class TypeMethod {
                 return /[a-zA-Z]/g.test(variable?.value?.slice(1, -1));
             }
 
+            static hasSymbol(variable, args) {
+                let symbols = [
+                    '!', '@', '"', '\'', '$', 
+                    ';', ':', 
+                    '<', '>', '{', '}', '(', ')',
+                    '+', '-', '*', '%', '/',
+                    '?', '=', '.', ',', '^', '&', '|', '\\', '/', '#', '~', '`'
+                ];
+
+                let is = false;
+                for (const char of symbols) if (is = variable?.value?.slice(1, -1).includes(char)) break;
+                return is;
+            }
 
             static split(variable, args) {
                 return variable?.value?.slice(1, -1)?.split(...args);

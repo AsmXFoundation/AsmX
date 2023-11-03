@@ -30,3 +30,6 @@
 @call print($return);
 @call set::str2::hasChar();
 @call print($return);
+
+@call set::str2::hasSymbol();
+@call print($return);
