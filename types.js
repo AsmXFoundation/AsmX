@@ -1,5 +1,8 @@
+const Iterator = require("./iterator");
+
 class Type {
     static types = [];
+    static value = null;
 
     static has(type) {
         let is = false;
@@ -36,6 +39,7 @@ class Type {
 
     static otherTypesCheck(type, value) {
         let check = false;
+        this.value = null;
 
         if (['Object', 'object'].includes(type)) {
             check = typeof value === 'object' && !Array.isArray(value) ? true : false;
@@ -43,6 +47,12 @@ class Type {
             if (typeof value === 'object' && Array.isArray(value)) check = true;
             else if (value == '[]') check = true;
             else check = false;
+        } else if (['Iterator', 'iterator'].includes(type)) {
+            if (typeof value === 'object' && !Array.isArray(value)) check = true;
+            else if (value == '{}') check = true;
+            else check = false;
+
+            if (check) this.value = new Iterator();
         } else if (/i[0-9]+/.test(type)) {
             check = this.isIntX(+type.slice(1), value);
         } else if (/s[0-9]+/.test(type)) {

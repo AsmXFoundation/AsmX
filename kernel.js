@@ -60,8 +60,8 @@ class Fact {
             return (struct instanceof Object) ? call(Reflect.ownKeys(struct).length) : call(struct.length - 1);
         }
 
-        let faxsKeys = Reflect.ownKeys(facts);
-        const fact = faxsKeys[randomize(facts)];
+        let factsKeys = Reflect.ownKeys(facts);
+        const fact = factsKeys[randomize(facts)];
         const tag = 'Fun facts';
         ServerLog.newTag(tag, Color.FG_CYAN);
 

@@ -36,6 +36,7 @@ const Coroutine = require('./coroutine');
 const AsmXPackageManager = require('./tools/apm/apm');
 const JavaScript = require('./javascript');
 const TypeMethod = require('./methods');
+const Iterator = require('./iterator');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -2246,7 +2247,7 @@ class Compiler {
 
             }
         } catch (exception) {
-            console.log(exception);
+            // console.log(exception);
         }
 
         return ast;
@@ -2298,6 +2299,38 @@ class Compiler {
                         ...trace?.parser,
                         type: 'Method'
                     });
+                }
+            } else {
+                if (variable.value instanceof Iterator) {
+                    const methods_t = Object.getOwnPropertyNames(Iterator.prototype).filter(m => m != 'constructor');
+
+                    function UnknowMethod() {
+                        new TokenException('Unknow method', { ...trace?.parser, select: statement.method, type: 'Method' });
+                    }
+
+                    if (statement.method.startsWith('_')) UnknowMethod();
+
+                    if (methods_t.includes(statement.method)) {
+                        let response;
+
+                        if (statement.args != '()') {
+                            let arguments_t = statement.args.split(',').map(a => a.trim());
+
+                            arguments_t = arguments_t.map(a => {
+                                let arg = this.__checkArgumentStrict__(a, statement.code, statement.row);
+                                if (Type.check('string', arg)) arg = arg.slice(1, -1);
+                                return arg;
+                            });
+
+                            response = variable.value[statement.method](...arguments_t);
+                        } else {
+                            response = variable.value[statement.method]();
+                        }
+
+                        this.$urt = response;
+                    } else {
+                        UnknowMethod();
+                    }
                 }
             }
         }
@@ -2824,7 +2857,13 @@ class Compiler {
                 let string = JSON.parse(`{ "String": "${this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value}" }`)['String'];
                 console.log(typeof JSON.parse(string));
             } catch {
-                console.log(this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value);
+                let output = this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value;
+
+                if (output instanceof Iterator) {
+                    console.log(output.__view__());
+                } else {
+                    console.log(output);
+                }
             }
         } else if (this.$arg0 == 0x03) {
             this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
@@ -3243,6 +3282,7 @@ class Compiler {
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
         if (!['List', 'Object'].includes(statement.type) && Type.otherTypesCheck(statement.type, statement.value)) {
+            if (Type.value instanceof Iterator) statement.value = Type.value;
             isType = true;
         }
 
