@@ -1,4 +1,5 @@
-const Iterator = require("./iterator");
+const Iterator = require("./types/iterator");
+const Vector = require("./types/vector");
 
 class Type {
     static types = [];
@@ -53,6 +54,17 @@ class Type {
             else check = false;
 
             if (check) this.value = new Iterator();
+        } else if (['Vector', 'vector'].includes(type)) {
+            if (typeof value === 'object' && !Array.isArray(value)) check = true;
+            else if (value == '{}') check = true;
+            else if (Type.check('int', value)) check = true;
+            else check = false;
+            
+            if (check) {
+                const vector = new Vector();
+                if (Type.check('int', value)) this.value = vector.__new__({ count: +value });
+                else this.value = vector;
+            }
         } else if (/i[0-9]+/.test(type)) {
             check = this.isIntX(+type.slice(1), value);
         } else if (/s[0-9]+/.test(type)) {

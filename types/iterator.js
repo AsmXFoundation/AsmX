@@ -19,6 +19,7 @@ class Iterator {
         this._value = 'void';
         this._next = 0;
         this._call = 'swap';
+        this._done = false;
         return { swap: this._swap, slot: this._slot, type: this._type, next: this._next };
     }
 
@@ -35,9 +36,9 @@ class Iterator {
         const methods_t = Object.getOwnPropertyNames(Iterator.prototype).filter(m => m != 'constructor').filter(m => !m.startsWith('_'));
         
         const properties = {
-            swap: this._swap,
-            slot: this._slot,
             type: this._type,
+            slot: this._slot,
+            swap: this._swap,
             next: this._next,
             value: this._value,
             done: this._done

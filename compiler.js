@@ -36,7 +36,8 @@ const Coroutine = require('./coroutine');
 const AsmXPackageManager = require('./tools/apm/apm');
 const JavaScript = require('./javascript');
 const TypeMethod = require('./methods');
-const Iterator = require('./iterator');
+const Iterator = require('./types/iterator');
+const Vector = require('./types/vector');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -2301,8 +2302,12 @@ class Compiler {
                     });
                 }
             } else {
-                if (variable.value instanceof Iterator) {
-                    const methods_t = Object.getOwnPropertyNames(Iterator.prototype).filter(m => m != 'constructor');
+                if ([variable.value instanceof Iterator, variable.value instanceof Vector]) {
+                    const TypeConstructors = [Iterator, Vector];
+                    let constructor_t = null;
+                    for (const T of TypeConstructors) if (variable.value instanceof T) constructor_t = T;
+                    
+                    const methods_t = Object.getOwnPropertyNames(constructor_t.prototype).filter(m => m != 'constructor');
 
                     function UnknowMethod() {
                         new TokenException('Unknow method', { ...trace?.parser, select: statement.method, type: 'Method' });
@@ -2859,7 +2864,7 @@ class Compiler {
             } catch {
                 let output = this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value;
 
-                if (output instanceof Iterator) {
+                if ([output instanceof Iterator, output instanceof Vector].includes(true)) {
                     console.log(output.__view__());
                 } else {
                     console.log(output);
@@ -3282,7 +3287,7 @@ class Compiler {
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
         if (!['List', 'Object'].includes(statement.type) && Type.otherTypesCheck(statement.type, statement.value)) {
-            if (Type.value instanceof Iterator) statement.value = Type.value;
+            if ([Type.value instanceof Iterator, Type.value instanceof Vector].includes(true)) statement.value = Type.value;
             isType = true;
         }
 
