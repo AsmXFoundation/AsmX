@@ -541,6 +541,64 @@ class Cli {
     }
 
 
+    tree() {
+        const parameters = this.cli_args.slice(1);
+        let path = parameters[0];
+
+        if (parameters.length > 1) {
+            ServerLog.log("too many parameters", 'Exception');
+        } else if (path) {
+            let dirs, files, virtualPath;
+            // Maximum depth - 2
+            const UNICODE_SYMBOL_BORDER_SQUARE = '└';
+            const UNICODE_SYMBOL_BORDER_MID = '├';
+            const UNICODE_SYMBOL_BORDER_PIPE = '│';
+            const UNICODE_SYMBOL_BORDER_LINE = '─';
+
+            if (this.root == 'root' && this.cdPath == 'asmxOS') {
+                virtualPath = `${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`;
+                if (path == '.' || path == '../' || path == './') virtualPath = `${__dirname}/${this.USER_DIRECTORY_NAME}`;
+            } else if (this.root == 'root') {
+                virtualPath = `${__dirname}/${this.cdPath}${path[0] == '/' ? '' : '/'}${path}`;
+            }
+
+            if (fs.existsSync(virtualPath)) [dirs, files] = [getDirs(virtualPath), getFiles(virtualPath)];
+            if (this.root == 'root' && this.cdPath == 'asmxOS') dirs = dirs.filter(dir => !['cli.js', 'config.js', 'core.js', 'neofetch.js' ].includes(dir));
+
+            console.log(`\x1b[38;5;0m. ${path}`);
+            
+            for (let index = 0; index < dirs.length; index++) {
+                const majorDir = dirs[index];
+                console.log(`${files.length > 0 ? UNICODE_SYMBOL_BORDER_MID : UNICODE_SYMBOL_BORDER_SQUARE}${UNICODE_SYMBOL_BORDER_LINE} \x1b[38;5;45m${majorDir}\x1b[38;5;0m`);
+                let subDirs;
+                
+                if (this.root == 'root' && this.cdPath == 'asmxOS') {
+                    subDirs = `${__dirname}/${this.USER_DIRECTORY_NAME}/${path}/${majorDir}`;
+                    if (path == '.' || path == '../' || path == './') subDirs = `${__dirname}/${this.USER_DIRECTORY_NAME}/${majorDir}`;
+                } else if (this.root == 'root') {
+                    subDirs = `${__dirname}/${this.cdPath}${path[0] == '/' ? '' : '/'}${path}/${majorDir}`;
+                }
+            
+                subDirs = getDirs(subDirs);
+
+                if (subDirs.length > 0) {
+                    for (let subIndex = 0; subIndex < subDirs.length; subIndex++) {
+                        const dir = subDirs[subIndex];
+                        console.log(`${UNICODE_SYMBOL_BORDER_PIPE}  ${subIndex + 1 == subDirs.length ? UNICODE_SYMBOL_BORDER_SQUARE : UNICODE_SYMBOL_BORDER_MID}${UNICODE_SYMBOL_BORDER_LINE} \x1b[38;5;45m${dir}\x1b[38;5;0m`);
+                    }
+                }
+                
+                if (index == dirs.length - 1 && files.length > 0) {
+                    for (let index = 0; index < files.length; index++) {
+                        const file = files[index];
+                        console.log(`${index + 1 == files.length ? UNICODE_SYMBOL_BORDER_SQUARE : UNICODE_SYMBOL_BORDER_MID}${UNICODE_SYMBOL_BORDER_LINE} \x1b[38;5;231m${file}\x1b[38;5;0m`);
+                    }
+                }
+            }
+        }
+    }
+
+
     mkdir() {
         const parameters = this.cli_args;
         const path = parameters[1];
