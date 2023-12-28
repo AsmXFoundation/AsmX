@@ -1,15 +1,33 @@
-const { TypeError, SymbolError, SyntaxError, CodeStyleException, InstructionException, StructureException, ArgumentError, SystemCallException } = require("./exception");
-const ValidatorByType = require("./checker");
-const Lexer = require("./lexer");
-const ServerLog = require("./server/log");
-const Structure = require("./structure");
-const NeuralNetwork = require("./tools/neural");
-const Color = require("./utils/color");
-const Engine = require("./engine/core");
-const config = require("./config");
-const engine = require("./engine/core");
+
+// Importing exceptions
+const { 
+  TypeError, // Exception for type errors
+  SymbolError, // Exception for symbol errors
+  SyntaxError, // Exception for syntax errors
+  CodeStyleException, // Exception for code style violations
+  InstructionException, // Exception for instruction errors
+  StructureException, // Exception for structure errors
+  ArgumentError, // Exception for argument errors
+  SystemCallException // Exception for system call errors
+} = require("./exception");
+
+const ValidatorByType = require("./checker"); // Importing type validator
+const Lexer = require("./lexer"); // Importing lexer
+const ServerLog = require("./server/log"); // Importing server log
+const Structure = require("./structure"); // Importing structure
+const NeuralNetwork = require("./tools/neural"); // Importing neural network
+const Color = require("./utils/color"); // Importing color utility
+const Engine = require("./engine/core"); // Importing engine core
+const config = require("./config"); // Importing configuration
+const engine = require("./engine/core"); // Importing engine core
 
 class Parser {
+    /**
+     * Parses the given source code.
+     *
+     * @param {string} sourceCode - The source code to be parsed.
+     * @return {Array} An array of tokens representing the parsed source code.
+     */
     static parse(sourceCode) {
         let lines = sourceCode.split('\n');
         let tokens = [];
@@ -89,6 +107,16 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseBindStatement` takes a line of code and row number as input, and returns an
+     * abstract syntax tree (AST) object representing a bind statement in JavaScript.
+     * @param line - The `line` parameter represents a string of code that contains a bind statement.
+     * It is the line of code that needs to be parsed.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns an object with the properties `bind` and `parser`. The `bind` property is an object
+     * with the properties `bind` and `name`. The `parser` property is an object with the property
+     * `code` and `row`.
+     */
     static parseBindStatement(line, row) {
         let ast = { bind: {}, parser: { code: line, row: row + 1} };
         line = line.slice(line.indexOf(' ')).trim();
@@ -99,6 +127,17 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseMethodStatement` parses a method statement in JavaScript and returns an
+     * abstract syntax tree (AST) object.
+     * @param line - The `line` parameter is a string that represents a line of code containing a
+     * method declaration.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns The function `parseMethodStatement` returns an object `ast` which contains two
+     * properties: `method` and `parser`. The `method` property is an object that contains the name of
+     * the method and its arguments. The `parser` property is an object that contains the code and row
+     * number.
+     */
     static parseMethodStatement(line, row) {
         let ast = { method: {}, parser: { code: line, row: row + 1 } };
         let pattern = /\@[Mm]ethod\s+(\w+)\b(\s+)?\((.+)?\)(\:)?$/;
@@ -109,6 +148,14 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseConstructorStatement` parses a constructor statement in JavaScript and
+     * returns an abstract syntax tree (AST) representing the constructor.
+     * @param line - The `line` parameter represents a line of code that contains a constructor
+     * statement in a programming language.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns The function `parseConstructorStatement` returns an abstract syntax tree (AST) object.
+     */
     static parseConstructorStatement(line , row) {
         let ast = { constructor: {}, parser: { code: line, row: row + 1 } };
         let pattern = /\@[Cc]onstructor\s+(\w+)\b(\s+)?\((.+)\)(\:)?$/;
@@ -130,6 +177,14 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseDestructorStatement` parses a destructor statement in JavaScript code and
+     * returns an abstract syntax tree (AST) representation of the statement.
+     * @param line - The `line` parameter represents a line of code that contains a destructor
+     * statement. It is a string.
+     * @param row - The `row` parameter represents the line number of the code statement being parsed.
+     * @returns The function `parseDestructorStatement` returns an abstract syntax tree (AST) object.
+     */
     static parseDestructorStatement(line, row) {
         let ast = { destructor: {}, parser: { code: line, row: row + 1 } };
         let pattern = /\@[Dd]estructor\s+(\w+)\b(\s+)?\((.+)?\)\:?$/;
@@ -151,6 +206,16 @@ class Parser {
     }
 
 
+    /**
+     * The function `_parseConstructorArguments` parses constructor arguments in a given line of code
+     * and returns an abstract syntax tree (AST) representation of the arguments.
+     * @param line - The `line` parameter is a string that represents a line of code containing
+     * constructor arguments.
+     * @param row - The `row` parameter is not used in the code snippet provided. It is not necessary
+     * for the functionality of the `_parseConstructorArguments` function.
+     * @returns an object with a property called "arguments". The value of "arguments" is an object
+     * where the keys are the argument names and the values are the argument types.
+     */
     static _parseConstructorArguments(line, row) {
         let ast = { arguments: {} };
         line = line.trim().replaceAll('  ', ' ');
@@ -167,6 +232,7 @@ class Parser {
 
         return ast;
     }
+
 
     /**
     * The function parses a statement in a given line of code and returns an abstract syntax tree.
@@ -228,13 +294,25 @@ class Parser {
             if (engine.hasInstruction(stmt)) {
                 ast = { [stmt]: { arguments: line.slice(line.indexOf(' ')) }, parser: { code: line, row: index + 1 } }; 
             } else {
+                // Log the error message and type
                 ServerLog.log('This instruction does not exist', 'Exception');
+                
+                // Throw a SyntaxError with the error message and metadata
                 new SyntaxError(`\n<source:${index+1}:1>  This instruction does not exist`, { code: line, row: index });
+                
+                // Log a message indicating the need to remove the instruction
                 ServerLog.log('You need to remove this instruction.', 'Possible fixes');
 
+                // Get an array of instruction names using reflection
                 const instructions = Reflect.ownKeys(this).filter(property => /parse\w+Statement/.test(property)).map(token => /parse(\w+)Statement/.exec(token)).map(list => list[1]);
+                
+                // Calculate the coincidences between the instructions and stmt
                 const coincidences = NeuralNetwork.coincidence(instructions, stmt);
+                
+                // Use the NeuralNetwork to determine the most likely instructions
                 const presumably = NeuralNetwork.presumably(coincidences);
+                
+                // Log the suggested instructions
                 ServerLog.log(`Perhaps you wanted to write some of these instructions: { ${presumably.map(item => `${Color.FG_GREEN}${item}${Color.FG_WHITE}`).join(', ')} }`, 'Neural Log');
 
                 process.exit(1);
@@ -645,9 +723,12 @@ class Parser {
 
 
     /**
-     * It takes a line of code, parses it, and then sets the memory address to the value.
-     * </code>
-     * @param lineCode - The line of code that is being parsed.
+     * The function `parseMemoryStatement` parses a line of code to extract the memory value and
+     * address, performs validation checks, and returns an object containing the memory name and
+     * address.
+     * @param lineCode - The `lineCode` parameter is a string that represents a line of code.
+     * @returns either the string 'rejected' or an object with the properties 'memory' containing the
+     * 'name' and 'address' values.
      */
     static parseMemoryStatement(lineCode){
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
@@ -673,6 +754,7 @@ class Parser {
      */
     static parseAddressStatement(lineCode){
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+
         if (lineCode.indexOf('(')  !== -1 && lineCode.indexOf(')') !== -1){
             const addressName = lineCode.substring(lineCode.indexOf('('), lineCode.lastIndexOf(')')).trim();
             const address = lineCode.substring(lineCode.lastIndexOf(')')).trim();
@@ -963,6 +1045,16 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseSubprogramStatement` parses a subprogram statement in JavaScript and returns
+     * an abstract syntax tree (AST) representing the parsed statement.
+     * @param lineCode - The `lineCode` parameter is a string that represents a line of code in a
+     * programming language. It is the code that needs to be parsed and analyzed.
+     * @param row - The `row` parameter in the `parseSubprogramStatement` function represents the row
+     * number of the code line being parsed. It is used for error reporting and debugging purposes.
+     * @returns The function `parseSubprogramStatement` returns the `ast` object, which contains the
+     * parsed subprogram information.
+     */
     static parseSubprogramStatement(lineCode, row) {
         let ast = { subprogram: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
@@ -983,6 +1075,15 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseUsingStatement` parses a line of code and extracts the structure and name
+     * from an `@using` statement in JavaScript.
+     * @param lineCode - The `lineCode` parameter is a string that represents a line of code. It is the
+     * code that needs to be parsed and processed.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns The function `parseUsingStatement` returns an object `ast` which contains the parsed
+     * information from the `lineCode`.
+     */
     static parseUsingStatement(lineCode, row) {
         let ast = { using: {}, parser: { code: lineCode, row: row } };
         lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
@@ -1030,6 +1131,14 @@ class Parser {
     }
     
     
+    /**
+     * The function `parseForStatement` parses a line of code and returns an abstract syntax tree (AST)
+     * object representing a for loop statement in JavaScript.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract information for parsing a `for` statement.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns the "ast" object, which contains the parsed information about the for statement.
+     */
     static parseForStatement(line, row) {
         let ast = { for: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
@@ -1050,6 +1159,17 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseExceptionStatement` parses a given line of code and returns an abstract
+     * syntax tree (AST) object representing an exception statement.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract information about an exception statement.
+     * @param row - The `row` parameter in the `parseExceptionStatement` function represents the row
+     * number of the code line being parsed. It is used to provide context information in case an
+     * exception is thrown.
+     * @returns The function `parseExceptionStatement` returns the `ast` object, which contains the
+     * parsed exception information.
+     */
     static parseExceptionStatement(line, row) {
         let ast = { exception: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
@@ -1070,6 +1190,17 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseTryStatement` parses a try statement in JavaScript and returns an abstract
+     * syntax tree (AST) representation of the statement.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract information and create an abstract syntax tree (AST) for a `try` statement.
+     * @param row - The `row` parameter in the `parseTryStatement` function represents the row number
+     * of the code line being parsed. It is used to provide context information in case an exception
+     * occurs during parsing.
+     * @returns The function `parseTryStatement` returns the `ast` object if the `match` variable is
+     * not null. Otherwise, it throws an `InstructionException` and exits the process.
+     */
     static parseTryStatement(line, row) {
         let ast = { try: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
@@ -1090,12 +1221,68 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseStructStatement` parses a structure statement in JavaScript and returns the
+     * structure name and parser.
+     * @param line - The `line` parameter represents the line of code that needs to be parsed.
+     * @param row - The `row` parameter in the `parseStructStatement` function represents the row
+     * number of the line being parsed. It is used to provide context or reference to the line being
+     * parsed.
+     * @returns The function `parseStructStatement` is returning an object with two properties:
+     * `struct` and `parser`. The value of the `struct` property is the name of the structure extracted
+     * from the input line, and the value of the `parser` property is the parser extracted from the
+     * input line.
+     */
     static parseStructStatement(line, row) {
         let ast = this._parseStructure(line, row, /^\@[S|s]truct\s+(\w+)(?=\s+\:|\:)/);
         return { struct: ast.structure.name, parser: ast.parser };
     }
 
 
+    /**
+     * The function `parseTaskStatement` parses a task statement and returns the task name and parser.
+     * @param line - The `line` parameter represents a single line of code or text that contains a task
+     * statement. It is a string.
+     * @param row - The `row` parameter represents the row number of the task statement in the code.
+     * @returns The function `parseTaskStatement` is returning an object with two properties: `task`
+     * and `parser`. The value of `task` is the name of the task extracted from the input line, and the
+     * value of `parser` is the parser function associated with the task.
+     */
+    static parseTaskStatement(line, row) {
+        let ast = this._parseStructure(line, row, /^\@[T|t]ask\s+(\w+)(?=\s+\:|\:)/);
+        return { task: ast.structure.name, parser: ast.parser };
+    }
+
+
+    /**
+     * The function `parseTodolistStatement` parses a line of code to extract the name of a todolist
+     * and the corresponding parser.
+     * @param line - The `line` parameter represents a single line of text that contains a statement
+     * related to a todolist.
+     * @param row - The `row` parameter represents the row number of the line being parsed.
+     * @returns The function `parseTodolistStatement` is returning an object with two properties:
+     * `todolist` and `parser`. The value of `todolist` is the name extracted from the input line using
+     * a regular expression, and the value of `parser` is the parser object extracted from the AST
+     * (Abstract Syntax Tree) structure.
+     */
+    static parseTodolistStatement(line, row) {
+        let ast = this._parseStructure(line, row, /^\@[T|t]odolist\s+(\w+)(?=\s+\:|\:)/);
+        return { todolist: ast.structure.name, parser: ast.parser };
+    }
+
+
+    /**
+     * The function `parseEnumStatement` parses a line of code in JavaScript and returns information
+     * about an enum declaration.
+     * @param line - The line of code that needs to be parsed and processed.
+     * @param row - The `row` parameter is the row number of the line being parsed. It is used for
+     * error reporting or tracking the position of the line in the source code.
+     * @returns The function `parseEnumStatement` returns an object with properties `enum`,
+     * `isAttribute`, `attribute`, and `parser`. The specific properties that are returned depend on
+     * the conditions in the `if` statement. If the condition is true, the returned object will have
+     * `enum`, `isAttribute`, `attribute`, and `parser` properties. If the condition is false, the
+     * returned object will
+     */
     static parseEnumStatement(line , row) {
         if (/^\@[E|e]num\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.test(line)) {
             line = this.parseAndDeleteEmptyCharacters(line);
@@ -1109,6 +1296,15 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseCollectionStatement` parses a line of code in JavaScript and returns
+     * information about a collection and its attributes.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract information about a collection statement.
+     * @param row - The `row` parameter is the row number of the line being parsed.
+     * @returns The function `parseCollectionStatement` returns an object with the following
+     * properties:
+     */
     static parseCollectionStatement(line , row) {
         if (/^\@[Cc]ollection\s+(\w+)\s+(\w+)(?=\s+\:|\:)/.test(line)) {
             line = this.parseAndDeleteEmptyCharacters(line);
@@ -1122,6 +1318,19 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseEventStatement` parses an event statement in JavaScript and returns an object
+     * containing the event name, type, and parser.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract information about an event statement.
+     * @param row - The `row` parameter in the `parseEventStatement` function represents the line
+     * number or index of the line in the code where the event statement is located. It is used to
+     * provide context and error messages if there are any issues with parsing the event statement.
+     * @returns an object with three properties: "event", "type", and "parser". The value of the
+     * "event" property is the name of the event parsed from the input line. The value of the "type"
+     * property is the type of the event parsed from the input line. The value of the "parser" property
+     * is the parser function generated by the "_parseStructure" method
+     */
     static parseEventStatement(line , row) {
         let ast = this._parseStructure(line, row, /^\@[Ee]vent\s+[a-zA-Z][a-zA-Z0-9_]*\s+(\w+)(?=\s+\:|\:)/);
         let type = /^\@[Ee]vent\s+([a-zA-Z][a-zA-Z0-9_]*)\s+\w+(?=\s+\:|\:)/.exec(line)[1];
@@ -1129,24 +1338,49 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseNamespaceStatement` parses a namespace statement in JavaScript code and
+     * returns the namespace name and parser.
+     * @param line - The `line` parameter represents the line of code that contains the namespace
+     * statement.
+     * @param row - The `row` parameter represents the row number of the line being parsed.
+     * @returns The function `parseNamespaceStatement` is returning an object with two properties:
+     * `namespace` and `parser`. The value of `namespace` is the name of the namespace extracted from
+     * the input line, and the value of `parser` is the parser object obtained from parsing the
+     * structure of the line.
+     */
     static parseNamespaceStatement(line , row) {
         let ast = this._parseStructure(line, row, /^\@[Nn]amespace\s+(\w+)(?=\s+\:|\:)/);
         return { namespace: ast.structure.name, parser: ast.parser };
     }
 
 
+    /**
+     * The function `parseCoroutineStatement` parses a given line of code and returns an abstract
+     * syntax tree (AST) representing a coroutine statement in JavaScript.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract information about a coroutine statement.
+     * @param row - The `row` parameter in the `parseCoroutineStatement` function represents the row
+     * number of the code line being parsed. It is used to track the position of the code line in the
+     * overall code file or input.
+     * @returns an abstract syntax tree (AST) object.
+     */
     static parseCoroutineStatement(line , row) {
         let ast = { coroutine: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
         this.lexerSymbol(line, { brackets: false, operators: ['=', '+', '-', '*', '%', '/'], angles: false });
         if (typeof line !== 'string' || line.length === 0) return 'rejected';
 
+        // Check if the line contains a coroutine declaration
         if (/\@[Cc]oroutine\s+[a-zA-Z][a-zA-Z0-9_]*(\s?\s+)?\(\)/.test(line)) {
+            // Initialize the coroutine AST properties
             ast.coroutine.isArguments = false;
             ast.coroutine.extends = false;
             ast.coroutine.isTypes = false;
             ast.coroutine.countArguments = 0;
             ast.coroutine.grammars = { number: 1 };
+        
+            // Extract the coroutine name from the line
             const pattern = /\@[Cc]oroutine\s+([a-zA-Z][a-zA-Z0-9_]*)(\s?\s+)?\(\)/;
             ast.coroutine.name = pattern.exec(line)[1];
         }
@@ -1192,6 +1426,16 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseYieldStatement` parses a yield statement in JavaScript and returns an
+     * abstract syntax tree (AST) representation of the statement.
+     * @param line - The `line` parameter is a string that represents a line of code. It is the input
+     * that needs to be parsed.
+     * @param row - The `row` parameter in the `parseYieldStatement` function represents the row number
+     * of the code line being parsed. It is used to keep track of the position of the code line in the
+     * overall code file or input.
+     * @returns The function `parseYieldStatement` is returning the `ast` object.
+     */
     static parseYieldStatement(line, row){
         let ast = { yield: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
@@ -1203,6 +1447,19 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseClassStatement` parses a class statement in JavaScript code and returns
+     * information about the class.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * determine the type of class statement and extract relevant information from it.
+     * @param row - The `row` parameter in the `parseClassStatement` function represents the line
+     * number of the code being parsed. It is used to provide context in case there is an error or
+     * exception during parsing.
+     * @returns The function `parseClassStatement` returns an object with the following properties:
+     * - `class`: the name of the class being parsed
+     * - `abstract`: (optional) the name of the abstract class being extended
+     * - `parser`: the parser object for the class statement
+     */
     static parseClassStatement(line, row) {
         if (/^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/.test(line)) {
             let ast = this._parseStructure(line, row, /^\@[Cc]lass\s+(\w+)(?=\s+\:|\:)/);
@@ -1226,6 +1483,20 @@ class Parser {
     }
 
 
+    /**
+     * The function `_parseStructure` is a JavaScript function that parses a given line of code and
+     * returns an abstract syntax tree (AST) object containing the structure and parser information.
+     * @param line - The `line` parameter is a string that represents a line of code or input that
+     * needs to be parsed.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @param pattern - The `pattern` parameter is a regular expression pattern used to match against
+     * the `line` parameter. It is used to extract specific information from the `line` and assign it
+     * to the `ast` object's `structure` property.
+     * @param [isLexer=true] - The `isLexer` parameter is a boolean flag that indicates whether the
+     * function is being called from the lexer or not. It has a default value of `true`, meaning that
+     * if the parameter is not provided when calling the function, it will be assumed to be `true`.
+     * @returns the variable `ast`.
+     */
     static _parseStructure(line, row, pattern, isLexer = true) {
         let ast = { structure: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
@@ -1246,6 +1517,15 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseTionStatement` parses a given line of code and returns an abstract syntax
+     * tree (AST) representing a "tion" statement.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract information about a `tion` statement.
+     * @param row - The `row` parameter represents the row number of the code line being parsed. It is
+     * used to track the position of the code line in the overall code file or input.
+     * @returns an abstract syntax tree (AST) object.
+     */
     static parseTionStatement(line, row){
         let ast = { tion: {}, parser: { code: line, row: row } };
         line = this.parseAndDeleteEmptyCharacters(line);
@@ -1303,17 +1583,46 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseMutStatement` parses a line of code to extract information about a mutation
+     * statement.
+     * @param line - The `line` parameter represents the line of code that needs to be parsed.
+     * @param row - The `row` parameter in the `parseMutStatement` function represents the row number
+     * of the line being parsed. It is used to provide context or reference to the current line being
+     * processed.
+     * @returns The function `parseMutStatement` is returning an object with two properties: `mut` and
+     * `parser`. The value of `mut` is the result of calling the `parseSetStatement` function with the
+     * provided arguments `line`, `row`, and a regular expression pattern. The value of `parser` is the
+     * `parser` property of the `ast` object returned by the `parseSet
+     */
     static parseMutStatement(line, row) {
         let ast = this.parseSetStatement(line, row, /^@[M|m]ut\s+([^-]+)?\s+([\w-]+)(<(\s+?)?\w+.+?(\s+)?\w+(\s+)?>)?\s+?(.+)$/);
         return { mut: ast.set, parser: ast.parser };
     }
 
 
+    /**
+     * The function `parseImmutStatement` is used to parse an immutable statement in JavaScript.
+     * @param line - The `line` parameter represents the line of code that needs to be parsed.
+     * @param row - The `row` parameter represents the row number of the statement in the code.
+     * @returns The function `parseImmutStatement` is returning the result of calling the
+     * `parseDefineStatement` function with the arguments `line`, `row`, and the regular expression
+     * `/^@[I|i]mmut\s+([\w-]+)\s+(.+)$/`.
+     */
     static parseImmutStatement(line, row) {
         return this.parseDefineStatement(line, row, /^@[I|i]mmut\s+([\w-]+)\s+(.+)$/);
     }
 
 
+    /**
+     * The function `parsePropertyStatement` parses a property statement in JavaScript and returns an
+     * abstract syntax tree (AST) representing the parsed statement.
+     * @param line - The `line` parameter is a string that represents a line of code or a statement. It
+     * is used to extract information about a property statement.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns The function `parsePropertyStatement` returns an object `ast` which contains the parsed
+     * property statement.
+     */
     static parsePropertyStatement(line, row) {
         let ast = { property: {}, parser: { code: line, row } };
         line = line.slice(line.indexOf(' ')).trim();
@@ -1337,6 +1646,16 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseCreateStatement` parses a create statement in JavaScript and returns an
+     * abstract syntax tree (AST) representing the structure type, structure name, and name of the
+     * created entity.
+     * @param line - The `line` parameter is a string that represents a create statement in a
+     * programming language. It typically contains information about the type of structure being
+     * created, the name of the structure, and any additional details.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns an abstract syntax tree (AST) object.
+     */
     static parseCreateStatement(line, row) {
         let ast = { create: {}, parser: { code: line, row } };
         this.lexerSymbol(line);
@@ -1351,6 +1670,14 @@ class Parser {
     }
 
 
+    /**
+     * The function `parseRemoveStatement` parses a remove statement in JavaScript and returns an
+     * abstract syntax tree (AST) representing the structure to be removed.
+     * @param line - The `line` parameter is a string that represents a line of code. It is the input
+     * that needs to be parsed and processed.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns an object with the following structure:
+     */
     static parseRemoveStatement(line, row) {
         let ast = { remove: {}, parser: { code: line, row } };
         this.lexerSymbol(line);
@@ -1364,6 +1691,15 @@ class Parser {
     }
 
 
+    /**
+     * The function `parsePackageStatement` parses a package statement in JavaScript code and returns
+     * an abstract syntax tree (AST) object.
+     * @param line - The `line` parameter is a string that represents a line of code. It is used to
+     * extract the package name from the line.
+     * @param row - The `row` parameter represents the row number of the code line being parsed.
+     * @returns The function `parsePackageStatement` returns an object `ast` which contains the parsed
+     * package statement information.
+     */
     static parsePackageStatement(line, row){
         let ast = { package: {}, parser: { code: line, row: row } };
         let originalLine = line;
@@ -1472,12 +1808,13 @@ class Parser {
         let other = options?.other == false ? '' : options?.other || ['&', '\\', '!', '?', '№', '|', '^'];
         let symbols = [brackets, operators, angles, quoted, other].flat().filter(char => char != '');
 
-        for (let i = 0; i < symbols.length; i++)
+        for (let i = 0; i < symbols.length; i++) {
             if (this.isSymbol(line, symbols[i])) {
                 new SymbolError(line, symbols[i], SymbolError.INVALID_SYMBOL_ERROR);
                 ServerLog.log('You need to remove this symbol.', 'Possible fixes');
                 process.exit(1);
             }
+        }
     }
 }
 

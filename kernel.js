@@ -1,24 +1,34 @@
 //===========================================================================================
 //      The Kernel is responsible for loading and executing the functions in the Kernel
 //===========================================================================================
-const fs = require('fs');
 
-const Parser = require('./parser');
-const Color = require('./utils/color');
-const Compiler = require('./compiler');
-const { FileError } = require('./exception');
-const ServerLog = require('./server/log');
-const { getTotalSize } = require('./fs');
-const configSettings = require('./config');
-const Analysis = require('./analysis');
-const Garbage = require('./garbage');
-const ValidatorByType = require('./checker');
-const Cli = require('./cli');
+// Importing required modules
+const fs = require('fs'); // File system module
+
+const Parser = require('./parser'); // Importing the parser module
+const Color = require('./utils/color'); // Importing the color utility module
+const Compiler = require('./compiler'); // Importing the compiler module
+const { FileError } = require('./exception'); // Importing the FileError exception class
+const ServerLog = require('./server/log'); // Importing the server log module
+const { getTotalSize } = require('./fs'); // Importing the getTotalSize function from the fs module
+const configSettings = require('./config'); // Importing the config settings module
+const Analysis = require('./analysis'); // Importing the analysis module
+const Garbage = require('./garbage'); // Importing the garbage module
+const ValidatorByType = require('./checker'); // Importing the checker module
+const Cli = require('./cli'); // Importing the cli module
 const Micro = require('./micro/micro');
 
+// Get command line arguments
 let argv  = process.argv;
+
+/**
+ * Display a message to the console
+ * @param {string} message - The message to display
+ * @param {function} callback - Optional callback function
+ */
 log = (message, callback) => process.stdout.write(message, callback);
-log('COMPILER AsmX \n');
+
+log('Complier AsmX \n'); // Display a welcome message
 
 
 /**

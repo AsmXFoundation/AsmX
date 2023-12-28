@@ -1,5 +1,16 @@
 const { Type } = require("./types");
 
+function RegExpBase(variable, args, cb) {
+    if (Type.check('string', variable.value)) {
+        let value = variable.value.slice(1, -1);
+        let patterns = value.slice(value.lastIndexOf('/') + 1);
+        value = value.slice(1, value.lastIndexOf('/'));
+        if (Type.check('string', args[0])) args[0] = args[0].slice(1, -1);
+        return cb(new RegExp(value, patterns), args);
+    }
+}
+
+
 class TypeMethod {
     static string() {
         return class {
@@ -97,6 +108,23 @@ class TypeMethod {
 
             static size(variable, args) {
                 return variable?.value?.slice(1, -1)?.length;
+            }
+        }
+    }
+    
+
+    static regexpr() {
+        return class {
+            static test(variable, args) {
+                return RegExpBase(variable, args, (regex, args) => regex.test(args[0]));
+            }
+
+            static match(variable, args) {
+                return RegExpBase(variable, args, (regex, args) => args[0].match(regex));
+            }
+
+            static matchAll(variable, args) {
+                return RegExpBase(variable, args, (regex, args) => args[0].matchAll(regex));
             }
         }
     }

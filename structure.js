@@ -1,3 +1,4 @@
+// This module exports the Structure class
 class Structure {
     static structures = [];
     static isparses = {};
@@ -32,6 +33,12 @@ class Structure {
     }
 
 
+    /**
+     * Checks if the given `structurename` is a valid parse.
+     *
+     * @param {type} structurename - The name of the structure to check.
+     * @return {type} - Returns `true` if the `structurename` is a valid parse; otherwise, returns `false`.
+     */
     static isParse(structurename) {
         return this.isparses[structurename];
     }
@@ -50,27 +57,31 @@ class Structure {
 }
 
 
-Structure.new('label');
-Structure.new('unit');
-Structure.new('subprogram');
-Structure.new('enviroment');
-Structure.new('for');
-Structure.new('exception');
-Structure.new('try');
-Structure.new('struct');
-Structure.new('enum');
-Structure.new('collection');
-Structure.new('tion');
+// Create new structures
+Structure.new('label'); // Represents a label
+Structure.new('unit'); // Represents a unit
+Structure.new('subprogram'); // Represents a subprogram
+Structure.new('enviroment'); // Represents an environment
+Structure.new('for'); // Represents a for loop
+Structure.new('exception'); // Represents an exception
+Structure.new('try'); // Represents a try block
+Structure.new('struct'); // Represents a struct
+Structure.new('enum'); // Represents an enum
+Structure.new('collection'); // Represents a collection
+Structure.new('tion'); // Represents a tion
 
 //
-Structure.new('class');
-Structure.new('method', false);
-Structure.new('constructor', false);
-Structure.new('destructor');
+Structure.new('class'); // Represents a class
+Structure.new('method', false); // Represents a method with optional parameter 'false'
+Structure.new('constructor', false); // Represents a constructor with optional parameter 'false'
+Structure.new('destructor'); // Represents a destructor
 //
 
-Structure.new('event');
-Structure.new('namespace');
-Structure.new('coroutine');
+Structure.new('event'); // Represents an event
+Structure.new('namespace'); // Represents a namespace
+Structure.new('coroutine'); // Represents a coroutine
+
+Structure.new('task'); // Represents a task
+Structure.new('todolist'); // Represents a todolist
 
 module.exports = Structure;

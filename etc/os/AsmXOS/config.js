@@ -13,7 +13,7 @@ module.exports = {
 
     ASMX_PRODUCT_ID: '051023',
     ASMX_PRODUCT_NAME: 'AsmX',
-    ASMX_PRODUCCT_RELEASE: 'v4',
+    ASMX_PRODUCCT_RELEASE: 'v5',
     ASMX_PRODUCT_TYPE_SOURCE: 'OpenSource',
     ASMX_PRODUCT_REPOSITORY: 'https://github.com/langprogramming-AsmX/AsmX'
 }

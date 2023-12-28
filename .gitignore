@@ -3,8 +3,10 @@ node_modules
 package-lock.json
 
 bin/*
-!bin/app
-!bin/utils
+# Exclude bin/app directory
+!bin/app   
+# Exclude bin/utils directory
+!bin/utils 
 
 /examples/tests/*
 /examples/*

@@ -38,6 +38,10 @@ const JavaScript = require('./javascript');
 const TypeMethod = require('./methods');
 const Iterator = require('./types/iterator');
 const Vector = require('./types/vector');
+const ArrayConstructor = require('./types/ArrayConstructor');
+const TypeConstructor = require('./types/TypeConstructor');
+const BufferConstructor = require('./types/buffer/BufferConstructor');
+const TodolistConstructor = require('./types/TodolistConstructor');
 
 class Compiler {
     constructor(AbstractSyntaxTree) {
@@ -56,6 +60,8 @@ class Compiler {
         this.trys = [];
         this.usings = [];
         this.namespaces = [];
+        this.tasks = {};
+        this.todolists = {};
         this.collections = { struct: [], enum: [], class: [], collection: [] };
         this.interfaces = { structs: [], enums: [], collections: [] };
         this.registers = {};
@@ -177,6 +183,7 @@ class Compiler {
             this.$math = this.options.registers['$math'];
             this.$count = this.options.registers['$count'];
             this.$cmdret = this.options.registers['$cmdret'];
+            //
             this.set = this.options.registers['set'];
             this.labels = this.options.registers['labels'];
             this.enviroments = this.options.registers['enviroments'];
@@ -187,6 +194,8 @@ class Compiler {
             this.collections = this.options.registers['collections'];
             this.interfaces = this.options.registers['interfaces'];
             this.registers = this.options.registers['registers'];
+            this.tasks = this.options.registers['tasks'];
+            this.todolists = this.options.registers['todolists'];
             this.stack = this.options.registers['stack'] || new Stack();
             this.This = this.options.registers['This'];
             this.scope = this.options.registers['scope'];
@@ -320,6 +329,33 @@ class Compiler {
         
         if (this.$arg0 == 'mov')    this.$ret = this.$mov = args[0];
 
+        if (this.$arg0 == 'shl')  if ([args[0], args[1]].every(arg => Type.check('int', arg))) this.$ret = this.$math = args[0] << args[1];
+        if (this.$arg0 == 'shr')  if ([args[0], args[1]].every(arg => Type.check('int', arg))) this.$ret = this.$math = args[0] >> args[1];
+
+        if (this.$arg0 == 'ror') if ([args[0], args[1]].every(arg => Type.check('int', arg))) this.$ret = this.$math = (args[0] >>> args[1]) | (args[0] << (32 - args[1]));
+        if (this.$arg0 == 'rol') if ([args[0], args[1]].every(arg => Type.check('int', arg))) this.$ret = this.$math = (args[0] << args[1]) | (args[0] >>> (32 - args[1]));
+
+        if ([2, 8, 16, 32].map(number => this.$arg0 == `bitset_${number}x`).includes(true)) {
+            if (Type.check('int', args[0])) this.$ret = this.$math = parseInt(args[0], 10).toString(+this.$arg0.slice(7, -1));
+        }
+
+        if (this.$arg0 == 'instanceof') {
+            const [stuff, T] = [args[0], args[1]];
+
+            if (['array', 'list', 'Array', 'List'].includes(T)) {
+                this.$ret =  [stuff instanceof ArrayConstructor, Array.isArray(stuff)].includes(true);
+            } else if (['vector', 'Vector'].includes(T)) {
+                this.$ret = stuff instanceof Vector;
+            } else if (['iterator', 'Iterator'].includes(T)) {
+                this.$ret = stuff instanceof Iterator;
+            } else if (['Buffer', 'buffer'].includes(T)) {
+                this.$ret = stuff instanceof BufferConstructor;
+            } else if (['object', 'Object'].includes(T)) {
+                this.$ret = typeof stuff === 'object' && !Array.isArray(stuff);
+            }
+        }
+        
+
         if (this.$arg0 == 'is_almost') {
             if (typeof args[0] === 'number') {
                 let int = String(args[0]);
@@ -428,6 +464,8 @@ class Compiler {
                         exceptions: this.exceptions,
                         collections: this.collections,
                         interfaces: this.interfaces,
+                        tasks: this.tasks,
+                        todolists: this.todolists,
                         trys: this.trys,
                         scope: this.scope, 
                         This: this.This,
@@ -491,6 +529,8 @@ class Compiler {
                 this.exceptions = compile.exceptions;
                 this.collections = compile.collections;
                 this.interfaces = compile.interfaces;
+                this.tasks = compile.tasks;
+                this.todolists = compile.todolists;
                 this.trys = compile.trys;
                 this.scope = compile.scope;
                 this.This = compile.This;
@@ -531,6 +571,8 @@ class Compiler {
                 fors: globalThis.fors,
                 exceptions: globalThis.exceptions,
                 collections: globalThis.collections,
+                tasks: globalThis.tasks,
+                todolists: globalThis.todolists,
                 trys: globalThis.trys,
                 registers: globalThis.registers
             };
@@ -571,6 +613,8 @@ class Compiler {
                     fors: globalThis.fors,
                     exceptions: globalThis.exceptions,
                     collections: globalThis.collections,
+                    tasks: globalThis.tasks,
+                    todolists: globalThis.todolists,
                     trys: globalThis.trys,
                     stack: globalThis.stack,
                     registers: globalThis.registers,
@@ -598,6 +642,8 @@ class Compiler {
                 globalThis.exceptions = compiler.exceptions;
                 globalThis.collections = compiler.collections;
                 globalThis.trys = compiler.trys;
+                globalThis.tasks = compiler.tasks;
+                globalThis.todolists = compiler.todolists;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
                 globalThis._task = compiler._task;
@@ -633,6 +679,8 @@ class Compiler {
                     fors: globalThis.fors,
                     exceptions: globalThis.exceptions,
                     collections: globalThis.collections,
+                    tasks: globalThis.tasks,
+                    todolists: globalThis.todolists,
                     trys: globalThis.trys,
                     stack: globalThis.stack,
                     registers: globalThis.registers,
@@ -659,6 +707,8 @@ class Compiler {
                 globalThis.fors = compiler.fors;
                 globalThis.exceptions = compiler.exceptions;
                 globalThis.collections = compiler.collections;
+                globalThis.tasks = compiler.tasks;
+                globalThis.todolists = compiler.todolists;
                 globalThis.trys = compiler.trys;
                 globalThis.stack = compiler.stack;
                 globalThis.registers = compiler.registers;
@@ -741,6 +791,8 @@ class Compiler {
                     fors: this.fors,
                     exceptions: this.exceptions,
                     collections: globalThis.collections,
+                    tasks: this.tasks,
+                    todolists: this.todolists,
                     trys: this.trys,
                     stack: this.stack,
                     registers: this.registers,
@@ -769,6 +821,8 @@ class Compiler {
                 this.fors = compiler.fors;
                 this.exceptions = compiler.exceptions;
                 this.collections = compiler.collections;
+                this.tasks = compiler.tasks;
+                this.todolists = compiler.todolists;
                 this.trys = compiler.trys;
                 this.stack = compiler.stack;
                 this.registers = compiler.registers;
@@ -787,6 +841,8 @@ class Compiler {
                     fors: this.fors,
                     exceptions: this.exceptions,
                     collections: globalThis.collections,
+                    tasks: this.tasks,
+                    todolists: this.todolists,
                     trys: this.trys,
                     stack: this.stack,
                     registers: this.registers,
@@ -813,6 +869,8 @@ class Compiler {
                 this.fors = compiler.fors;
                 this.exceptions = compiler.exceptions;
                 this.collections = compiler.collections;
+                this.tasks = compiler.tasks;
+                this.todolists = compiler.todolists;
                 this.trys = compiler.trys;
                 this.stack = compiler.stack;
                 this.registers = compiler.registers;
@@ -1210,6 +1268,42 @@ class Compiler {
     }
 
 
+    compileTaskStatement(statement, index, tree) {
+        let taskName = Parser.parseTaskStatement(statement[0], index);
+        this.tasks[taskName.task] = { body: statement.slice(1) };
+    }
+
+
+    compileTodolistStatement(statement, index, tree) {
+        let todolistName = Parser.parseTodolistStatement(statement[0], index);
+        let ast = Parser.parse(statement.slice(1).join('\n'));
+        let allProperties = ast.every(tree => tree?.bind);
+        
+        if (allProperties == false) {
+            ServerLog.log(`[${Color.FG_GREEN}collection${Color.FG_WHITE}::${Color.FG_GREEN}${collectionname.collection}${Color.FG_WHITE}] This structure should have only the @bind instruction.`, 'Exception');
+            process.exit(1);
+        } else {
+            const tasks = [];
+
+            ast.forEach(tree => {
+                // if (this.tasks.find(task => Reflect.ownKeys(task).includes(tree.bind.name))) {
+                if (Reflect.ownKeys(this.tasks).includes(tree.bind.name)) {
+                    tasks.push(tree.bind.name);
+                } else {
+                    new SystemCallException(`[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}StructureException${Color.FG_WHITE}]: Non-existent task.`, {
+                        ...tree.parser,
+                        select: tree.bind.name,
+                    });
+    
+                    process.exit(1);
+                }
+            });
+
+            Interface.create({ tasks, originTasks: tasks, isDone: false }, 'todolist', todolistName.todolist);
+        }
+    }
+
+
     compilePropertyStatement(statement, index) {
         let structure = statement.structure;
         let searchedStructure = this.collections[structure.type].filter(strctr => strctr[structure.name])[0];
@@ -1289,6 +1383,7 @@ class Compiler {
         else if (i7e) {
             let fields = Reflect.ownKeys(i7e?.IArguments);
             for (const field of fields) releaseStruct[field] = null;
+
             if (Reflect.ownKeys(this.collections).includes(structure.type)) {
                 if (!['enum', 'collection'].includes(structure.type)){
                     this.collections[structure.type].push({
@@ -1300,8 +1395,26 @@ class Compiler {
                         interface: i7e.structureName,
                         [name]: i7e.IArguments
                     });
+                } else {
+                    this.collections[structure.type].push({
+                        interface: i7e.structureName,
+                        [name]: i7e.IArguments
+                    });
+                }
+            } else if (structure.type == 'todolist') {
+                let buckupInterface = JSON.parse(JSON.stringify(i7e.IArguments));
+
+                this.todolists[String(name)] = {
+                    interface: i7e.structureName,
+                    name: String(name),
+                    ...buckupInterface
                 }
             } else {
+                new SystemCallException(`Unknow '${structure.type}' a structure type`, {
+                    ...tree.parser,
+                    select: tree.parser.code
+                });
+
                 process.exit(1);
             }
         }
@@ -2274,12 +2387,39 @@ class Compiler {
             }
         }
         
+        // todolist
+        else if (statement?.structure == 'todolist' && statement?.method) {
+            if (Object.getOwnPropertyNames(this.todolists).includes(statement.name)) {
+                const todolist = this.todolists[statement.name];
+
+                if (Object.getOwnPropertyNames(TodolistConstructor).filter(property => ![ 'length', 'name', 'prototype'].includes(property)).includes(statement.method)) {
+                    this.$urt = TodolistConstructor[statement.method].call(this, todolist) ?? 'Void';
+                } else {
+                    new SystemCallException(
+                        `[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: The todolist method ${statement.method} does not exist.`, { 
+                        ...trace.parser,
+                        select: statement.method
+                    });
+    
+                    process.exit(1);
+                }
+            } else {
+                new SystemCallException(
+                    `[${Color.FG_YELLOW}${process.argv[2].replaceAll('\\', '/')}${Color.FG_WHITE}][${Color.FG_RED}Exception${Color.FG_WHITE}]: The todolist ${statement.name} does not exist.`, { 
+                    ...trace.parser,
+                    select: statement.name
+                });
+
+                process.exit(1);
+            }
+        }
         
+
         else if (statement?.structure == 'set' && statement?.method) {
             let variable = this.set.filter(v => v?.name == statement?.name);
             variable = variable[variable.length - 1];
-
-            if (Type.has(variable.type)) {
+            
+            if (Type.has(variable.type) || [['RegExpr', 'regExpr']].map(type => type.includes(variable.type)).includes(true)) {
                 const T = Reflect.ownKeys(TypeMethod).filter(p => ![ 'length', 'name', 'prototype'].includes(p));
 
                 if (T.includes(variable.type.toLowerCase())) {
@@ -2302,13 +2442,10 @@ class Compiler {
                     });
                 }
             } else {
-                if ([variable.value instanceof Iterator, variable.value instanceof Vector]) {
-                    const TypeConstructors = [Iterator, Vector];
-                    let constructor_t = null;
-                    for (const T of TypeConstructors) if (variable.value instanceof T) constructor_t = T;
-                    
+                if (TypeConstructor.is(variable.value)) {
+                    let constructor_t = TypeConstructor.get(variable.value) ?? null;
                     const methods_t = Object.getOwnPropertyNames(constructor_t.prototype).filter(m => m != 'constructor');
-
+                    
                     function UnknowMethod() {
                         new TokenException('Unknow method', { ...trace?.parser, select: statement.method, type: 'Method' });
                     }
@@ -2323,7 +2460,8 @@ class Compiler {
 
                             arguments_t = arguments_t.map(a => {
                                 let arg = this.__checkArgumentStrict__(a, statement.code, statement.row);
-                                if (Type.check('string', arg)) arg = arg.slice(1, -1);
+                                // if (Type.check('string', arg)) arg = arg.slice(1, -1);
+                                if (['int', 'float'].map(number => Type.check(number, arg)).includes(true)) arg = +arg;
                                 return arg;
                             });
 
@@ -2863,12 +3001,7 @@ class Compiler {
                 console.log(typeof JSON.parse(string));
             } catch {
                 let output = this.$stack.list[this.$stack.sp + this.$offset - 1]?.value || this.$stack.list[this.$stack.sp - 1]?.value;
-
-                if ([output instanceof Iterator, output instanceof Vector].includes(true)) {
-                    console.log(output.__view__());
-                } else {
-                    console.log(output);
-                }
+                console.log(TypeConstructor.is(output) ? output.__view__() : output);
             }
         } else if (this.$arg0 == 0x03) {
             this.$arg0 = this.$input = FlowInput.createInputStream(this.$text);
@@ -3287,7 +3420,8 @@ class Compiler {
         for (const T of Type.types) if (T.name == statement.type) typeInList = true;
 
         if (!['List', 'Object'].includes(statement.type) && Type.otherTypesCheck(statement.type, statement.value)) {
-            if ([Type.value instanceof Iterator, Type.value instanceof Vector].includes(true)) statement.value = Type.value;
+            // if ([Type.value instanceof Iterator, Type.value instanceof Vector, Type.value instanceof ArrayConstructor].includes(true)) statement.value = Type.value;
+            if (TypeConstructor.is(Type.value)) statement.value = Type.value;
             isType = true;
         }
 

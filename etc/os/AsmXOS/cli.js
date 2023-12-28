@@ -202,8 +202,10 @@ class Cli {
                     if (Object.getOwnPropertyNames(Cli.prototype).includes(argument)) {
                         return this[argument]();
                     } else {
-                        for (const pkg of packagesCommands)
-                            if (pkg.commands.includes(argument)) return require(`${__dirname}/usr/packages/${pkg.name}/index`)[argument]['call'](this);
+                        for (const pkg of packagesCommands) {
+                            if (pkg.commands.includes(argument))
+                                return require(`${__dirname}/usr/packages/${pkg.name}/index`)[argument]['call'](this);
+                        }
                     }
 
                     if (this.counter >= 1) {
@@ -238,6 +240,7 @@ class Cli {
         log(`-`.repeat(96));
         log(`${cli} [cmd] [options] -[flags] [options]`);
         Theme.setCallbackPrint(log);
+        Theme.print(cli, 'xfetch', 'The command allows you to learn the basic about the OS', 2);
         Theme.print(cli, 'neofetch', 'The command allows you to learn the basic about the OS', 2);
         Theme.print(cli, 'neofetch', 'The command allows you to get a reference for the neofetch command', 1, { flag: '--help' });
         Theme.print(cli, 'history', 'The command allows you to find out the history of requests', 2);
@@ -246,6 +249,7 @@ class Cli {
         Theme.print(cli, 'doge', 'The command allows you to display the contents of the file', 2, { arg: 'name' });
         Theme.print(cli, 'grep', 'The command allows you to get a reference for the grep command', 2, [{ flag: '--help' }]);
         Theme.print(cli, 'pwd', 'The command allows you to get a reference for the pwd command', 2, { flag: '--help' });
+        Theme.print(cli, 'tree', 'The command allows you to display the tree structure of the file system', 2, { arg: './path' });
         Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages', 2);
         Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages', 2, { flag: '-ls' });
         Theme.print(cli, 'packages', 'The command allows you to get a list of OS packages with a lot of information', 1, { flag: '--info' });
@@ -257,7 +261,12 @@ class Cli {
         Theme.print(cli, 'clear', 'The command allows you to clear the terminal', 2);
         Theme.print(cli, 'cd', 'The command allows you to find out the path', 3);
         Theme.print(cli, 'cd', 'The command allows you to set the path', 2, { arg: './path' });
-        log(`-`.repeat(96) + '\n');
+        log(`-`.repeat(96));
+
+        console.log(`        ${Color.FG_YELLOW}* WARNING: AsmX OS is not someone's distribution${Color.RESET}`);
+        console.log(`        ${Color.FG_YELLOW}* This OS is not intended to be downloaded to a device that does not have an OS. This OS is 
+        primarily designed only to work with the Asm programming language and has its own workspace 
+        like other operating systems.${Color.RESET}\n`);
     }
 
 
@@ -330,10 +339,26 @@ class Cli {
 
             if (flags.includes(flag)) {
                 if (flag == '-ls') {
-                    for (const pkg of packages) console.log(` ${pkg}.pkg`);
+                    for (const pkg of packages) console.log(` \x1b[38;5;44m${pkg}.pkg\x1b[38;5;0m`);
                 } else if (flag == '--info') {
-                    for (const pkg of packages)
-                        console.log(` \x1b[38;5;45m/usr/packages/${pkg}/\x1b[38;5;0m      \x1b[38;5;44m${pkg}.pkg\x1b[38;5;0m    ${pkg}       (.pkg)     ${getFileSize(`${__dirname}/usr/packages/${pkg}/index.js`)}`);
+                    const lengths = {
+                        path: Math.max(...packages.map(pkg => `\x1b[38;5;45m/usr/packages/${pkg}/`.length)),
+                        fullpackageName: Math.max(...packages.map(pkg => `${pkg}.pkg`.length)),
+                        packageName: Math.max(...packages.map(pkg => pkg.length)),
+                        size: Math.max(...packages.map(pkg => getFileSize(`${__dirname}/usr/packages/${pkg}/index.js`).length))
+                    }
+
+                    let message = '';
+
+                    for (const pkg of packages) {
+                        message += `\x1b[38;5;45m/usr/packages/${pkg}/`.padEnd(lengths.path, ' ') + '\x1b[38;5;0m  \x1b[38;5;44m';
+                        message +=  `${pkg}.pkg`.padEnd(lengths.fullpackageName, ' ') + '\x1b[38;5;0m  ';
+                        message +=  pkg.padEnd(lengths.packageName, ' ') + '    ';
+                        message += '(.pkg)  ';
+                        message += getFileSize(`${__dirname}/usr/packages/${pkg}/index.js`).padEnd(lengths.size, ' ') + '  \n';
+                    }
+
+                    return message;
                 } else if (flag == '--count') {
                     return String(packages.length || 0);
                 }

@@ -18,7 +18,8 @@ const Color = require('./utils/color');
 const ServerLog = require('./server/log');
 const { getAllFiles, getDirs, printDirs } = require('./fs');
 const CIDE = require('./tools/cide/cide');
-
+const ProductCard = require('./utils/product');
+const Gift = require('./utils/gift');
 
 class ReadmeCLI {
     static moreBuild(){
@@ -287,7 +288,7 @@ class Cli {
             isAsmXCli: true,
             isAsmXEXECli: false,
             isAsmXAPPCli: false,
-            isAsmXVim: true,
+            isAsmXCIDE: true,
             isNeuralTools: true
         }
 
@@ -562,6 +563,20 @@ class Cli {
     }
 
 
+    // asmx-cli gift
+    static gift() {
+        if (this.cli_args.slice(1).length > 1) { 
+            ServerLog.log("not enough arguments / too many arguments or parameters", 'Exception');
+            process.exit(1);
+        }
+
+        Gift.get();
+        this.commandUsage = false;
+        this.flagUsage = false;
+        this.isexit = true;
+    }
+    
+
     /**
      * asmx-cli readme <command>
      */
@@ -612,7 +627,7 @@ class Cli {
             printCheckTools(properties, 'isAsmXCli', 'AsmX CLI');
             printCheckTools(properties, 'isAsmXAPPCli', 'AsmX APP CLI');
             printCheckTools(properties, 'isNeuralTools', 'Neural Tools');
-            printCheckTools(properties, 'isAsmXVim', 'AsmX Vim');
+            printCheckTools(properties, 'isAsmXCIDE', 'AsmX CIDE');
             printCheckTools(properties, 'isAsmXEXECli', 'AsmX EXE CLI');
         }
 
@@ -631,14 +646,14 @@ class Cli {
 
     /** @returns the AsmX version */
     static v() {
-        console.log('AsmX v4.0');
+        console.log(`${ProductCard.NAME} ${ProductCard.VERSION}`);
         this.flagUsage = false;
         this.commandUsage = false;
     }
 
 
     static c() {
-        process.stdout.write('AsmX v4.0. ');
+        process.stdout.write(`${ProductCard.NAME} ${ProductCard.VERSION}. `);
         console.log('\tAsmX Corporation. All rights reserved.');
         console.log('\t\tOpen source source: https://github.com/langprogramming-AsmX/AsmX');
         this.flagUsage = false;
