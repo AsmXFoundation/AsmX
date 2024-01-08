@@ -925,6 +925,79 @@ class Parser {
 
 
     /**
+     * Parses a bitwise statement from the given line of code.
+     * @param {string} lineCode - The line of code to parse.
+     * @param {number} row - The row number of the line of code.
+     * @returns {string|object} - Returns 'rejected' if the line of code is invalid, 
+     *                           otherwise returns an object representing the abstract syntax tree (AST) of the bitwise statement.
+     */
+    static parseBitwiseStatement(lineCode, row){
+        // Create an empty AST object
+        let ast = { bitwise: {}, parser: { code: lineCode, row: row } };
+        
+        // Remove any empty characters from the line of code
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        
+        // Check if the line of code has more than 7 elements, if so, return 'rejected'
+        if (lineCode.split(' ').length > 7) return 'rejected';
+        
+        // Split the line of code into arguments using comma or space as delimiters
+        let args = lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
+        
+        // Remove any leading spaces from each argument
+        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        
+        // Validate each argument to ensure it is a hexadecimal value
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        
+        // Set the 'cmd' property of the 'bitwise' object in the AST to the second argument
+        ast.bitwise.cmd = args[1];
+        
+        // Set the 'args' property of the 'bitwise' object in the AST to the remaining arguments
+        ast.bitwise.args = args.slice(2);
+        
+        // Return the AST
+        return ast;
+    }
+
+    
+    /**
+     * Parses a trig statement and returns an Abstract Syntax Tree (AST).
+     * @param {string} lineCode - The line of code to parse.
+     * @param {number} row - The row number of the line of code.
+     * @returns {Object} - The AST representing the parsed trig statement.
+     */
+    static parseTrigStatement(lineCode, row){
+        // Create an empty AST object
+        let ast = { trig: {}, parser: { code: lineCode, row: row } };
+        
+        // Remove any empty characters from the line of code
+        lineCode = this.parseAndDeleteEmptyCharacters(lineCode);
+        
+        // Check if the line of code has more than 7 elements, if so, return 'rejected'
+        if (lineCode.split(' ').length > 7) return 'rejected';
+        
+        // Split the line of code into arguments using comma or space as delimiters
+        let args = lineCode.indexOf(',') > -1 ? lineCode.split(',') : lineCode.split(' ');
+        
+        // Remove any leading spaces from each argument
+        args = args.map(arg => arg.indexOf(' ') > -1 ? arg.split(' ')[1] : arg);
+        
+        // Validate each argument to ensure it is a hexadecimal value
+        args.map(arg => ValidatorByType.validateTypeHex(arg));
+        
+        // Set the 'cmd' property of the 'trig' object in the AST to the second argument
+        ast.trig.cmd = args[1];
+        
+        // Set the 'args' property of the 'trig' object in the AST to the remaining arguments
+        ast.trig.args = args.slice(2);
+        
+        // Return the AST
+        return ast;
+    }
+
+
+    /**
      * It takes a line of code, and returns an object that represents the line of code.
      * 
      * The line of code is a string. The object is a JavaScript object.

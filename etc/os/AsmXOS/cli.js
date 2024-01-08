@@ -1,46 +1,60 @@
-const fs = require('fs');
-const os = require("os");
+const fs = require('fs');  // Import the fs module for file system operations
+const os = require("os");  // Import the os module for operating system related utilities
 
-const kernelCli = require("../../../cli");
-const { getDirs, printDirs, getFiles, getFileSize, sizeBytes } = require("../../../fs");
-const ServerLog = require("../../../server/log");
-const Color = require("../../../utils/color");
-const config = require("../../../config");
-const { exec, execSync } = require('child_process');
-const Theme = require('../../../tools/theme');
-const Neofetch = require('./neofetch');
+const kernelCli = require("../../../cli");  // Import the kernelCli module
+
+const {
+    getDirs,  // Function to get directories in a given path
+    printDirs,  // Function to print directories
+    getFiles,  // Function to get files in a given path
+    getFileSize,  // Function to get the size of a file
+    sizeBytes,  // Utility function to convert file size to human-readable format
+    getFilePermissions,  // Function to get the permissions of a file
+    getFileDates  // Function to get the creation and modification dates of a file
+} = require("../../../fs");  // Import file system related functions
+
+const ServerLog = require("../../../server/log");  // Import the ServerLog module
+const Color = require("../../../utils/color");  // Import the Color module
+const config = require("../../../config");  // Import the config module
+const { exec, execSync } = require('child_process');  // Import functions from the child_process module
+const Theme = require('../../../tools/theme');  // Import the Theme module
+const Neofetch = require('./neofetch');  // Import the Neofetch module
+const TableCLI = require('./utils/table-cli');
 
 
 class Cli {
-    static flagUsage = true;
-    static commandUsage = true;
-    static counter = 0;
-    static beforeCounter = 0;
-    static isexit = false;
-    static cli_args = []; 
-    static root = 'root';
-    static separateCD = '@';
-    static cdPath = 'asmxOS';
+    // Configuration variables
+    static flagUsage = true; // Flag to indicate whether flag usage is enabled
+    static commandUsage = true; // Flag to indicate whether command usage is enabled
+    static counter = 0; // Counter variable
+    static beforeCounter = 0; // Counter variable before a certain event
+    static isexit = false; // Flag to indicate whether exit is enabled
+    static cli_args = []; // Array to store CLI arguments
+    static root = 'root'; // Root directory name
+    static separateCD = '@'; // Separator for CD command
+    static cdPath = 'asmxOS'; // CD path
 
-    flagUsage = true;
-    commandUsage = true;
-    counter = 0;
-    beforeCounter = 0;
-    isexit = false;
-    cli_args = [];
-    root = 'root';
-    separateCD = '@';
-    cdPath = 'asmxOS';
-    USER_DIRECTORY_NAME = 'usr';
-    modeCLI = 'public';
-    HISTORY_PATH = `${__dirname}/usr/.history`;
+    // Configuration variables (repeated for instance variables)
+    flagUsage = true; // Flag to indicate whether flag usage is enabled
+    commandUsage = true; // Flag to indicate whether command usage is enabled
+    counter = 0; // Counter variable
+    beforeCounter = 0; // Counter variable before a certain event
+    isexit = false; // Flag to indicate whether exit is enabled
+    cli_args = []; // Array to store CLI arguments
+    root = 'root'; // Root directory name
+    separateCD = '@'; // Separator for CD command
+    cdPath = 'asmxOS'; // CD path
+    USER_DIRECTORY_NAME = 'usr'; // User directory name
+    modeCLI = 'public'; // CLI mode
+    HISTORY_PATH = `${__dirname}/usr/.history`; // Path to history file
+    shellConfig = { time: 'default' }; // Shell configuration settings
 
     variable = {
-        $SHELL: 'AsmX Shell (.ash)',
-        $PATH: '',
-        $OSTYPE: 'AsmX OS',
-        $HOME: `${this.USER_DIRECTORY_NAME}/`,
-        $MEM: os.freemem().toString()
+        $SHELL: 'AsmX Shell (.ash)', // Shell environment variable
+        $PATH: '', // Path environment variable
+        $OSTYPE: 'AsmX OS', // Operating system type
+        $HOME: `${this.USER_DIRECTORY_NAME}/`, // User's home directory
+        $MEM: os.freemem().toString() // Free memory available
     }
 
     userVariable = {}
@@ -94,7 +108,11 @@ class Cli {
         let bins = getDirs(`${__dirname}/${this.USER_DIRECTORY_NAME}/bin`);
         let binsPATH = this.variable.$PATH.split(';').filter(l => l.trim() != '');
         for (const bin of bins) if (!binsPATH.includes(`/bin/${bin}`)) this.variable.$PATH += `/bin/${bin};`;
-    
+
+        if (args.length == 0) {
+            return;
+        }
+
         if (args[0].endsWith('.ash')) {
             let path;
 
@@ -137,7 +155,7 @@ class Cli {
             for (const channel_t of channels) {
                 if (channelIndex > 0) {
                     let isArguments = channel_t.findIndex(a => /\%\d+/.test(a));
-                    
+
                     if (isArguments > -1) {
                         let lastChannelArguments = channelArguments[channelArguments.length - 1];
 
@@ -166,7 +184,7 @@ class Cli {
                 // channel_t.indexOf('&&') > -1 ? channelArguments.push(execAnd.call(this, channel_t)) : channelArguments.push(this.execute(channel_t));
 
                 if (channel_t.indexOf('&&') > -1) {
-                    channelArguments.push(execAnd.call(this, channel ? channel : channel_t)) 
+                    channelArguments.push(execAnd.call(this, channel ? channel : channel_t))
                 } else
                     channelArguments.push(this.execute(channel ? channel : channel_t));
 
@@ -177,7 +195,7 @@ class Cli {
             channelArguments = channelArguments.filter(Boolean);
             return channelArguments[channelArguments.length - 1];
         } else if (OPERATOR_AND > -1) {
-           return execAnd.call(this, args);
+            return execAnd.call(this, args);
         } else {
             if (isRoot) {
                 let flags = ['ls', 'graph', 'o', 'v', 'c'];
@@ -190,14 +208,14 @@ class Cli {
                     this.beforeCounter++;
                     if (this.isexit) process.exit(1);
 
-                if (Reflect.ownKeys(this.variable).includes(argument)) {
-                    if (args.length > 1) ServerLog.log(`${argument} is not a command \n`, 'Exception');
-                    else return this.variable[argument];
-                }
+                    if (Reflect.ownKeys(this.variable).includes(argument)) {
+                        if (args.length > 1) ServerLog.log(`${argument} is not a command \n`, 'Exception');
+                        else return this.variable[argument];
+                    }
 
                     if (!flags.includes(argument.slice(1)))
-                    if (this.counter == 0 && flags.includes(argument.slice(1)))
-                        throw { error: 'Invalid argument ' + argument + ' in command ' };
+                        if (this.counter == 0 && flags.includes(argument.slice(1)))
+                            throw { error: 'Invalid argument ' + argument + ' in command ' };
 
                     if (Object.getOwnPropertyNames(Cli.prototype).includes(argument)) {
                         return this[argument]();
@@ -233,13 +251,20 @@ class Cli {
 
 
     help() {
+        // Helper function to log messages
         let log = (message, params) => console.log(`\t${message}`, params ? params : '');
+
+        // Print gray color
         log(Color.FG_GRAY);
+
         let cli = `asmxos-cli`;
         log(`USAGE:`);
         log(`-`.repeat(96));
         log(`${cli} [cmd] [options] -[flags] [options]`);
+
+        // Set callback print for the theme
         Theme.setCallbackPrint(log);
+
         Theme.print(cli, 'xfetch', 'The command allows you to learn the basic about the OS', 2);
         Theme.print(cli, 'neofetch', 'The command allows you to learn the basic about the OS', 2);
         Theme.print(cli, 'neofetch', 'The command allows you to get a reference for the neofetch command', 1, { flag: '--help' });
@@ -271,26 +296,36 @@ class Cli {
 
 
     history() {
+        // Get the command line arguments excluding the first argument
         const parameters = this.cli_args.slice(1);
+        // Define the path to the history file
         const HISTORY_PATH = `${__dirname}/usr/.history`;
+        // Get the first argument
         const flag = parameters[0];
 
+        // Check if there are too many parameters
         if (parameters.length > 1) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
+            // Function to read the content of the history file
             const content_t = () => fs.readFileSync(HISTORY_PATH).toString('utf8').split('\n');
+            // Function to check if the history file exists
             const existHistory = (cb) => { if (fs.existsSync(HISTORY_PATH)) cb() };
 
             if (flag) {
+                // Handle specific flags
                 if (['--unique', '--count', '--help'].includes(flag)) {
                     if (flag == '--unique') {
+                        // Output unique lines from the history file
                         let list = new Set();
                         existHistory(_ => content_t().map(line => list.add(line)));
                         list.forEach(item => console.log(item));
                         list.clear();
                     } else if (flag == '--count') {
+                        // Output the number of lines in the history file
                         existHistory(_ => console.log(String(content_t().length)));
                     } else if (flag == '--help') {
+                        // Output help information for the history command
                         let log = (message, params) => console.log(`\t${message}`, params ? params : '');
                         let cli = `asmxos-cli`;
                         Theme.setCallbackPrint(log);
@@ -299,88 +334,233 @@ class Cli {
                         Theme.print(cli, 'history', 'The command allows you to output only unique queries', 1, { flag: '--unique' });
                         Theme.print(cli, 'history', 'The command allows you to output the number of requests', 1, { flag: '--count' });
                     }
-                } else
+                } else {
                     ServerLog.log('flag not found\n', 'Exception');
+                }
             } else {
+                // Output all lines from the history file
                 existHistory(_ => content_t().map(line => console.log(line)));
             }
         }
     }
 
 
+    /**
+     * Sets the mode of the CLI based on the command line arguments.
+     * @returns {string} The mode of the CLI.
+     */
     mode() {
+        // Get the command line arguments
         const parameters = this.cli_args.slice(1);
         const flag = parameters[0];
 
+        // Check if there are too many parameters
         if (parameters.length > 1) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else if (flag) {
-            if (['--anonymous', '--private'].includes(flag))  {
+            // Check if the flag is --anonymous or --private
+            if (['--anonymous', '--private'].includes(flag)) {
                 fs.writeFileSync(this.HISTORY_PATH, '');
                 this.modeCLI = 'private';
             } else if (flag == '--public') {
                 this.modeCLI = 'public';
-            } else ServerLog.log('flag not found\n', 'Exception');
+            } else {
+                // Flag not found
+                ServerLog.log('flag not found\n', 'Exception');
+            }
         } else {
+            // No flag provided, return the current mode
             return this.modeCLI;
         }
     }
 
-    
+
     packages() {
+        // Get the command line arguments
         const parameters = this.cli_args.slice(1);
+        // Get the directories inside "/usr/packages"
         let packages = getDirs(`${__dirname}/usr/packages`);
 
         if (parameters.length == 0) {
+            // If no parameters are provided, print the package names
             for (const pkg of packages) console.log(`${pkg}.pkg`);
         } else {
             const flag = parameters[0];
-            const flags = ['-ls', '--info', '--count'];
+            const flags = ['-ls', '--info', '--count', '--pro'];
 
             if (flags.includes(flag)) {
                 if (flag == '-ls') {
+                    // If the flag is "-ls", print the package names with colored output
                     for (const pkg of packages) console.log(` \x1b[38;5;44m${pkg}.pkg\x1b[38;5;0m`);
-                } else if (flag == '--info') {
-                    const lengths = {
-                        path: Math.max(...packages.map(pkg => `\x1b[38;5;45m/usr/packages/${pkg}/`.length)),
-                        fullpackageName: Math.max(...packages.map(pkg => `${pkg}.pkg`.length)),
-                        packageName: Math.max(...packages.map(pkg => pkg.length)),
-                        size: Math.max(...packages.map(pkg => getFileSize(`${__dirname}/usr/packages/${pkg}/index.js`).length))
+                } else if (['--info', '--pro'].includes(flag)) {
+                    // Define an object that maps format options to date functions
+                    const formatDates = {
+                        default: 'toISOString',
+                        utc: 'toUTCString',
+                        iso: 'toISOString',
+                        date: 'toDateString',
+                        locale: 'toLocaleString'
+                    };
+                    
+                    // Get file dates for each package
+                    const fileDates = packages.map(pkg => getFileDates(`${__dirname}/usr/packages/${pkg}/`));
+                    
+                    // Get file permissions for each package
+                    const premissions = packages.map(pkg => 'd' + getFilePermissions(`${__dirname}/usr/packages/${pkg}/`).toString());
+                    
+                    // Set the default time format
+                    let time = 'default';
+                    
+                    // Initialize an empty object to store formatted file dates
+                    let formatedFileDates = {};
+                    
+                    // Check if the flag is '--pro'
+                    if (flag == '--pro') {
+                        const urlShellConfig = `${__dirname}/etc/shell.conf`;
+                    
+                        // Check if the shell config file exists
+                        if (fs.existsSync(urlShellConfig)) {
+                            const shellConfig = JSON.parse(fs.readFileSync(urlShellConfig).toString('utf8') || '{}');
+                    
+                            // Check if the shell config has a 'time' property
+                            if (Reflect.ownKeys(shellConfig).includes('time')) {
+                                // Override the default time format if 'time' property exists in the shell config
+                                time = shellConfig.time ?? time;
+                    
+                                // Check if the time format is 'format'
+                                if (time == 'format') {
+                                    // Create a date formatter using Intl.DateTimeFormat with specific options
+                                    let formatter = new Intl.DateTimeFormat('en-US', {
+                                        weekday: 'short',
+                                        day: '2-digit',
+                                        month: 'short',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: 'numeric',
+                                        second: 'numeric',
+                                        timeZone: 'UTC'
+                                    });
+                    
+                                    // Format the created and modified dates using the formatter
+                                    formatedFileDates.created = fileDates.map(date => formatter.format(date.created).replace(/\,/g, ''));
+                                    formatedFileDates.modified = fileDates.map(date => formatter.format(date.modified).replace(/\,/g, ''));
+                                }
+                            }
+                        } else {
+                            // If the shell config file doesn't exist, write the default shell config
+                            fs.writeFileSync(urlShellConfig, JSON.stringify(this.shellConfig), { encoding: 'utf8' });
+                        }
+                    }
+                    
+                    // Check if the time format is valid
+                    if (Reflect.ownKeys(formatDates).includes(time)) {
+                        const func = formatDates[time];
+                    
+                        // Format the created and modified dates using the specified time format
+                        formatedFileDates.created = fileDates.map(date => date.created[func]());
+                        formatedFileDates.modified = fileDates.map(date => date.modified[func]());
+                    }
+                    
+                    // Define the table headers
+                    const table = { rows: ['Directory', 'Package', 'Name', 'File Type', 'Size'] };
+                    
+                    // Define table options
+                    const options = {
+                        chunks: true,
+                        styles: {
+                            color: {
+                                row: {
+                                    all: '\x1b[38;5;0m'
+                                },
+                                header: '\x1b[38;5;0m'
+                            }
+                        }
+                    };
+                    
+                    // Define the table dataset
+                    table.dataset = [
+                        packages.map(pkg => `/usr/packages/${pkg}/`),
+                        packages.map(pkg => `${pkg}.pkg`),
+                        packages.map(pkg => pkg),
+                        packages.map(pkg => '(.pkg)'),
+                        packages.map(pkg => getFileSize(`${__dirname}/usr/packages/${pkg}/index.js`))
+                    ];
+                    
+                    // Define colors for table rows
+                    const colors = ['\x1b[38;5;45m', '\x1b[38;5;44m', '\x1b[38;5;43m', '\x1b[38;5;42m', '\x1b[38;5;41m'];
+                    
+                    // Check if the flag is set to '--pro'
+                    if (flag == '--pro') {
+                        // Add additional rows to the table
+                        table.rows = ['Premission', 'User', 'Created', 'Modified', ...table.rows];
+                    
+                        // Create an array of users with the same length as the number of permissions
+                        let user = new Array(premissions.length).fill(this.root);
+                    
+                        // Add additional datasets to the table
+                        table.dataset = [premissions, user, formatedFileDates.created, formatedFileDates.modified, ...table.dataset];
+                    
+                        // Modify the color of the second row
+                        options.styles.color.row[1] = '\x1b[38;5;50m';
+                    }
+                    
+                    // Loop through the colors array
+                    for (let index = 0, size = colors.length; index < size; index++) {
+                        // Modify the color of each row based on the flag
+                        options.styles.color.row[flag == '--pro' ? index + 4 : index] = colors[index];
                     }
 
-                    let message = '';
-
-                    for (const pkg of packages) {
-                        message += `\x1b[38;5;45m/usr/packages/${pkg}/`.padEnd(lengths.path, ' ') + '\x1b[38;5;0m  \x1b[38;5;44m';
-                        message +=  `${pkg}.pkg`.padEnd(lengths.fullpackageName, ' ') + '\x1b[38;5;0m  ';
-                        message +=  pkg.padEnd(lengths.packageName, ' ') + '    ';
-                        message += '(.pkg)  ';
-                        message += getFileSize(`${__dirname}/usr/packages/${pkg}/index.js`).padEnd(lengths.size, ' ') + '  \n';
-                    }
-
-                    return message;
+                    // Return the generated table message
+                    return TableCLI.redner(table, options);
                 } else if (flag == '--count') {
+                    // If the flag is "--count", return the number of packages
                     return String(packages.length || 0);
                 }
             } else {
+                // If the flag is not recognized, log an error
                 ServerLog.log('flag not found\n', 'Exception');
             }
         }
     }
 
 
+    /**
+     * The `doge` function reads a file and returns its content based on the given parameters.
+     *
+     * @returns {string} The content of the file.
+     */
     doge() {
+        // Get the parameters passed to the function
         const parameters = this.cli_args.slice(1);
 
+        // Check if there are too many parameters
         if (parameters.length > 3) {
+            // Log an exception if there are too many parameters
             ServerLog.log("too many parameters\n", 'Exception');
         } else {
+            // Get the file path
             const file = parameters[0];
             const path = `${__dirname}/${this.variable['$HOME']}${file}`;
-            const encodeList = ['utf8', 'utf-8', 'hex', 'base64', 'binary', 'utf16le', 'ucs2', 'ucs-2', 'ascii', 'base64url', 'latin1'];
+
+            // List of encoding options
+            const encodeList = [
+                'utf8', 'utf-8', 'hex', 'base64', 'binary',
+                'utf16le', 'ucs2', 'ucs-2', 'ascii', 'base64url', 'latin1'
+            ];
+
+            // Check if encoding flag is provided
             const encodeFlag = parameters[1] == '--encode';
+
+            // Get the encoding parameter
             const encode = parameters[2];
-            if (fs.existsSync(path)) return fs.readFileSync(path).toString(encodeFlag ? encodeList.includes(encode) ? encode : 'utf8' : 'utf8');
+
+            // Check if the file exists
+            if (fs.existsSync(path)) {
+                // Read the file and return its content
+                return fs.readFileSync(path).toString(
+                    encodeFlag ? (encodeList.includes(encode) ? encode : 'utf8') : 'utf8'
+                );
+            }
         }
     }
 
@@ -423,7 +603,7 @@ class Cli {
                 if (typeof text == 'string') {
                     if (['-l', '--count'].includes(template[template.length - 1]))
                         template = template.slice(0, template.length - 1).join(' ');
-                    else 
+                    else
                         template = template.join(' ');
 
                     if (lastFlag == '--count') {
@@ -459,7 +639,7 @@ class Cli {
                 } else if (flag == '-l') {
                     for (const line of content.split('\n'))
                         answer.push(new RegExp(template, 'g').test(line) ? line.replaceAll(template, (v) => `\x1b[38;5;231m${v}\x1b[0m`) : false);
-                    
+
                 } else if (flag == undefined) {
                     for (const line of content.split('\n'))
                         answer.push(new RegExp(template, 'g').test(line) ? line.replaceAll(template, (v) => `\x1b[38;5;231m${v}\x1b[0m`) : line);
@@ -588,22 +768,22 @@ class Cli {
             }
 
             if (fs.existsSync(virtualPath)) [dirs, files] = [getDirs(virtualPath), getFiles(virtualPath)];
-            if (this.root == 'root' && this.cdPath == 'asmxOS') dirs = dirs.filter(dir => !['cli.js', 'config.js', 'core.js', 'neofetch.js' ].includes(dir));
+            if (this.root == 'root' && this.cdPath == 'asmxOS') dirs = dirs.filter(dir => !['cli.js', 'config.js', 'core.js', 'neofetch.js'].includes(dir));
 
             console.log(`\x1b[38;5;0m. ${path}`);
-            
+
             for (let index = 0; index < dirs.length; index++) {
                 const majorDir = dirs[index];
                 console.log(`${files.length > 0 ? UNICODE_SYMBOL_BORDER_MID : UNICODE_SYMBOL_BORDER_SQUARE}${UNICODE_SYMBOL_BORDER_LINE} \x1b[38;5;45m${majorDir}\x1b[38;5;0m`);
                 let subDirs;
-                
+
                 if (this.root == 'root' && this.cdPath == 'asmxOS') {
                     subDirs = `${__dirname}/${this.USER_DIRECTORY_NAME}/${path}/${majorDir}`;
                     if (path == '.' || path == '../' || path == './') subDirs = `${__dirname}/${this.USER_DIRECTORY_NAME}/${majorDir}`;
                 } else if (this.root == 'root') {
                     subDirs = `${__dirname}/${this.cdPath}${path[0] == '/' ? '' : '/'}${path}/${majorDir}`;
                 }
-            
+
                 subDirs = getDirs(subDirs);
 
                 if (subDirs.length > 0) {
@@ -612,7 +792,7 @@ class Cli {
                         console.log(`${UNICODE_SYMBOL_BORDER_PIPE}  ${subIndex + 1 == subDirs.length ? UNICODE_SYMBOL_BORDER_SQUARE : UNICODE_SYMBOL_BORDER_MID}${UNICODE_SYMBOL_BORDER_LINE} \x1b[38;5;45m${dir}\x1b[38;5;0m`);
                     }
                 }
-                
+
                 if (index == dirs.length - 1 && files.length > 0) {
                     for (let index = 0; index < files.length; index++) {
                         const file = files[index];
@@ -624,101 +804,161 @@ class Cli {
     }
 
 
+    /**
+     * Creates a directory based on the provided path.
+     * @returns {string} The current directory path.
+     */
     mkdir() {
+        // Get the command line arguments
         const parameters = this.cli_args;
+        // Get the path from the arguments
         const path = parameters[1];
 
+        // Check if there are too many parameters
         if (parameters.length > 2) {
+            // Log an exception
             ServerLog.log("too many parameters", 'Exception');
         } else if (path) {
+            // Check if the root and cdPath are specific values
             if (this.root == 'root' && this.cdPath == 'asmxOS') {
+                // Create a directory at the specified path
                 fs.mkdir(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`.trim(), () => { });
             } else if (this.root == 'root') {
+                // Create a directory at the specified path
                 fs.mkdir(`${__dirname}/${this.cdPath}/${path}`.trim(), () => { });
-            } else fs.mkdir(path, () => { });
+            } else {
+                // Create a directory at the specified path
+                fs.mkdir(path, () => { });
+            }
         } else {
+            // Get the current directory path
             let cd = `${this.root}${this.separateCD}${this.cdPath}`;
             return cd;
         }
     }
 
 
+    // Create a new file at the specified path with the given text
     touch() {
+        // Get the command line arguments
         let parameters = this.cli_args;
+        // Combine all arguments after the first two into a single string
         parameters = [...parameters.slice(0, 2), parameters.slice(2).join(' ')];
+        // Extract the path and text from the parameters
         const path = parameters[1];
-        const text = parameters[2]; 
+        const text = parameters[2];
 
+        // Check if there are too many parameters
         if (parameters.length > 3) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else if (path) {
+            // Check if the current directory is 'root' and the cdPath is 'asmxOS'
             if (this.root == 'root' && this.cdPath == 'asmxOS') {
+                // Write the file to the user directory
                 fs.writeFileSync(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`, text ? text : '', { encoding: 'utf8' });
             } else if (this.root == 'root') {
+                // Write the file to the current directory
                 fs.writeFileSync(`${__dirname}/${this.cdPath}/${path}`, text ? text : '', { encoding: 'utf8' });
-            } else fs.writeFileSync(path, text ? text : '', { encoding: 'utf8' });
+            } else {
+                // Write the file to the specified path
+                fs.writeFileSync(path, text ? text : '', { encoding: 'utf8' });
+            }
         } else {
+            // Return the current directory path
             let cd = `${this.root}${this.separateCD}${this.cdPath}`;
-            return cd; 
+            return cd;
         }
     }
 
-
+    // Create a new file at the specified path with the given text
     leaf() {
+        // Get the command line arguments starting from the second argument
         let parameters = this.cli_args.slice(1);
+        // Combine all arguments after the first one into a single string
         parameters = [...parameters.slice(0, 1), parameters.slice(1).join(' ')];
+        // Extract the path and text from the parameters
         let path = parameters[0];
         const text = parameters[1];
 
+        // Check if there are too many parameters
         if (parameters.length > 2) {
             ServerLog.log("too many parameters\n", 'Exception');
         } else if (path) {
-            if (path.endsWith('.')) path += 'txt';
-            else if (!path.endsWith('.txt')) path += '.txt';
+            // Check if the path ends with '.' and append '.txt' if not
+            if (path.endsWith('.')) {
+                path += 'txt';
+            } else if (!path.endsWith('.txt')) {
+                path += '.txt';
+            }
 
+            // Check if the current directory is 'root' and the cdPath is 'asmxOS'
             if (this.root == 'root' && this.cdPath == 'asmxOS') {
+                // Write the file to the user directory
                 fs.writeFileSync(`${__dirname}/${this.USER_DIRECTORY_NAME}/${path}`, text ? text : '', { encoding: 'utf8' });
             } else if (this.root == 'root') {
+                // Write the file to the current directory
                 fs.writeFileSync(`${__dirname}/${this.cdPath}/${path}`, text ? text : '', { encoding: 'utf8' });
-            } else fs.writeFileSync(path, text ? text : '', { encoding: 'utf8' });
+            } else {
+                // Write the file to the specified path
+                fs.writeFileSync(path, text ? text : '', { encoding: 'utf8' });
+            }
         }
     }
 
 
+    /**
+     * Executes the command line interface (CLI) logic.
+     * @returns {void}
+     */
     cli() {
+        // Get the command line arguments
         const parameters = this.cli_args;
 
+        // Check if there are too many parameters
         if (parameters.length > 2) {
+            // Log an exception message
             ServerLog.log("too many parameters", 'Exception');
         } else if (parameters[1]) {
+            // Set the root and cdPath properties
             this.root = 'cli';
             this.cdPath = parameters[1];
         } else {
+            // Log an exception message for insufficient number of arguments
             ServerLog.log('Insufficient number of arguments\n', 'Exception');
         }
     }
 
 
+    /** Fetches the system information using Neofetch. */
     neofetch() {
         Neofetch.neofetch.call(this, this.cli_args.slice(1));
     }
 
 
+    /** Fetches the system information using Neofetch. */
     xfetch() {
         Neofetch.neofetch.call(this, this.cli_args.slice(1));
     }
 
 
+    /** Prints the colors supported by the terminal. */
     colors() {
+        /**
+         * Logs the given text with indentation.
+         * @param {string} text - The text to be logged.
+         */
         const log = (text) => console.log(`\t\t\t\t\t${text}`);
         log('');
+
         let stansartsColor = '';
         for (let index = 1; index < 255; index++) stansartsColor += `\x1b[38;5;${String(index)}m ${index} \x1b[0m`;
+
         log(stansartsColor);
         log('');
     }
 
 
+    /** Clears the console. */
     clear() {
         const parameters = this.cli_args.slice(1);
 
@@ -740,20 +980,33 @@ class Cli {
 
 
     c() {
+        // Print version information
         process.stdout.write('AsmXOS v1.0.0 ');
         console.log('\tAsmXOS Corporation. All rights reserved.');
         console.log('\t\tOpen source source: https://github.com/langprogramming-AsmX/AsmX');
+
         this.flagUsage = false;
         this.commandUsage = false;
     }
 
 
+    /**
+     * List the contents of the current directory.
+     * @returns {string} A formatted string representing the contents of the directory.
+     */
     ls() {
+        // Get the command line arguments passed to the program
         let parameters = this.cli_args.slice(1);
+
+        // Helper function to iterate over files in a directory and perform a callback function
         const mapFiles = (path, cb) => { for (const file of getFiles(path)) cb(file) };
+
+        // Helper function to iterate over directories in a directory and perform a callback function
         const mapDirs = (path, cb) => { for (const file of getDirs(path)) cb(file) };
+
         let path;
 
+        // Determine the path based on the root and cdPath variables
         if (this.root == 'root' && this.cdPath == 'asmxOS') {
             path = parameters[0] ? `${__dirname}/${this.USER_DIRECTORY_NAME}/${parameters[0]}` : `${__dirname}/${this.USER_DIRECTORY_NAME}`;
         } else if (this.root == 'root') {
@@ -762,14 +1015,23 @@ class Cli {
 
         let answer = [];
 
+        console.log(path);
+
+        // Iterate over directories in the specified path and add them to the answer array
         mapDirs(path, (dir) => answer.push(` \x1b[38;5;45musr/${dir}/\x1b[38;5;0m`));
+
+        // Iterate over files in the specified path and add them to the answer array
         mapFiles(path, (file) => answer.push(` \x1b[38;5;231m${file}\x1b[38;5;0m`));
 
+        // Join the elements of the answer array with a newline character and return the result
         return answer.join('\n');
     }
     //============================================================================================
 }
 
+
+// Create a new instance of the Cli class
 let cli = new Cli();
 
+// Export the cli object
 module.exports = cli;
