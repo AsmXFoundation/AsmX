@@ -38,3 +38,8 @@ etc/os/AsmXOS/usr/.history
 
 bin/*
 etc/os/AsmXOS/usr/.history
+
+*.sh
+*.bash
+*.fish
+*.zsh
